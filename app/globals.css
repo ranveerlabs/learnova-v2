@@ -1,26 +1,133 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ---- Learnova design tokens -------------------------------------------
+   Calm, honest, low-pressure. Personality lives in the type and the
+   feedback color semantics; the chrome stays quiet.
+------------------------------------------------------------------------ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --paper: #f6f5f3; /* warm off-white page — deliberately not cream */
+  --surface: #ffffff;
+  --surface-sunk: #f1f0ee;
+  --ink: #201d2b; /* deep warm ink */
+  --ink-soft: #5a5568;
+  --ink-faint: #8b8794;
+  --line: #e4e1dc;
+  --brand: #5a4fcf; /* indigo-violet, actions + focus */
+  --brand-hover: #4a40b8;
+  --on-brand: #ffffff;
+
+  /* feedback semantics — honest, never alarming */
+  --right-fg: #0f7a5a;
+  --right-bg: #e6f4ee;
+  --almost-fg: #9a6410;
+  --almost-bg: #fbf0de;
+  --missed-fg: #55606e;
+  --missed-bg: #edeef0;
+  --wrong-fg: #b03a54;
+  --wrong-bg: #fadfe4;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #131218;
+    --surface: #1b1a22;
+    --surface-sunk: #16151c;
+    --ink: #eae8f0;
+    --ink-soft: #a29fb0;
+    --ink-faint: #6f6c7c;
+    --line: #2c2a35;
+    --brand: #8b82f0;
+    --brand-hover: #9d95f3;
+    --on-brand: #14121b;
+
+    --right-fg: #4fd1a5;
+    --right-bg: #113328;
+    --almost-fg: #e0a94e;
+    --almost-bg: #35270f;
+    --missed-fg: #9aa3b0;
+    --missed-bg: #23242b;
+    --wrong-fg: #f08199;
+    --wrong-bg: #3a1b24;
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-sunk: var(--surface-sunk);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-on-brand: var(--on-brand);
+
+  --color-right-fg: var(--right-fg);
+  --color-right-bg: var(--right-bg);
+  --color-almost-fg: var(--almost-fg);
+  --color-almost-bg: var(--almost-bg);
+  --color-missed-fg: var(--missed-fg);
+  --color-missed-bg: var(--missed-bg);
+  --color-wrong-fg: var(--wrong-fg);
+  --color-wrong-bg: var(--wrong-bg);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-instrument);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Quiet, calm entrance for each phase — disabled under reduced motion. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.45s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+}
+
+/* Thinking indicator — three dots breathing in sequence. */
+@keyframes breathe {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dot {
+  animation: breathe 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .dot {
+    animation: none;
+  }
+}
+
+*:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 3px;
 }

@@ -11,11 +11,11 @@ export class AIError extends Error {
   }
 }
 
-export async function chatJSON<T>(
+async function callModel(
   system: string,
   user: string,
-  isValid: (data: unknown) => data is T
-): Promise<T> {
+  opts: { json: boolean; temperature?: number }
+): Promise<string> {
   const token = process.env.GITHUB_MODELS_TOKEN;
   if (!token || token === "PLACEHOLDER") {
     throw new AIError(
@@ -36,8 +36,8 @@ export async function chatJSON<T>(
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      response_format: { type: "json_object" },
-      temperature: 0.3,
+      ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+      temperature: opts.temperature ?? 0.3,
     }),
   });
 
@@ -55,6 +55,15 @@ export async function chatJSON<T>(
     console.error("GitHub Models API returned no message content:", JSON.stringify(data).slice(0, 2000));
     throw new AIError("The AI returned an empty response. Try again.");
   }
+  return content;
+}
+
+export async function chatJSON<T>(
+  system: string,
+  user: string,
+  isValid: (data: unknown) => data is T
+): Promise<T> {
+  const content = await callModel(system, user, { json: true });
 
   let parsed: unknown;
   try {
@@ -70,6 +79,12 @@ export async function chatJSON<T>(
     throw new AIError("The AI returned an unexpected response format. Try again.");
   }
   return parsed;
+}
+
+/** Plain-text completion — for prose answers that aren't structured data. */
+export async function chatText(system: string, user: string): Promise<string> {
+  const content = await callModel(system, user, { json: false, temperature: 0.4 });
+  return content.trim();
 }
 
 export function isStringArray(v: unknown): v is string[] {
