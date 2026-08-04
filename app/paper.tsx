@@ -1,0 +1,368 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import type { SourceStatus } from "@/lib/source";
+import { useAutoGrow } from "./ui";
+
+/* ═══ The desk ════════════════════════════════════════════════════════════
+   Furniture for the source screen only: a sheet of looseleaf, the tape that
+   holds it down, and the school supplies lying around it.
+
+   The sprites are hand-plotted rather than drawn from an icon set, because a
+   drawn-by-hand pencil is the whole point. Each is a grid of characters and a
+   palette, rendered one rect per pixel with no smoothing, so they stay crisp
+   at any scale and stay editable as pictures rather than as paths.
+
+   Nothing in this file is imported by the explain or result screens. That is
+   the deal: the front door is playful, the marking is not. */
+
+type Sprite = { rows: string[]; palette: Record<string, string> };
+
+const PENCIL: Sprite = {
+  rows: [
+    ".PPPPP.",
+    ".PPPPP.",
+    ".MMMMM.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".YYdYY.",
+    ".WWWWW.",
+    "..WWW..",
+    "..WkW..",
+    "...k...",
+  ],
+  palette: {
+    P: "var(--supply-pink)",
+    M: "var(--supply-metal)",
+    Y: "var(--supply-gold)",
+    d: "#d9a125",
+    W: "var(--supply-wood)",
+    k: "var(--supply-graphite)",
+  },
+};
+
+const STAR: Sprite = {
+  rows: [
+    "....X....",
+    "....X....",
+    "...XXX...",
+    "XXXXXXXXX",
+    ".XXXXXXX.",
+    "..XXXXX..",
+    "..XX.XX..",
+    ".XX...XX.",
+    ".X.....X.",
+  ],
+  palette: { X: "var(--supply-gold)" },
+};
+
+const ERASER: Sprite = {
+  rows: [
+    "..RRRRRRR..",
+    ".RRRRRRRRR.",
+    "RRRRRRRRRRR",
+    "RRWWWWWWWRR",
+    "RRWWWWWWWRR",
+    "RRRRRRRRRRR",
+    ".RRRRRRRRR.",
+    "..RRRRRRR..",
+  ],
+  palette: { R: "var(--supply-pink)", W: "#fdf6ea" },
+};
+
+const CLIP: Sprite = {
+  rows: [
+    ".CCCCC.",
+    "CC...CC",
+    "C.....C",
+    "C.CCC.C",
+    "C.C.C.C",
+    "C.C.C.C",
+    "C.C.C.C",
+    "C.C.C.C",
+    "C.C.C.C",
+    "CCC.C.C",
+    "....C.C",
+    "....CCC",
+  ],
+  palette: { C: "var(--supply-metal)" },
+};
+
+export const SPRITES = { pencil: PENCIL, star: STAR, eraser: ERASER, clip: CLIP };
+
+export function PixelSprite({
+  name,
+  scale = 3,
+  className = "",
+  style,
+  title,
+}: {
+  name: keyof typeof SPRITES;
+  scale?: number;
+  className?: string;
+  style?: React.CSSProperties;
+  title?: string;
+}) {
+  const { rows, palette } = SPRITES[name];
+  const h = rows.length;
+  const w = rows[0].length;
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      width={w * scale}
+      height={h * scale}
+      className={`pixel ${className}`}
+      style={style}
+      role={title ? "img" : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
+    >
+      {rows.flatMap((row, y) =>
+        [...row].map((ch, x) =>
+          palette[ch] ? (
+            <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={palette[ch]} />
+          ) : null
+        )
+      )}
+    </svg>
+  );
+}
+
+/** A torn strip of masking tape, angled and placed by the caller. */
+export function Tape({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+  return <span aria-hidden className={`tape ${className}`} style={style} />;
+}
+
+/** The punched edge of a sheet pulled from a binder. */
+export function PunchHoles() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-y-0 left-[0.9rem] flex flex-col justify-between py-[13%]"
+    >
+      {[0, 1, 2].map((i) => (
+        <span key={i} className="punch" />
+      ))}
+    </span>
+  );
+}
+
+/** True while the value is actively changing, so the pencil can scribble. */
+export function useScribbling(value: string, quietAfter = 480) {
+  const [scribbling, setScribbling] = useState(false);
+
+  useEffect(() => {
+    if (!value) return;
+    setScribbling(true);
+    const t = setTimeout(() => setScribbling(false), quietAfter);
+    return () => clearTimeout(t);
+  }, [value, quietAfter]);
+
+  return scribbling;
+}
+
+/** The sheet you paste onto: punched, taped down, ruled, with a pencil lying
+    across the corner that scribbles while you write.
+
+    The writing surface keeps the same `.leaf` ruling as the rest of the app,
+    so the alignment work holds; only the colours are swapped underneath it,
+    and the left padding is widened to clear the margin rule and the holes. */
+export function Looseleaf({
+  value,
+  onChange,
+  placeholder,
+  minRows = 15,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  minRows?: number;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(ref, value, minRows);
+  const scribbling = useScribbling(value);
+
+  return (
+    <div className="relative pt-3">
+      <div className="sheet drop-in">
+        <PunchHoles />
+        <span aria-hidden className="sheet-margin" />
+
+        <textarea
+          ref={ref}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={minRows}
+          aria-label="Your source material"
+          className="leaf leaf-paper prose-read on-paper relative w-full resize-none overflow-hidden bg-transparent"
+        />
+      </div>
+
+      {/* Held down at the corners. The strips sit above the sheet so they
+          overlap the torn top edge, the way tape actually does. */}
+      <Tape className="left-6 top-0 -rotate-6" />
+      <Tape className="right-10 top-[-0.15rem] rotate-[5deg]" />
+
+      {/* The pencil lies across the corner of the sheet and gets to work when
+          you do. It is the one thing on this screen that reacts to writing. */}
+      <PixelSprite
+        name="pencil"
+        scale={6}
+        title="A pencil, resting on the page"
+        className={`pointer-events-none absolute -right-7 top-8 drop-shadow-[3px_4px_0_rgb(12_16_24/0.3)] ${
+          scribbling ? "scribbling" : "bob"
+        }`}
+        style={{ ["--tilt" as string]: "17deg" }}
+      />
+
+      {/* An eraser left on the desk, clear of the paper rather than on it. */}
+      <PixelSprite
+        name="eraser"
+        scale={4}
+        className="bob pointer-events-none absolute -bottom-7 right-10 drop-shadow-[2px_3px_0_rgb(12_16_24/0.28)]"
+        style={{ ["--tilt" as string]: "-9deg", ["--i" as string]: 2 }}
+      />
+
+      <PixelSprite
+        name="star"
+        scale={3}
+        className="press-on pointer-events-none absolute -left-4 bottom-8"
+        style={{ ["--tilt" as string]: "-14deg", ["--i" as string]: 3 }}
+      />
+    </div>
+  );
+}
+
+/** The three beats of a session, said once, before the first one happens.
+    Numbered because it genuinely is a sequence: you cannot be marked on an
+    explanation you have not written yet. Each sits on its own scrap, tilted
+    a little differently, the way three notes to yourself would end up. */
+export function Steps() {
+  const steps = [
+    { n: "1", word: "paste", said: "your notes, a passage, a chapter", tone: "gold" as const, tilt: "-1.2deg" },
+    { n: "2", word: "explain", said: "each idea, in your own words", tone: "mint" as const, tilt: "0.8deg" },
+    { n: "3", word: "read the marks", said: "checked against your source, word for word", tone: "pink" as const, tilt: "-0.6deg" },
+  ];
+
+  return (
+    <ol className="relative flex flex-col gap-2.5">
+      {steps.map((s, i) => (
+        <li
+          key={s.n}
+          /* Each scrap is set down at its own angle, fixed rather than random
+             so it never jitters between renders. */
+          style={{ ["--i" as string]: i + 2, ["--tilt" as string]: s.tilt }}
+          className="rise stuck relative flex items-center gap-3 rounded-[3px] border-2 border-sheet-ink/80 bg-sheet px-3 py-2.5"
+        >
+          <PixelTag tone={s.tone}>{s.n}</PixelTag>
+          <span className="min-w-0 flex-1">
+            <span className="block font-hand text-[1.25rem] leading-none text-sheet-ink">
+              {s.word}
+            </span>
+            <span className="mt-1 block font-hand text-[1rem] leading-none text-sheet-faint">
+              {s.said}
+            </span>
+          </span>
+
+          {/* The clip holds the first scrap, the way the top one in a stack
+              is the one that actually gets clipped. */}
+          {i === 0 && (
+            <PixelSprite
+              name="clip"
+              scale={3}
+              className="press-on pointer-events-none absolute -right-2 -top-4 drop-shadow-[2px_2px_0_rgb(12_16_24/0.3)]"
+              style={{ ["--tilt" as string]: "16deg", ["--i" as string]: 4 }}
+            />
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** How close the pasted source is to being usable. A highlighter stroke
+    filling a ruled box, rather than a progress bar. */
+export function SourceGauge({ status, minChars }: { status: SourceStatus; minChars: number }) {
+  const pct =
+    status.state === "empty" ? 0 : status.state === "short" ? status.progress * 100 : 100;
+
+  const fill =
+    status.state === "ready"
+      ? "var(--supply-mint)"
+      : status.state === "unreadable"
+        ? "var(--supply-pink)"
+        : "var(--highlight)";
+
+  const said =
+    status.state === "empty"
+      ? `${minChars} characters to get going`
+      : status.state === "short"
+        ? `${status.chars} / ${minChars} characters`
+        : status.state === "unreadable"
+          ? "long enough, but it isn't prose yet"
+          : `ready! ${status.chars} characters`;
+
+  const ink =
+    status.state === "ready"
+      ? "var(--supply-mint)"
+      : status.state === "unreadable"
+        ? "var(--supply-pink)"
+        : undefined;
+
+  return (
+    <div className="flex max-w-[17rem] flex-col gap-2">
+      <div
+        className="h-3 w-full overflow-hidden rounded-[2px] border-2 border-sheet-ink bg-sheet"
+        aria-hidden
+      >
+        <div
+          className="h-full transition-[width,background-color] duration-500 ease-out"
+          style={{ width: `${pct}%`, background: fill }}
+        />
+      </div>
+      <p
+        className="font-pixel text-[0.5625rem] leading-relaxed tracking-tight text-ink-soft"
+        style={ink ? { color: ink } : undefined}
+      >
+        {said}
+      </p>
+    </div>
+  );
+}
+
+/** A small label-maker strip. Used for the eyebrow and for step numbers. */
+export function PixelTag({
+  children,
+  tone = "gold",
+  className = "",
+  style,
+}: {
+  children: React.ReactNode;
+  tone?: "gold" | "mint" | "pink";
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const bg = {
+    gold: "var(--supply-gold)",
+    mint: "var(--supply-mint)",
+    pink: "var(--supply-pink)",
+  }[tone];
+
+  return (
+    <span
+      className={`inline-block rounded-[2px] px-2 py-1 font-pixel text-[0.5625rem] leading-none text-[#22262e] ${className}`}
+      style={{ background: bg, ...style }}
+    >
+      {children}
+    </span>
+  );
+}

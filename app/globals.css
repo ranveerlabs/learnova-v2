@@ -1,133 +1,735 @@
 @import "tailwindcss";
 
-/* ---- Learnova design tokens -------------------------------------------
-   Calm, honest, low-pressure. Personality lives in the type and the
-   feedback color semantics; the chrome stays quiet.
------------------------------------------------------------------------- */
+/* ═══ Learnova: "the blue book and the marking pen" ═══════════════════════
+   Ground is the pale blue-grey of an exam booklet; the writing surface is a
+   ruled near-white page. The chrome is ink and one ink-blue accent. Colour
+   with meaning is reserved entirely for the marks on a student's words, so
+   the marked-up explanation is the loudest thing on any screen.
+
+   Mark hues were chosen with the palette validator, not by eye: green↔bad
+   under deuteranopia went from ΔE 3.2 (the old green/rose pair) to 10.8 by
+   moving "bad" off red and onto magenta-plum. Every mark also carries two
+   non-colour channels, an underline shape and a written label, so nothing
+   here depends on colour vision.
+------------------------------------------------------------------------- */
 
 :root {
-  --paper: #f6f5f3; /* warm off-white page — deliberately not cream */
-  --surface: #ffffff;
-  --surface-sunk: #f1f0ee;
-  --ink: #201d2b; /* deep warm ink */
-  --ink-soft: #5a5568;
-  --ink-faint: #8b8794;
-  --line: #e4e1dc;
-  --brand: #5a4fcf; /* indigo-violet, actions + focus */
-  --brand-hover: #4a40b8;
-  --on-brand: #ffffff;
+  color-scheme: light;
 
-  /* feedback semantics — honest, never alarming */
-  --right-fg: #0f7a5a;
-  --right-bg: #e6f4ee;
-  --almost-fg: #9a6410;
-  --almost-bg: #fbf0de;
-  --missed-fg: #55606e;
-  --missed-bg: #edeef0;
-  --wrong-fg: #b03a54;
-  --wrong-bg: #fadfe4;
+  /* ground */
+  --ground: #edeff4; /* blue-book cover */
+  --page: #fbfcfe; /* the leaf you write on */
+  --sunk: #e4e8ef;
+  --line: #d2d9e4;
+  --line-strong: #b9c2d1;
+
+  /* ink */
+  --ink: #141a26;
+  --ink-soft: #4c5769;
+  --ink-faint: #7d879a;
+
+  /* accent: actions and focus only, never meaning */
+  --accent: #2a3f8f;
+  --accent-hover: #1f3070;
+  --accent-wash: #dfe4f2;
+  --on-accent: #ffffff;
+
+  /* marks: meaning only, never chrome.
+     `mark` draws (rules, rails, glyphs); `ink` sets type; `tint` washes. */
+  --solid-mark: #0c6739;
+  --solid-ink: #0a5730;
+  --solid-tint: #dfeee6;
+
+  --shaky-mark: #ab7509;
+  --shaky-ink: #7a5406;
+  --shaky-tint: #f6ecd8;
+
+  --broken-mark: #b02f86;
+  --broken-ink: #8f2069;
+  --broken-tint: #f9e3f0;
+
+  --gap-mark: #566275;
+  --gap-ink: #3d4757;
+  --gap-tint: #e6e9ef;
+
+  --rule: rgb(20 26 38 / 0.06); /* the ruling on the page */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #131218;
-    --surface: #1b1a22;
-    --surface-sunk: #16151c;
-    --ink: #eae8f0;
-    --ink-soft: #a29fb0;
-    --ink-faint: #6f6c7c;
-    --line: #2c2a35;
-    --brand: #8b82f0;
-    --brand-hover: #9d95f3;
-    --on-brand: #14121b;
+    color-scheme: dark;
 
-    --right-fg: #4fd1a5;
-    --right-bg: #113328;
-    --almost-fg: #e0a94e;
-    --almost-bg: #35270f;
-    --missed-fg: #9aa3b0;
-    --missed-bg: #23242b;
-    --wrong-fg: #f08199;
-    --wrong-bg: #3a1b24;
+    --ground: #10151f;
+    --page: #171d29;
+    --sunk: #131824;
+    --line: #29313f;
+    --line-strong: #3b4557;
+
+    --ink: #e7ebf3;
+    --ink-soft: #9ba6b9;
+    --ink-faint: #6d7889;
+
+    --accent: #8ea6ee;
+    --accent-hover: #a8bbf5;
+    --accent-wash: #232c42;
+    --on-accent: #0e1420;
+
+    /* Dark steps are selected against the dark page, not flipped: marks stay
+       inside the dark lightness band, inks climb for text contrast. */
+    --solid-mark: #12804d;
+    --solid-ink: #56c894;
+    --solid-tint: #10281d;
+
+    --shaky-mark: #bd8a22;
+    --shaky-ink: #dcaa4e;
+    --shaky-tint: #2b2110;
+
+    --broken-mark: #d95ea6;
+    --broken-ink: #ef8fc4;
+    --broken-tint: #2e1526;
+
+    --gap-mark: #6b788d;
+    --gap-ink: #9aa5b8;
+    --gap-tint: #1c2230;
+
+    --rule: rgb(231 235 243 / 0.07);
   }
 }
 
 @theme inline {
-  --color-paper: var(--paper);
-  --color-surface: var(--surface);
-  --color-surface-sunk: var(--surface-sunk);
+  --color-ground: var(--ground);
+  --color-page: var(--page);
+  --color-sunk: var(--sunk);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
-  --color-line: var(--line);
-  --color-brand: var(--brand);
-  --color-brand-hover: var(--brand-hover);
-  --color-on-brand: var(--on-brand);
 
-  --color-right-fg: var(--right-fg);
-  --color-right-bg: var(--right-bg);
-  --color-almost-fg: var(--almost-fg);
-  --color-almost-bg: var(--almost-bg);
-  --color-missed-fg: var(--missed-fg);
-  --color-missed-bg: var(--missed-bg);
-  --color-wrong-fg: var(--wrong-fg);
-  --color-wrong-bg: var(--wrong-bg);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-wash: var(--accent-wash);
+  --color-on-accent: var(--on-accent);
 
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-instrument);
-  --font-mono: var(--font-geist-mono);
+  --color-solid-mark: var(--solid-mark);
+  --color-solid-ink: var(--solid-ink);
+  --color-solid-tint: var(--solid-tint);
+  --color-shaky-mark: var(--shaky-mark);
+  --color-shaky-ink: var(--shaky-ink);
+  --color-shaky-tint: var(--shaky-tint);
+  --color-broken-mark: var(--broken-mark);
+  --color-broken-ink: var(--broken-ink);
+  --color-broken-tint: var(--broken-tint);
+  --color-gap-mark: var(--gap-mark);
+  --color-gap-ink: var(--gap-ink);
+  --color-gap-tint: var(--gap-tint);
+
+  --color-sheet: var(--sheet);
+  --color-sheet-ink: var(--sheet-ink);
+  --color-sheet-faint: var(--sheet-faint);
+  --color-sheet-rule: var(--sheet-rule);
+  --color-sheet-margin: var(--sheet-margin);
+  --color-tape: var(--tape);
+  --color-supply-pink: var(--supply-pink);
+  --color-supply-gold: var(--supply-gold);
+  --color-supply-mint: var(--supply-mint);
+
+  --font-read: var(--font-newsreader);
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-plex-mono);
+  --font-hand: var(--font-hand);
+  --font-pixel: var(--font-pixel);
+}
+
+/* ═══ The desk ════════════════════════════════════════════════════════════
+   These belong to the source screen alone and are deliberately outside the
+   light/dark system: a sheet of paper is the colour of paper under any lamp.
+   In the dark theme that reads as a lit sheet on a dark desk, which is the
+   intent. Nothing here is allowed past the first screen. The moment a
+   student's own words are on display, the marks are the only colour. */
+:root {
+  --sheet: #fdfaf1;
+  --sheet-ink: #22262e;
+  --sheet-faint: #9aa0ab;
+  --sheet-rule: #a9c4e0;
+  --sheet-margin: #e4707f;
+  --sheet-edge: #d9cfba;
+  --tape: rgb(238 226 168 / 0.62);
+  --highlight: #ffe86b;
+
+  --supply-pink: #f08aa4;
+  --supply-gold: #f5c243;
+  --supply-mint: #7cc9a6;
+  --supply-wood: #e8c9a0;
+  --supply-metal: #b9bec9;
+  --supply-graphite: #2b2f38;
 }
 
 body {
-  background: var(--paper);
+  background: var(--ground);
   color: var(--ink);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Quiet, calm entrance for each phase — disabled under reduced motion. */
+::selection {
+  background: var(--accent-wash);
+}
+
+/* A single wash of accent behind the top of the page, so a wide viewport
+   reads as a lit surface rather than as a narrow column adrift on grey. */
+.page-glow {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 40rem;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52rem 24rem at 18% -6rem, var(--accent-wash) 0%, transparent 68%),
+    radial-gradient(38rem 20rem at 88% -10rem, var(--sunk) 0%, transparent 70%);
+  opacity: 0.85;
+}
+
+/* The desk pad the sheet sits on, gridded like a cutting mat so the paper has
+   a surface instead of a void. Scoped to the source screen by the class being
+   applied only on that phase: the marking screens keep their plain ground. */
+.desk-grid {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--ink) 10%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 23px 23px;
+}
+
+/* ── Examined prose ──────────────────────────────────────────────────────
+   The student's words, and the source's. Every number the ruling depends on
+   is declared here, so the two can never drift apart. */
+.prose-read {
+  font-family: var(--font-newsreader), Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: var(--read-leading, 2rem);
+}
+
+/* ── The ruled leaf ──────────────────────────────────────────────────────
+   Booklet ruling: an even grid of rules, with a line of writing centred in
+   the space between each pair of them.
+
+   Three invariants hold this together. Break any one and the writing drifts
+   off the ruling, which is the thing a ruled page must never do.
+
+   1. The rule step IS the prose line-height. Both are --read-leading, so a
+      rule and a line of writing keep step forever.
+
+   2. The ruling is anchored at the top of the leaf and never offset. An
+      offset background tiles: the strip above the offset gets filled by the
+      previous copy of the image, whose rules land wherever the element's
+      height happens to fall modulo the step. That put one rule near the top
+      at an arbitrary distance from its neighbours. Anchored at 0 as a single
+      un-repeated image, every gap is exactly one step.
+
+   3. The ruling is anchored to the CONTENT box, not the padding box. This is
+      what centres the text, and it is worth being precise about why. A browser
+      lays a line of type out by centring the font's content area inside the
+      line box: with leading L and a font whose ascent and descent sum to H,
+      there is (L - H)/2 of space above it and the same below. Newsreader
+      declares 1470/-530 per 2000 units in hhea and OS/2 alike and sets
+      USE_TYPO_METRICS, so H is exactly one em, 17px at this size, leaving
+      7.5px either side inside a 32px line box. The type is therefore already
+      centred in its own line box; the only job left is to make the line boxes
+      and the ruled bands the same bands.
+
+      Anchoring to the content box does that for free, because the first line
+      box also opens at the top of the content box. Anchoring to the padding
+      box instead would only line up when the padding happened to be a whole
+      number of steps, which forced padding-top to 32px and pushed the first
+      line of writing down past an empty ruled row. The padding is now free to
+      be whatever reads well, and the writing still starts at the top. */
+.leaf {
+  --rule-step: var(--read-leading, 2rem);
+  padding: 1.5rem;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--rule-step) - 1px),
+    var(--rule) calc(var(--rule-step) - 1px) var(--rule-step)
+  );
+  background-origin: content-box;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.3s ease,
+    background-color 0.2s ease;
+}
+
+/* Lift on focus, but never at the expense of the focus ring. The ring is
+   left to the global :focus-visible rule. */
+.leaf:focus {
+  border-color: var(--line-strong);
+  box-shadow:
+    0 1px 2px rgb(20 26 38 / 0.04),
+    0 14px 34px -20px rgb(20 26 38 / 0.4);
+}
+
+/* ── Marks on a student's words ──────────────────────────────────────────
+   Three redundant channels per mark: hue, underline shape, and (in the
+   keyed note) a written label. Any one of them carries the meaning alone. */
+.mk {
+  /* Marks must wrap with the prose: a long marked phrase has to break across
+     lines like any other text. Interactive marks are anchors rather than
+     buttons for this reason: Chrome coerces <button> to inline-block. */
+  display: inline;
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
+  border-radius: 2px;
+}
+
+.mk-solid {
+  text-decoration-style: solid;
+  text-decoration-color: var(--solid-mark);
+}
+
+.mk-shaky {
+  text-decoration-style: dotted;
+  text-decoration-color: var(--shaky-mark);
+  background: var(--shaky-tint);
+  box-shadow: 0 0 0 2px var(--shaky-tint);
+}
+
+.mk-broken {
+  text-decoration-style: wavy;
+  text-decoration-color: var(--broken-mark);
+  background: var(--broken-tint);
+  box-shadow: 0 0 0 2px var(--broken-tint);
+}
+
+/* A siglum and its note light together, from either end. */
+.mk-linked {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────
+   One idea, applied everywhere: the page is being written on. Type settles
+   onto the paper, marks are inked across it in reading order, and the notes
+   land in the margin afterwards, the order a marker actually works in.
+   Nothing here loops except the reading indicator, and nothing moves far. */
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.settle {
+  animation: settle 0.4s cubic-bezier(0.2, 0.65, 0.25, 1) both;
+}
+
+/* Staggered arrival within a block. Set --i per child, in reading order. */
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+    transform: translateY(10px);
   }
 }
 
 .rise {
-  animation: rise 0.45s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  animation: rise 0.5s cubic-bezier(0.2, 0.65, 0.25, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
 }
 
-/* Thinking indicator — three dots breathing in sequence. */
-@keyframes breathe {
-  0%,
-  80%,
-  100% {
-    opacity: 0.25;
-    transform: scale(0.85);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1);
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
   }
 }
 
-.dot {
-  animation: breathe 1.4s ease-in-out infinite;
+/* The notes land after the marks they key to, not before them. */
+.note-in {
+  animation: note-in 0.42s cubic-bezier(0.2, 0.65, 0.25, 1) both;
+  animation-delay: calc(440ms + var(--i, 0) * 90ms);
+}
+
+/* The marking pen: each mark inks itself in where it sits, in the order a
+   reader would meet it. The words are legible the whole time; only the
+   marking arrives late, which is exactly what a marked page looks like. */
+@keyframes ink-in {
+  from {
+    text-decoration-color: transparent;
+    background-color: transparent;
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
+
+.ink-in {
+  animation: ink-in 0.5s cubic-bezier(0.3, 0.7, 0.3, 1) both;
+  animation-delay: calc(260ms + var(--i, 0) * 100ms);
+}
+
+/* A siglum arrives with its mark rather than before it. */
+@keyframes siglum-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+.siglum-in {
+  animation: siglum-in 0.3s ease-out both;
+  animation-delay: calc(420ms + var(--i, 0) * 100ms);
+}
+
+/* The check draws itself when a concept is finally demonstrated. */
+@keyframes draw-check {
+  from {
+    stroke-dashoffset: 12;
+  }
+}
+
+.draw-check {
+  stroke-dasharray: 12;
+  animation: draw-check 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both;
+}
+
+/* An underline that sweeps in from the leading edge on focus. */
+.sweep {
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.45s cubic-bezier(0.2, 0.65, 0.25, 1);
+}
+
+.leaf:focus ~ .sweep {
+  transform: scaleX(1);
+}
+
+/* Reading in progress: a rule travelling down the ruling, like a finger
+   moving down a page. Same device as the leaf, not a second idea. */
+@keyframes read-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(8rem);
+  }
+}
+
+.reading-rule {
+  animation: read-down 1.9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* ── The desk: looseleaf, tape, stickers ─────────────────────────────────
+   Everything under here is scoped to the source screen. It is the loudest
+   thing in the app on purpose, and it stops dead at the session boundary. */
+
+/* A sheet of paper, punched and taped down. The tilt is small and fixed
+   rather than random, because a sheet that moves on every render reads as a
+   glitch rather than as a hand having put it down. */
+.sheet {
+  position: relative;
+  background: var(--sheet);
+  border-radius: 2px 2px 3px 3px;
+  box-shadow:
+    0 1px 0 var(--sheet-edge),
+    0 18px 34px -22px rgb(12 16 24 / 0.55),
+    0 2px 8px -4px rgb(12 16 24 / 0.25);
+  transform: rotate(-0.35deg);
+}
+
+/* The torn-off top edge of a pad: a row of small scallops in the desk colour
+   sitting over the sheet, so the paper looks pulled rather than cut. */
+.sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background:
+    radial-gradient(circle at 5px 0, transparent 0 4.5px, var(--sheet) 4.5px) repeat-x;
+  background-size: 10px 5px;
+  pointer-events: none;
+}
+
+/* The red margin, drawn where a ream of looseleaf draws it. */
+.sheet-margin {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2.6rem;
+  width: 1px;
+  background: var(--sheet-margin);
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+/* A punched hole is the desk seen through the paper. What makes it read as a
+   hole rather than a printed dot is the lip: shadow inside the top edge, and
+   a bright rim of paper catching light along the bottom. */
+.punch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 32%,
+    color-mix(in srgb, var(--ground) 62%, #000),
+    color-mix(in srgb, var(--ground) 94%, #000)
+  );
+  /* The ring is the cut edge of the paper itself. Without it the hole reads
+     as a printed dot on any dark desk, because the hole and the desk are the
+     same colour: what says "punched" is the paper's own thickness. */
+  box-shadow:
+    inset 0 2px 2px rgb(0 0 0 / 0.75),
+    0 0 0 1px color-mix(in srgb, var(--sheet) 62%, #8d7f63),
+    0 2px 0 rgb(255 255 255 / 0.9),
+    0 3px 5px -2px rgb(90 76 52 / 0.5);
+}
+
+/* Masking tape: two strips, torn at the ends, holding the sheet to the desk. */
+.tape {
+  position: absolute;
+  width: 6.5rem;
+  height: 1.6rem;
+  background: var(--tape);
+  box-shadow: 0 1px 3px rgb(12 16 24 / 0.22);
+  /* Ragged short edges, the way tape tears off the roll. */
+  clip-path: polygon(
+    3% 0%, 97% 4%, 100% 22%, 96% 48%, 99% 74%, 95% 100%,
+    5% 96%, 1% 72%, 4% 46%, 0% 24%
+  );
+}
+
+.tape::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.22) 0 2px,
+    transparent 2px 6px
+  );
+}
+
+/* Anything stuck to the desk: scraps, sticker buttons, badges.
+
+   The resting angle travels in --tilt rather than in a transform, so hover
+   and press can compose with it. Set it as a transform and the inline style
+   would outrank every state rule here, and nothing would move. */
+.stuck {
+  transform: rotate(var(--tilt, 0deg));
+  box-shadow: 3px 3px 0 var(--sheet-edge);
+  transition:
+    transform 0.16s cubic-bezier(0.2, 0.65, 0.25, 1),
+    box-shadow 0.16s ease;
+}
+
+.stuck:hover:not(:disabled) {
+  transform: translate(-1px, -2px) rotate(calc(var(--tilt, 0deg) + 0.7deg));
+  box-shadow: 6px 6px 0 var(--sheet-edge);
+}
+
+/* The arrow leans where it takes you. `.btn` does this too, but a sticker is
+   not a `.btn`: its hover transform carries a tilt that `.btn` would flatten. */
+.stuck .arrow {
+  display: inline-block;
+  transition: transform 0.25s cubic-bezier(0.2, 0.65, 0.25, 1);
+}
+
+.stuck:hover:not(:disabled) .arrow {
+  transform: translateX(3px);
+}
+
+/* A sticker you can actually press. */
+.sticker:active:not(:disabled) {
+  transform: translate(2px, 2px) rotate(var(--tilt, 0deg));
+  box-shadow: 0 0 0 var(--sheet-edge);
+  transition-duration: 0.04s;
+}
+
+/* Pixel art must never be smoothed, at any scale. */
+.pixel {
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}
+
+/* Sprites sit on a desk, so they are never quite straight, and they breathe. */
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(var(--tilt, 0deg)); }
+  50% { transform: translateY(-3px) rotate(calc(var(--tilt, 0deg) + 1.5deg)); }
+}
+
+.bob {
+  animation: bob 4.5s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 700ms);
+}
+
+/* The pencil scribbles while there is writing happening under it. */
+@keyframes scribble {
+  0%, 100% { transform: translate(0, 0) rotate(var(--tilt, 0deg)); }
+  25% { transform: translate(-1px, 2px) rotate(calc(var(--tilt, 0deg) - 4deg)); }
+  50% { transform: translate(1px, -1px) rotate(calc(var(--tilt, 0deg) + 3deg)); }
+  75% { transform: translate(-1px, 1px) rotate(calc(var(--tilt, 0deg) - 2deg)); }
+}
+
+.scribbling {
+  animation: scribble 0.32s linear infinite;
+}
+
+/* Stickers land with a small overshoot, the way a sticker is pressed down. */
+@keyframes press-on {
+  0% { opacity: 0; transform: scale(0.4) rotate(var(--tilt, 0deg)); }
+  70% { opacity: 1; transform: scale(1.12) rotate(var(--tilt, 0deg)); }
+  100% { opacity: 1; transform: scale(1) rotate(var(--tilt, 0deg)); }
+}
+
+.press-on {
+  animation: press-on 0.42s cubic-bezier(0.3, 1.3, 0.5, 1) both;
+  animation-delay: calc(240ms + var(--i, 0) * 110ms);
+}
+
+/* The writing surface on the sheet: the app's ruling, in paper colours, with
+   the left margin widened to clear the red rule and the punched holes. */
+.leaf-paper {
+  --rule: color-mix(in srgb, var(--sheet-rule) 78%, transparent);
+  padding: 1.25rem 1.5rem 2rem 3.4rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  /* Run the rules the full width of the sheet without disturbing where they
+     sit vertically: only the horizontal size and offset change. */
+  background-size: calc(100% + 4.9rem) 100%;
+  background-position: -3.4rem 0;
+}
+
+.leaf-paper:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+/* The sheet arrives as if set down on the desk. */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) rotate(1.4deg);
+  }
+}
+
+.drop-in {
+  animation: drop-in 0.55s cubic-bezier(0.2, 0.75, 0.3, 1) both;
+}
+
+/* Writing on paper is dark on light whatever the theme is doing. */
+.on-paper {
+  color: var(--sheet-ink);
+}
+
+.on-paper::selection,
+.on-paper ::selection {
+  background: var(--highlight);
+  color: var(--sheet-ink);
+}
+
+.on-paper::placeholder {
+  color: var(--sheet-faint);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise,
-  .dot {
+  .bob,
+  .scribbling,
+  .press-on,
+  .drop-in,
+  .fill-up {
     animation: none;
+  }
+
+  /* The resting tilt stays. A scrap lying at an angle is a static design
+     choice, not motion, and flattening it here would quietly hand reduced
+     motion users a different, blander page. Only the movement stops. */
+  .stuck {
+    transition-duration: 0.01ms;
+  }
+
+  .stuck:hover:not(:disabled),
+  .sticker:active:not(:disabled) {
+    transform: rotate(var(--tilt, 0deg));
+  }
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────
+   Buttons acknowledge the press. The arrow leans in the direction it takes
+   you; nothing bounces. */
+.btn {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.25s ease,
+    transform 0.12s ease;
+}
+
+.btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.btn:not(:disabled):active {
+  transform: translateY(0);
+  transition-duration: 0.05s;
+}
+
+.btn .arrow {
+  transition: transform 0.25s cubic-bezier(0.2, 0.65, 0.25, 1);
+}
+
+.btn:not(:disabled):hover .arrow {
+  transform: translateX(3px);
+}
+
+/* Anything that should register a pointer without moving the page around. */
+.lift {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease;
+}
+
+.lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -18px rgb(20 26 38 / 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settle,
+  .rise,
+  .note-in,
+  .ink-in,
+  .siglum-in,
+  .draw-check,
+  .reading-rule {
+    animation: none;
+  }
+
+  /* The sweep keeps its resting scaleX(0): it is a focus indicator, not a
+     decoration, so under reduced motion it must still appear only on focus.
+     Pinning it open here drew a permanent accent rule under every leaf. */
+  .btn,
+  .btn .arrow,
+  .lift,
+  .sweep {
+    transition-duration: 0.01ms;
+  }
+
+  .btn:not(:disabled):hover,
+  .lift:hover {
+    transform: none;
   }
 }
 
 *:focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 3px;
+  border-radius: 2px;
 }

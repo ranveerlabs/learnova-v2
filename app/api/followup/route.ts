@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { AIError, chatText } from "@/lib/ai";
 
-// TODO: prompt-injection hardening — the question and feedback are untrusted input.
+// TODO: prompt-injection hardening: the question and feedback are untrusted input.
 // TODO: per-user abuse/rate limits before exposing beyond local use.
 
 const SYSTEM = `You are a study assistant inside a Teach-Back session. The student just tried to explain a concept in their own words and received feedback. They can ask you a follow-up question about that feedback.

@@ -19,18 +19,20 @@ export type Grade = {
   outcome: Outcome;
 };
 
-const SYSTEM = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Dissect their explanation phrase by phrase against the provided source material ONLY — not against your own knowledge of the topic.
+const SYSTEM = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Dissect their explanation phrase by phrase against the provided source material ONLY, not against your own knowledge of the topic.
+
+Do not use em dashes anywhere in your output. Use commas, colons or separate sentences instead.
 
 The point of this app is that students can't tell the difference between familiarity and real understanding, so be honest about gaps. But honest is not the same as harsh: address the student directly as "you", give credit for correct ideas even when the wording is loose or informal, and never be demoralizing. Judge the substance of what they mean, not whether they used the source's exact phrasing.
 
-- "annotations": an array that dissects the notable parts of the student's explanation. Each annotation QUOTES a span of the student's own words VERBATIM — copy the exact characters as they wrote them (same wording, spelling, punctuation) so the span can be found in their text. Keep each quote short: a phrase or clause, not the whole answer. Do not let quoted spans overlap. Classify each:
+- "annotations": an array that dissects the notable parts of the student's explanation. Each annotation QUOTES a span of the student's own words VERBATIM: copy the exact characters as they wrote them (same wording, spelling, punctuation) so the span can be found in their text. Keep each quote short: a phrase or clause, not the whole answer. Do not let quoted spans overlap. Classify each:
   - type "right": the span correctly conveys a point from the source. Loose or informal wording is fine if the meaning is right. Leave "comment" and "sourceQuote" empty.
   - type "imprecise": the span is on the right track but vague, incomplete, or slightly off. In "comment", say specifically and briefly what the source states.
   - type "wrong": the span contradicts the source or is factually incorrect. In "comment", say what the source actually claims. Never downgrade a genuinely wrong statement to "imprecise", and never mark something "right" to be kind.
-- For every "imprecise" and "wrong" annotation, also fill "sourceQuote": a span copied VERBATIM from the source material — the exact characters, word for word — that backs up your comment. Do not paraphrase in "sourceQuote"; it must be a literal substring of the source. If no single span of the source supports the point, leave "sourceQuote" empty rather than inventing one.
-- "missed": important points from the source the student left out entirely. These are not in their text, so they have no quote — just state each missing point.
+- For every "imprecise" and "wrong" annotation, also fill "sourceQuote": a span copied VERBATIM from the source material, the exact characters word for word, that backs up your comment. Do not paraphrase in "sourceQuote"; it must be a literal substring of the source. If no single span of the source supports the point, leave "sourceQuote" empty rather than inventing one.
+- "missed": important points from the source the student left out entirely. These are not in their text, so they have no quote; just state each missing point.
 - "verdict": one or two honest, encouraging sentences, written to "you", summarizing where you stand and what to shore up next.
-- "outcome": your overall call on this attempt. "solid" means the explanation demonstrates real understanding: the concept's key points are there and nothing important is wrong. "shaky" means right direction, but meaningful gaps or imprecision remain. "not-yet" means the explanation misses most of the substance or contains significant errors. Never grade "solid" out of kindness — solid means demonstrated, and a generous "solid" cheats the student out of knowing what they don't know.
+- "outcome": your overall call on this attempt. "solid" means the explanation demonstrates real understanding: the concept's key points are there and nothing important is wrong. "shaky" means right direction, but meaningful gaps or imprecision remain. "not-yet" means the explanation misses most of the substance or contains significant errors. Never grade "solid" out of kindness. Solid means demonstrated, and a generous "solid" cheats the student out of knowing what they don't know.
 
 Respond with JSON exactly in this shape:
 {"annotations": [{"quote": "...", "type": "right" | "imprecise" | "wrong", "comment": "...", "sourceQuote": "..."}], "missed": ["..."], "verdict": "...", "outcome": "solid" | "shaky" | "not-yet"}`;
@@ -56,13 +58,29 @@ function flatten(s: string): string {
     .toLowerCase();
 }
 
+/** The same, with whitespace removed entirely.
+
+    Pasted notes are often run together, with no space where a sentence ends
+    and the next heading begins ("...nitrogen.Pressure: 92 times..."). Asked to
+    quote verbatim, a model will faithfully copy the words and quietly insert
+    the space that ought to be there. Collapsing runs of whitespace does not
+    help, because the source has no run to collapse: the citation is real but
+    fails a literal substring test. Ignoring whitespace on both sides settles
+    it. This only ever admits a quote whose characters are all present in the
+    source in order, so it cannot let a fabricated citation through. */
+function deflate(s: string): string {
+  return flatten(s).replace(/\s+/g, "");
+}
+
 /** Drop any sourceQuote that isn't actually present in the pasted source, so
     citations can never be fabricated or hallucinated. */
 function verifyCitations(grade: Grade, source: string): Grade {
   const haystack = flatten(source);
+  const tight = deflate(source);
   let dropped = 0;
   const annotations = grade.annotations.map((a) => {
-    if (a.sourceQuote && !haystack.includes(flatten(a.sourceQuote))) {
+    if (a.sourceQuote && !haystack.includes(flatten(a.sourceQuote)) &&
+        !tight.includes(deflate(a.sourceQuote))) {
       dropped++;
       return { ...a, sourceQuote: "" };
     }
