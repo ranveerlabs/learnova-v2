@@ -1,6 +1,6 @@
 // Server-side only. GITHUB_MODELS_TOKEN must never be imported into client code.
 // TODO: add auth and per-user abuse/rate limits before exposing this beyond local use.
-// TODO: prompt-injection hardening — source material is untrusted input fed straight into prompts.
+// TODO: prompt-injection hardening: source material is untrusted input fed straight into prompts.
 const ENDPOINT = "https://models.github.ai/inference/chat/completions";
 const MODEL = process.env.GITHUB_MODELS_MODEL ?? "openai/gpt-4o-mini";
 
@@ -42,11 +42,22 @@ async function callModel(
   });
 
   if (!res.ok) {
-    console.error(`GitHub Models API error ${res.status} (model ${MODEL}):`, await res.text());
+    const detail = await res.text();
+    console.error(`GitHub Models API error ${res.status} (model ${MODEL}):`, detail);
+
     if (res.status === 429) {
-      throw new AIError("The AI service is rate-limited right now — try again in a moment.", 429);
+      throw new AIError("The AI service is rate-limited right now, try again in a moment.", 429);
     }
-    throw new AIError("The AI service returned an error. Try again.");
+    /* 410 is the provider telling us it is going away. Saying "try again" to
+       that sends people round a loop that cannot succeed, and hides a
+       configuration problem behind what looks like a transient blip. */
+    if (res.status === 410 || /retirement|brownout|deprecat/i.test(detail)) {
+      throw new AIError(
+        "The configured AI provider (GitHub Models) is being retired and is refusing requests. This is not a problem with your notes, and retrying will not help: the app needs to be pointed at a different provider.",
+        503
+      );
+    }
+    throw new AIError(`The AI service returned an error (HTTP ${res.status}). Try again.`);
   }
 
   const data = await res.json();
@@ -81,7 +92,7 @@ export async function chatJSON<T>(
   return parsed;
 }
 
-/** Plain-text completion — for prose answers that aren't structured data. */
+/** Plain-text completion, for prose answers that aren't structured data. */
 export async function chatText(system: string, user: string): Promise<string> {
   const content = await callModel(system, user, { json: false, temperature: 0.4 });
   return content.trim();

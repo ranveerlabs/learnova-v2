@@ -3,19 +3,33 @@
 import { useMemo, useState } from "react";
 import type { Concept } from "./api/concepts/route";
 import type { Annotation, Grade, Outcome } from "./api/grade/route";
+import { MIN_SOURCE_CHARS, sourceProblem, sourceStatus } from "@/lib/source";
+import { postJSON } from "./client";
+import { MarginNotes, MarkedUpText, useDissection } from "./dissection";
+import { Followups } from "./followups";
+import { Looseleaf, PixelSprite, PixelTag, SourceGauge, Steps } from "./paper";
 import {
+  Arrow,
   Ask,
-  Eyebrow,
   GhostButton,
+  type ItemStatus,
+  Label,
+  Leaf,
+  Notice,
   PrimaryButton,
-  Progress,
-  Thinking,
+  Reading,
+  SessionIndex,
+  SessionProgress,
+  StatusGlyph,
   Wordmark,
 } from "./ui";
 
-type Phase = "source" | "explain" | "result" | "done";
+/* One shell measurement, used by the header and the body so the wordmark sits
+   over the column it belongs to. Wide enough to use a laptop screen; the
+   measure of anything being *read* is capped separately, per block. */
+const SHELL = "mx-auto w-full max-w-[96rem] px-6 lg:px-10 xl:px-14";
 
-type ItemStatus = "pending" | "resurfacing" | "demonstrated" | "set-aside";
+type Phase = "source" | "explain" | "result" | "done";
 
 type Attempt = { explanation: string; grade: Grade };
 
@@ -27,21 +41,8 @@ type SessionItem = {
 };
 
 /* After this many attempts without a solid, the student may set the
-   concept aside — it ends the loop honestly instead of punishing them. */
+   concept aside, which ends the loop honestly instead of punishing them. */
 const SET_ASIDE_AFTER = 3;
-
-async function postJSON<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    throw new Error(data?.error ?? "Something went wrong. Try again.");
-  }
-  return data as T;
-}
 
 export default function Home() {
   const [phase, setPhase] = useState<Phase>("source");
@@ -57,6 +58,14 @@ export default function Home() {
   const lastAttempt = current?.attempts[current.attempts.length - 1];
 
   async function startSession() {
+    /* Nothing goes to the model until there is something to read. A word or
+       two would still come back as confident concepts, about nothing the
+       student pasted, so this is a floor, not a formality. */
+    const problem = sourceProblem(source);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -81,7 +90,7 @@ export default function Home() {
     try {
       const grade = await postJSON<Grade>("/api/grade", {
         source,
-        concept: `${current.concept.name} — ${current.concept.prompt}`,
+        concept: `${current.concept.name}: ${current.concept.prompt}`,
         explanation: submitted,
       });
       setItems((prev) =>
@@ -141,666 +150,527 @@ export default function Home() {
   const othersWaiting = queue.length > 1;
   const demonstrated = items.filter((i) => i.status === "demonstrated");
   const setAside = items.filter((i) => i.status === "set-aside");
+  const settled = demonstrated.length + setAside.length;
+  const progress = items.length > 0 ? settled / items.length : 0;
+  /* Reads the whole source, and the source phase re-renders on every
+     keystroke, so measure once per change rather than once per render. */
+  const status = useMemo(() => sourceStatus(source), [source]);
+
+  /* The source screen keeps its own error beside the button that caused it;
+     everywhere else the notice sits at the head of the column. */
+  function editSource(v: string) {
+    setSource(v);
+    if (error) setError(null);
+  }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-line/70">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 py-4">
+    <div
+      className={`relative z-10 flex min-h-full flex-1 flex-col ${
+        /* The desk is the front door's alone. Once there is work to mark, the
+           background goes back to being plain ground. */
+        phase === "source" ? "desk-grid" : ""
+      }`}
+    >
+      <header className="sticky top-0 z-30 border-b border-line bg-ground/85 backdrop-blur-md">
+        <div className={`${SHELL} flex items-center justify-between gap-6 py-4`}>
           <Wordmark />
-          {inSession && items.length > 0 && (
-            <Progress
-              segments={items.map((i) => ({ status: i.status, returns: i.returns }))}
-              current={currentIdx}
-            />
+          {items.length > 0 && (
+            <SessionProgress done={demonstrated.length} total={items.length} />
           )}
         </div>
+        {/* The session's progress, drawn as a rule along the foot of the
+            header, the same gesture as a marked line, at page scale. */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 -bottom-px h-[2px] origin-left bg-accent transition-transform duration-700 ease-out"
+          style={{ transform: `scaleX(${progress})` }}
+        />
       </header>
 
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-12 sm:py-16">
-        {error && (
-          <p
-            role="alert"
-            className="mb-8 rounded-lg border border-wrong-fg/25 bg-wrong-bg px-4 py-3 text-sm text-wrong-fg"
-          >
-            {error}
-          </p>
-        )}
-
-        {/* ---- Source ------------------------------------------------ */}
-        {phase === "source" && !loading && (
-          <section className="rise flex flex-col gap-5">
-            <Eyebrow>Start</Eyebrow>
-            <Ask>What are you studying?</Ask>
-            <p className="max-w-prose text-[0.95rem] leading-relaxed text-ink-soft">
-              Paste your notes or a passage. Learnova finds the concepts worth testing, then asks
-              you to explain each one in your own words — and shows you where familiarity ends and
-              real understanding begins.
-            </p>
-            <textarea
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              placeholder="Paste notes, a textbook passage, an article…"
-              rows={12}
-              className="w-full resize-y rounded-xl border border-line bg-surface p-4 text-[0.95rem] leading-relaxed text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
+      <div
+        className={`${SHELL} flex-1 py-10 lg:py-14 ${
+          inSession
+            ? "grid gap-y-10 lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-x-12 xl:grid-cols-[15rem_minmax(0,1fr)] xl:gap-x-16"
+            : ""
+        }`}
+      >
+        {inSession && items.length > 0 && (
+          <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+            <SessionIndex
+              items={items.map((i) => ({
+                name: i.concept.name,
+                status: i.status,
+                returns: i.returns,
+                attempts: i.attempts.length,
+              }))}
+              current={currentIdx}
             />
-            <PrimaryButton onClick={startSession} disabled={!source.trim()}>
-              Find the concepts <span aria-hidden>→</span>
-            </PrimaryButton>
-          </section>
+          </aside>
         )}
 
-        {phase === "source" && loading && (
-          <Thinking title="Reading your material" sub="Finding the ideas worth testing." />
-        )}
-
-        {/* ---- Explain ---------------------------------------------- */}
-        {phase === "explain" && current && !loading && (
-          <section className="rise flex flex-col gap-5">
-            <Eyebrow>
-              {current.concept.name}
-              {attemptNo > 1 && ` · attempt ${attemptNo}`}
-            </Eyebrow>
-            <Ask>{current.concept.prompt}</Ask>
-
-            {lastAttempt && (
-              <details className="group rounded-xl border border-line bg-surface-sunk px-4 py-3">
-                <summary className="cursor-pointer list-none text-sm font-medium text-ink-soft transition-colors hover:text-ink">
-                  <span
-                    className="mr-1.5 inline-block transition-transform group-open:rotate-90"
-                    aria-hidden
-                  >
-                    ›
-                  </span>
-                  What last attempt flagged
-                </summary>
-                <div className="mt-3 flex flex-col gap-3">
-                  <FeedbackBand
-                    label="Flagged"
-                    items={flaggedList(lastAttempt.grade.annotations)}
-                    empty="Nothing was flagged last time."
-                    tone="wrong"
-                  />
-                  <FeedbackBand
-                    label="Missed"
-                    items={lastAttempt.grade.missed}
-                    empty="Nothing was missing last time."
-                    tone="missed"
-                  />
-                </div>
-              </details>
-            )}
-
-            <textarea
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              placeholder={
-                attemptNo > 1
-                  ? "Explain it again, fresh — aim to cover what was flagged last time…"
-                  : "Explain it in your own words, as if teaching someone who hasn't read the material…"
-              }
-              rows={9}
-              autoFocus
-              className="w-full resize-y rounded-xl border border-line bg-surface p-4 text-[0.95rem] leading-relaxed text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
-            />
-            <PrimaryButton onClick={submitExplanation} disabled={!explanation.trim()}>
-              Check my understanding <span aria-hidden>→</span>
-            </PrimaryButton>
-          </section>
-        )}
-
-        {phase === "explain" && loading && (
-          <Thinking
-            title="Reading your explanation"
-            sub="Checking it against the source — line by line."
-          />
-        )}
-
-        {/* ---- Result (dissection) ---------------------------------- */}
-        {phase === "result" && current && lastAttempt && (
-          <section className="rise flex flex-col gap-6">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3">
-                <Eyebrow>
-                  {current.concept.name}
-                  {current.attempts.length > 1 && ` · attempt ${current.attempts.length}`}
-                </Eyebrow>
-                <OutcomeChip outcome={lastAttempt.grade.outcome} />
-              </div>
-              <p className="font-display text-lg italic leading-snug text-ink">
-                {lastAttempt.grade.verdict}
-              </p>
+        <main className="min-w-0">
+          {error && phase !== "source" && (
+            <div className="mb-8">
+              <Notice>{error}</Notice>
             </div>
+          )}
 
-            <Dissection
-              text={lastAttempt.explanation}
-              annotations={lastAttempt.grade.annotations}
-            />
-
-            <FeedbackBand
-              label="You left out"
-              items={lastAttempt.grade.missed}
-              empty="You covered the source's key points — nothing important was left out."
-              tone="missed"
-            />
-
-            <Followups
-              key={`${currentIdx}-${current.attempts.length}`}
-              source={source}
-              concept={`${current.concept.name} — ${current.concept.prompt}`}
-              explanation={lastAttempt.explanation}
-              feedback={feedbackSummary(lastAttempt.grade)}
-            />
-
-            {lastAttempt.grade.outcome === "solid" ? (
-              <PrimaryButton onClick={() => finishCurrent("demonstrated")}>
-                {othersWaiting ? (
-                  <>
-                    Next concept <span aria-hidden>→</span>
-                  </>
-                ) : (
-                  "Finish session"
-                )}
-              </PrimaryButton>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <p className="text-sm text-ink-soft">
-                  A concept counts when you can explain it, not when you&apos;ve seen it. Take
-                  another run now{othersWaiting ? ", or let it come back around later" : ""}.
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <PrimaryButton onClick={retryNow}>Try again now</PrimaryButton>
-                  {othersWaiting && current.attempts.length < SET_ASIDE_AFTER && (
-                    <GhostButton onClick={comeBackLater}>Come back to this later</GhostButton>
-                  )}
-                  {(current.attempts.length >= SET_ASIDE_AFTER || !othersWaiting) && (
-                    <GhostButton onClick={() => finishCurrent("set-aside")}>
-                      Set it aside for today
-                    </GhostButton>
-                  )}
+          {/* ── Source ─────────────────────────────────────────────────
+              The front door, and the only screen in the app allowed to have
+              a personality. A desk: notes on the left, a sheet of looseleaf
+              on the right, supplies lying around. The rail is sticky, so the
+              primary action stays on screen however long the source runs. */}
+          {phase === "source" && !loading && (
+            <section className="grid gap-x-16 gap-y-12 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] xl:gap-x-24">
+              <div className="flex flex-col gap-7 lg:sticky lg:top-24 lg:self-start">
+                <div className="rise flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <PixelTag className="press-on -rotate-2">start here</PixelTag>
+                    <PixelSprite
+                      name="star"
+                      scale={2}
+                      className="press-on"
+                      style={{ ["--tilt" as string]: "12deg", ["--i" as string]: 1 }}
+                    />
+                  </div>
+                  <h2 className="font-hand text-[clamp(2.5rem,1.6rem+3.2vw,3.75rem)] leading-[0.95] tracking-tight text-ink">
+                    What are you
+                    <br />
+                    studying?
+                  </h2>
+                  <p className="max-w-[34ch] font-hand text-[1.375rem] leading-[1.35] text-ink-soft">
+                    Paste your notes. Learnova finds the ideas worth testing, asks you to explain
+                    each one in your own words, then marks what you wrote against your source.
+                  </p>
                 </div>
-              </div>
-            )}
-          </section>
-        )}
 
-        {/* ---- Done ------------------------------------------------- */}
-        {phase === "done" && (
-          <section className="rise flex flex-col gap-6">
-            <div className="flex flex-col gap-3">
-              <Eyebrow>Session complete</Eyebrow>
-              <Ask>
-                {setAside.length === 0
-                  ? "Every concept, demonstrated."
-                  : "Here's where you actually stand."}
-              </Ask>
-              <p className="max-w-prose text-[0.95rem] leading-relaxed text-ink-soft">
-                {setAside.length === 0
-                  ? `You explained ${demonstrated.length} concept${
-                      demonstrated.length === 1 ? "" : "s"
-                    } well enough to count — not just recognized ${
-                      demonstrated.length === 1 ? "it" : "them"
-                    }, explained ${demonstrated.length === 1 ? "it" : "them"}.`
-                  : "Demonstrated means you explained it and the explanation held up. Set aside means it's still open — a good place to start next time."}
-              </p>
-            </div>
+                <Steps />
 
-            <ul className="flex flex-col gap-2">
-              {items.map((item, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface px-4 py-3"
-                >
-                  <span className="text-[0.95rem] font-medium text-ink">{item.concept.name}</span>
-                  <span className="flex shrink-0 items-center gap-3">
-                    <span className="font-mono text-[0.7rem] tracking-wide text-ink-faint">
-                      {item.attempts.length}{" "}
-                      {item.attempts.length === 1 ? "attempt" : "attempts"}
-                    </span>
-                    {item.status === "demonstrated" ? (
-                      <span className="rounded-full bg-right-bg px-2.5 py-1 font-mono text-[0.65rem] font-medium uppercase tracking-[0.12em] text-right-fg">
-                        Demonstrated
+                <div className="rise flex flex-col gap-4" style={{ ["--i" as string]: 5 }}>
+                  <div className="flex flex-col gap-3.5">
+                    <button
+                      onClick={startSession}
+                      disabled={!source.trim()}
+                      style={{ ["--tilt" as string]: "-1.4deg" }}
+                      className="stuck sticker inline-flex items-center gap-2 self-start rounded-[3px] border-[2.5px] border-sheet-ink bg-supply-gold px-5 py-3 font-pixel text-[0.75rem] leading-none text-[#22262e] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
+                    >
+                      find the concepts
+                      <span aria-hidden className="arrow">
+                        →
                       </span>
-                    ) : (
-                      <span className="rounded-full bg-missed-bg px-2.5 py-1 font-mono text-[0.65rem] font-medium uppercase tracking-[0.12em] text-missed-fg">
-                        Set aside
+                    </button>
+                    <SourceGauge status={status} minChars={MIN_SOURCE_CHARS} />
+                  </div>
+                  {error && <Notice>{error}</Notice>}
+                </div>
+              </div>
+
+              <div className="rise min-w-0" style={{ ["--i" as string]: 1 }}>
+                <Looseleaf
+                  value={source}
+                  onChange={editSource}
+                  placeholder="Paste notes, a textbook passage, an article…"
+                  minRows={18}
+                />
+              </div>
+            </section>
+          )}
+
+          {phase === "source" && loading && (
+            <Reading title="Reading your material" sub="Picking out the ideas worth testing." />
+          )}
+
+          {/* ── Explain ─────────────────────────────────────────────────
+              Same shape as the source screen: what's being asked stays put on
+              the left with the action under it, and the writing surface gets
+              the width. */}
+          {phase === "explain" && current && !loading && (
+            <section className="grid gap-x-14 gap-y-8 xl:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
+              <div className="flex flex-col gap-6 xl:sticky xl:top-24 xl:self-start">
+                <div className="rise flex flex-col gap-5">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <Label>{current.concept.name}</Label>
+                    {attemptNo > 1 && (
+                      <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
+                        attempt {attemptNo}
                       </span>
                     )}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  </div>
+                  <Ask>{current.concept.prompt}</Ask>
+                </div>
 
-            <GhostButton onClick={reset}>Start a new session</GhostButton>
-          </section>
-        )}
-      </main>
+                {lastAttempt && (
+                  <div className="rise" style={{ ["--i" as string]: 1 }}>
+                    <PriorMarks grade={lastAttempt.grade} />
+                  </div>
+                )}
+
+                <div className="rise" style={{ ["--i" as string]: 2 }}>
+                  <PrimaryButton onClick={submitExplanation} disabled={!explanation.trim()}>
+                    Mark my explanation <Arrow />
+                  </PrimaryButton>
+                </div>
+              </div>
+
+              <div className="rise min-w-0" style={{ ["--i" as string]: 1 }}>
+                <Leaf
+                  value={explanation}
+                  onChange={setExplanation}
+                  autoFocus
+                  minRows={13}
+                  placeholder={
+                    attemptNo > 1
+                      ? "Explain it again, fresh. Aim to cover what was marked last time…"
+                      : "Explain it in your own words, as if teaching someone who hasn't read the material…"
+                  }
+                />
+              </div>
+            </section>
+          )}
+
+          {phase === "explain" && loading && (
+            <Reading
+              title="Reading your explanation"
+              sub="Checking it against your source, phrase by phrase."
+            />
+          )}
+
+          {/* ── Result ─────────────────────────────────────────────── */}
+          {phase === "result" && current && lastAttempt && (
+            <Result
+              key={`${currentIdx}-${current.attempts.length}`}
+              item={current}
+              attempt={lastAttempt}
+              source={source}
+              othersWaiting={othersWaiting}
+              onDemonstrated={() => finishCurrent("demonstrated")}
+              onSetAside={() => finishCurrent("set-aside")}
+              onRetry={retryNow}
+              onComeBack={comeBackLater}
+            />
+          )}
+
+          {/* ── Done ───────────────────────────────────────────────── */}
+          {phase === "done" && (
+            <section className="grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] xl:gap-x-20">
+              <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
+                <div className="rise flex flex-col gap-4">
+                  <Label>Session complete</Label>
+                  <Ask>
+                    {setAside.length === 0
+                      ? "Every concept, demonstrated."
+                      : "Here's where you actually stand."}
+                  </Ask>
+                  <p className="font-sans text-[0.9375rem] leading-[1.65] text-ink-soft">
+                    {setAside.length === 0
+                      ? `You explained ${demonstrated.length} concept${
+                          demonstrated.length === 1 ? "" : "s"
+                        } well enough to count. Not recognised, explained.`
+                      : "Demonstrated means you explained it and the explanation held up. Set aside means it's still open, and it's the place to start next time."}
+                  </p>
+                </div>
+                <div className="rise" style={{ ["--i" as string]: 1 }}>
+                  <GhostButton onClick={reset}>Start a new session</GhostButton>
+                </div>
+              </div>
+
+              <div className="rise flex min-w-0 flex-col gap-2" style={{ ["--i" as string]: 1 }}>
+                <div className="flex items-baseline justify-between gap-4">
+                  <Label>The record</Label>
+                  <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
+                    {demonstrated.length} demonstrated
+                    {setAside.length > 0 && ` · ${setAside.length} set aside`}
+                  </span>
+                </div>
+                <ol className="divide-y divide-line overflow-hidden rounded-[3px] border border-line bg-page">
+                  {items.map((item, i) => (
+                    <li
+                      key={i}
+                      style={{ ["--i" as string]: i + 2 }}
+                      className="rise flex items-center gap-3 px-4 py-3 transition-colors hover:bg-sunk/50"
+                    >
+                      <StatusGlyph status={item.status} />
+                      <span className="min-w-0 flex-1 font-read text-[1rem] leading-snug text-ink">
+                        {item.concept.name}
+                      </span>
+                      <span className="w-[5.5rem] shrink-0 text-right font-mono text-[0.6875rem] tabular-nums text-ink-faint">
+                        {item.attempts.length}{" "}
+                        {item.attempts.length === 1 ? "attempt" : "attempts"}
+                      </span>
+                      <span
+                        className="w-[2.25rem] shrink-0 text-right font-mono text-[0.6875rem] tabular-nums text-ink-faint"
+                        title={
+                          item.returns > 0
+                            ? `Came back around ${item.returns} time${
+                                item.returns === 1 ? "" : "s"
+                              }`
+                            : undefined
+                        }
+                      >
+                        {item.returns > 0 ? `↩${item.returns}` : ""}
+                      </span>
+                      <span
+                        style={{ fontVariationSettings: '"wdth" 88' }}
+                        className={`w-[6.5rem] shrink-0 text-right font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
+                          item.status === "demonstrated" ? "text-solid-ink" : "text-gap-ink"
+                        }`}
+                      >
+                        {item.status === "demonstrated" ? "Demonstrated" : "Set aside"}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
 
-/* ---- Dissection: highlight the student's own words inline ------------- */
+/* ── The result: an apparatus ─────────────────────────────────────────────
+   On wide screens the notes run down a true margin beside the whole result,
+   not just beside the text block, so the column never strands a void under
+   itself. Below xl everything collapses into one flow, with the notes still
+   directly after the text they annotate. */
 
-/* Colour tints for sighted readers, plus a distinct underline shape per type
-   (solid / dotted / wavy) so the three kinds stay distinguishable without colour. */
-const MARK_TONE: Record<Annotation["type"], string> = {
-  right: "text-right-fg underline decoration-solid decoration-right-fg/70 decoration-2 underline-offset-4",
-  imprecise:
-    "rounded bg-almost-bg px-0.5 text-almost-fg underline decoration-dotted decoration-almost-fg decoration-2 underline-offset-4",
-  wrong:
-    "rounded bg-wrong-bg px-0.5 text-wrong-fg underline decoration-wavy decoration-wrong-fg decoration-2 underline-offset-4",
-};
-
-const CARD_UNDERLINE: Record<"imprecise" | "wrong", string> = {
-  imprecise: "underline decoration-dotted decoration-almost-fg decoration-2 underline-offset-4",
-  wrong: "underline decoration-wavy decoration-wrong-fg decoration-2 underline-offset-4",
-};
-
-type Segment =
-  | { kind: "text"; value: string }
-  | { kind: "mark"; value: string; id: number; type: Annotation["type"]; n?: number };
-
-type Card = {
-  id: number;
-  n?: number;
-  type: "imprecise" | "wrong";
-  quote: string;
-  comment: string;
-  sourceQuote: string;
-};
-
-/** Straight-quote curly punctuation without changing string length, so match
-    positions stay valid against the original text. */
-function normalize(s: string): string {
-  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
-}
-
-function overlaps(s: number, e: number, taken: [number, number][]): boolean {
-  return taken.some(([a, b]) => s < b && e > a);
-}
-
-function findRange(
-  normText: string,
-  normQuote: string,
-  taken: [number, number][]
-): { start: number; end: number } | null {
-  if (!normQuote) return null;
-  // Exact match first.
-  for (let from = 0; ; ) {
-    const i = normText.indexOf(normQuote, from);
-    if (i < 0) break;
-    const e = i + normQuote.length;
-    if (!overlaps(i, e, taken)) return { start: i, end: e };
-    from = i + 1;
-  }
-  // Whitespace-tolerant fallback (model may re-flow whitespace in the quote).
-  const escaped = normQuote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
-  let re: RegExp;
-  try {
-    re = new RegExp(escaped, "gi");
-  } catch {
-    return null;
-  }
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(normText))) {
-    const e = m.index + m[0].length;
-    if (!overlaps(m.index, e, taken)) return { start: m.index, end: e };
-    if (m.index === re.lastIndex) re.lastIndex++;
-  }
-  return null;
-}
-
-function buildDissection(text: string, annotations: Annotation[]): {
-  segments: Segment[];
-  cards: Card[];
-} {
-  const normText = normalize(text);
-  const taken: [number, number][] = [];
-  const matched: {
-    start: number;
-    end: number;
-    type: Annotation["type"];
-    comment: string;
-    sourceQuote: string;
-    id: number;
-  }[] = [];
-  const unmatched: Card[] = [];
-
-  annotations.forEach((ann, id) => {
-    const quote = ann.quote.trim();
-    const range = quote ? findRange(normText, normalize(quote), taken) : null;
-    if (range) {
-      taken.push([range.start, range.end]);
-      matched.push({ ...range, type: ann.type, comment: ann.comment, sourceQuote: ann.sourceQuote, id });
-    } else if (ann.type !== "right") {
-      // Couldn't locate it — keep it as a card so no feedback is silently lost.
-      unmatched.push({
-        id,
-        type: ann.type,
-        quote: ann.quote,
-        comment: ann.comment,
-        sourceQuote: ann.sourceQuote,
-      });
-    }
-  });
-
-  matched.sort((a, b) => a.start - b.start);
-
-  // Number the flagged (imprecise/wrong) spans in reading order.
-  let counter = 0;
-  const numById = new Map<number, number>();
-  for (const m of matched) if (m.type !== "right") numById.set(m.id, ++counter);
-
-  const segments: Segment[] = [];
-  let cursor = 0;
-  for (const m of matched) {
-    if (m.start > cursor) segments.push({ kind: "text", value: text.slice(cursor, m.start) });
-    segments.push({
-      kind: "mark",
-      value: text.slice(m.start, m.end),
-      id: m.id,
-      type: m.type,
-      n: numById.get(m.id),
-    });
-    cursor = m.end;
-  }
-  if (cursor < text.length) segments.push({ kind: "text", value: text.slice(cursor) });
-
-  const cards: Card[] = [];
-  for (const m of matched) {
-    if (m.type === "right") continue;
-    cards.push({
-      id: m.id,
-      n: numById.get(m.id),
-      type: m.type,
-      quote: text.slice(m.start, m.end),
-      comment: m.comment,
-      sourceQuote: m.sourceQuote,
-    });
-  }
-  cards.push(...unmatched);
-
-  return { segments, cards };
-}
-
-function Dissection({ text, annotations }: { text: string; annotations: Annotation[] }) {
+function Result({
+  item,
+  attempt,
+  source,
+  othersWaiting,
+  onDemonstrated,
+  onSetAside,
+  onRetry,
+  onComeBack,
+}: {
+  item: SessionItem;
+  attempt: Attempt;
+  source: string;
+  othersWaiting: boolean;
+  onDemonstrated: () => void;
+  onSetAside: () => void;
+  onRetry: () => void;
+  onComeBack: () => void;
+}) {
   const [active, setActive] = useState<number | null>(null);
-  const { segments, cards } = useMemo(() => buildDissection(text, annotations), [text, annotations]);
+  const { segments, cards } = useDissection(attempt.explanation, attempt.grade.annotations);
+  const solid = attempt.grade.outcome === "solid";
 
+  /* Column 1 holds five stacked blocks; the margin pins to row 1 and spans
+     them. Keep the span in step if a block is added or removed. */
+  const col1 = "min-w-0 xl:col-start-1";
+
+  /* Bounded, not stretched: the text column is capped at a readable measure
+     and the margin sized to hold a note, so the apparatus grows to a real
+     width on a laptop and then stops rather than sprawling. */
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <div className="mb-2 flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-ink-faint" aria-hidden />
-          <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Your explanation
-          </h3>
-        </div>
-        <p className="rounded-xl border border-line bg-surface px-4 py-3.5 text-[0.95rem] leading-[1.9] text-ink">
-          {segments.map((seg, i) =>
-            seg.kind === "text" ? (
-              <span key={i}>{seg.value}</span>
-            ) : seg.type === "right" ? (
-              <span key={i} className={MARK_TONE.right}>
-                {seg.value}
-              </span>
-            ) : (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActive(active === seg.id ? null : seg.id)}
-                onMouseEnter={() => setActive(seg.id)}
-                className={`${MARK_TONE[seg.type]} cursor-pointer align-baseline transition-shadow ${
-                  active === seg.id ? "ring-2 ring-current/40" : ""
-                }`}
-              >
-                {seg.value}
-                {seg.n !== undefined && (
-                  <sup className="ml-0.5 font-mono text-[0.6rem] font-semibold">{seg.n}</sup>
-                )}
-              </button>
-            )
+    <section
+      className={`grid gap-x-10 gap-y-9 ${
+        cards.length > 0
+          ? "xl:max-w-[74rem] xl:grid-cols-[minmax(0,44rem)_minmax(0,22rem)] 2xl:max-w-[82rem] 2xl:grid-cols-[minmax(0,48rem)_minmax(0,24rem)]"
+          : "max-w-[48rem]"
+      }`}
+    >
+      <div className={`${col1} rise flex flex-col gap-3`}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Label>{item.concept.name}</Label>
+          {item.attempts.length > 1 && (
+            <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
+              attempt {item.attempts.length}
+            </span>
           )}
-        </p>
+        </div>
+        <OutcomeLine outcome={attempt.grade.outcome} verdict={attempt.grade.verdict} />
+      </div>
+
+      <div className={`${col1} rise`} style={{ ["--i" as string]: 1 }}>
+        <MarkedUpText
+          segments={segments}
+          cards={cards}
+          active={active}
+          setActive={setActive}
+        />
       </div>
 
       {cards.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {cards.map((card) => (
-            <li
-              key={card.id}
-              onMouseEnter={() => setActive(card.id)}
-              onMouseLeave={() => setActive(null)}
-              className={`rounded-xl px-4 py-3 transition-shadow ${
-                card.type === "wrong" ? "bg-wrong-bg" : "bg-almost-bg"
-              } ${active === card.id ? "ring-2 ring-current/30" : ""}`}
-            >
-              <div className="flex items-baseline gap-2">
-                {card.n !== undefined && (
-                  <span
-                    className={`font-mono text-[0.7rem] font-semibold ${
-                      card.type === "wrong" ? "text-wrong-fg" : "text-almost-fg"
-                    }`}
-                  >
-                    {card.n}
-                  </span>
-                )}
-                <div className="flex flex-col gap-1.5">
-                  <span
-                    className={`text-[0.9rem] font-medium ${CARD_UNDERLINE[card.type]} ${
-                      card.type === "wrong" ? "text-wrong-fg" : "text-almost-fg"
-                    }`}
-                  >
-                    “{card.quote}”
-                  </span>
-                  {card.sourceQuote ? (
-                    <span className="text-[0.9rem] leading-relaxed text-ink">
-                      The source says:{" "}
-                      <span className="italic text-ink-soft">“{card.sourceQuote}”</span>
-                      {card.comment && (
-                        <span className="mt-1 block text-[0.85rem] text-ink-soft">
-                          {card.comment}
-                        </span>
-                      )}
-                    </span>
-                  ) : (
-                    card.comment && (
-                      <span className="text-[0.9rem] leading-relaxed text-ink">{card.comment}</span>
-                    )
-                  )}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="min-w-0 xl:sticky xl:top-24 xl:col-start-2 xl:row-span-5 xl:row-start-1 xl:self-start">
+          <MarginNotes cards={cards} active={active} setActive={setActive} />
+        </div>
       )}
+
+      <div className={`${col1} rise`} style={{ ["--i" as string]: 2 }}>
+        <LeftOut items={attempt.grade.missed} />
+      </div>
+
+      <div className={`${col1} rise`} style={{ ["--i" as string]: 3 }}>
+        <Followups
+          source={source}
+          concept={`${item.concept.name}: ${item.concept.prompt}`}
+          explanation={attempt.explanation}
+          feedback={feedbackSummary(attempt.grade)}
+        />
+      </div>
+
+      <div className={`${col1} rise`} style={{ ["--i" as string]: 4 }}>
+        {solid ? (
+          <PrimaryButton onClick={onDemonstrated}>
+            {othersWaiting ? (
+              <>
+                Next concept <Arrow />
+              </>
+            ) : (
+              "Finish session"
+            )}
+          </PrimaryButton>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="font-sans text-[0.875rem] leading-[1.6] text-ink-soft">
+              A concept counts when you can explain it, not when you&apos;ve seen it. Take another
+              run now{othersWaiting ? ", or let it come back around later" : ""}.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <PrimaryButton onClick={onRetry}>Try again now</PrimaryButton>
+              {othersWaiting && item.attempts.length < SET_ASIDE_AFTER && (
+                <GhostButton onClick={onComeBack}>Come back to this later</GhostButton>
+              )}
+              {(item.attempts.length >= SET_ASIDE_AFTER || !othersWaiting) && (
+                <GhostButton onClick={onSetAside}>Set it aside for today</GhostButton>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ── Result furniture ─────────────────────────────────────────────────── */
+
+const OUTCOME: Record<Outcome, { word: string; mark: string; ink: string; tint: string }> = {
+  solid: {
+    word: "Demonstrated",
+    mark: "var(--solid-mark)",
+    ink: "var(--solid-ink)",
+    tint: "var(--solid-tint)",
+  },
+  shaky: {
+    word: "Nearly there",
+    mark: "var(--shaky-mark)",
+    ink: "var(--shaky-ink)",
+    tint: "var(--shaky-tint)",
+  },
+  "not-yet": {
+    word: "Not yet",
+    mark: "var(--broken-mark)",
+    ink: "var(--broken-ink)",
+    tint: "var(--broken-tint)",
+  },
+};
+
+/** The call and the reason for it, together, so the outcome word is never left
+    to carry meaning by colour alone. */
+function OutcomeLine({ outcome, verdict }: { outcome: Outcome; verdict: string }) {
+  const o = OUTCOME[outcome];
+  return (
+    <div
+      className="flex flex-col gap-2 rounded-[3px] border-l-[3px] py-1 pl-4"
+      style={{ borderLeftColor: o.mark }}
+    >
+      <span
+        style={{ color: o.ink, fontVariationSettings: '"wdth" 88' }}
+        className="font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.15em]"
+      >
+        {o.word}
+      </span>
+      <p className="font-read text-[1.125rem] leading-[1.5] text-ink">{verdict}</p>
     </div>
   );
 }
 
-/** Flatten flagged annotations into short strings for the retry recap. */
-function flaggedList(annotations: Annotation[]): string[] {
-  return annotations
-    .filter((a) => a.type !== "right")
-    .map((a) => (a.comment ? `“${a.quote}” — ${a.comment}` : `“${a.quote}”`));
+/** Points from the source that never appear in the student's text. They have
+    no span to mark, so they get their own block rather than a siglum. */
+function LeftOut({ items }: { items: string[] }) {
+  if (items.length === 0) {
+    return (
+      <p className="max-w-[42rem] font-sans text-[0.875rem] leading-[1.6] text-ink-soft">
+        Nothing important was left out. Your source&apos;s key points are all in there.
+      </p>
+    );
+  }
+  return (
+    <section className="flex max-w-[42rem] flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-4">
+        <Label>Left out entirely</Label>
+        <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
+          {items.length}
+        </span>
+      </div>
+      <ul className="flex flex-col gap-px">
+        {items.map((item, i) => (
+          <li
+            key={i}
+            className="border-l-[3px] border-gap-mark bg-gap-tint py-2.5 pl-3.5 pr-3 font-read text-[0.9375rem] leading-[1.55] text-ink"
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** What the previous run left open, carried into the next attempt. */
+function PriorMarks({ grade }: { grade: Grade }) {
+  const flagged = grade.annotations.filter((a) => a.type !== "right");
+  if (flagged.length === 0 && grade.missed.length === 0) return null;
+
+  return (
+    <details className="group rounded-[3px] border border-line bg-sunk px-4 py-3">
+      <summary className="flex cursor-pointer list-none items-center gap-2 font-sans text-[0.8125rem] font-medium text-ink-soft transition-colors hover:text-ink">
+        <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>
+          ›
+        </span>
+        What last time left open
+        <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
+          {flagged.length + grade.missed.length}
+        </span>
+      </summary>
+      <ul className="mt-3 flex flex-col gap-2.5">
+        {flagged.map((a, i) => (
+          <li key={`f${i}`} className="font-read text-[0.9375rem] leading-[1.55] text-ink-soft">
+            <span
+              className={a.type === "wrong" ? "mk mk-broken px-0.5" : "mk mk-shaky px-0.5"}
+            >
+              “{a.quote}”
+            </span>
+            {a.comment && <span>: {a.comment}</span>}
+          </li>
+        ))}
+        {grade.missed.map((m, i) => (
+          <li
+            key={`m${i}`}
+            className="border-l-[3px] border-gap-mark pl-3 font-read text-[0.9375rem] leading-[1.55] text-ink-soft"
+          >
+            {m}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
 }
 
 /** Compact summary of a grade, given to the follow-up route for context. */
 function feedbackSummary(grade: Grade): string {
   const flagged = grade.annotations
-    .filter((a) => a.type !== "right")
-    .map((a) => {
+    .filter((a: Annotation) => a.type !== "right")
+    .map((a: Annotation) => {
       const src = a.sourceQuote ? ` (source: "${a.sourceQuote}")` : "";
-      return `- ${a.type}: "${a.quote}" — ${a.comment}${src}`;
+      return `- ${a.type}: "${a.quote}". ${a.comment}${src}`;
     });
   const parts = [`Verdict: ${grade.verdict}`];
   if (flagged.length) parts.push(`Flagged:\n${flagged.join("\n")}`);
   if (grade.missed.length) parts.push(`Left out:\n${grade.missed.map((m) => `- ${m}`).join("\n")}`);
   return parts.join("\n\n");
-}
-
-type Turn = { question: string; answer: string };
-
-/** Ask a grounded question about the feedback — the route won't hand over the
-    answer to the concept, it only clarifies the feedback and the source. */
-function Followups({
-  source,
-  concept,
-  explanation,
-  feedback,
-}: {
-  source: string;
-  concept: string;
-  explanation: string;
-  feedback: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [thread, setThread] = useState<Turn[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function ask() {
-    const q = question.trim();
-    if (!q) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const { answer } = await postJSON<{ answer: string }>("/api/followup", {
-        source,
-        concept,
-        explanation,
-        feedback,
-        question: q,
-      });
-      setThread((prev) => [...prev, { question: q, answer }]);
-      setQuestion("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't answer that.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="self-start text-sm font-medium text-brand underline decoration-brand/30 underline-offset-4 transition-colors hover:decoration-brand"
-      >
-        Unclear on the feedback? Ask about it
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface-sunk px-4 py-4">
-      <div className="flex items-center gap-2">
-        <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />
-        <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-ink-soft">
-          Ask about the feedback
-        </h3>
-      </div>
-      <p className="text-[0.85rem] leading-relaxed text-ink-faint">
-        This clarifies what the feedback meant and what the source says — it won&apos;t explain the
-        concept for you. That part&apos;s still yours.
-      </p>
-
-      {thread.map((t, i) => (
-        <div key={i} className="flex flex-col gap-1.5 border-l-2 border-line pl-3">
-          <p className="text-[0.9rem] font-medium text-ink">{t.question}</p>
-          <p className="whitespace-pre-wrap text-[0.9rem] leading-relaxed text-ink-soft">
-            {t.answer}
-          </p>
-        </div>
-      ))}
-
-      {error && <p className="text-sm text-wrong-fg">{error}</p>}
-
-      <div className="flex flex-col gap-2">
-        <textarea
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask();
-          }}
-          placeholder="e.g. What did “fix carbon” mean in the feedback?"
-          rows={2}
-          className="w-full resize-y rounded-lg border border-line bg-surface p-3 text-[0.9rem] leading-relaxed text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none"
-        />
-        <GhostButton onClick={ask} disabled={loading || !question.trim()}>
-          {loading ? "Thinking…" : "Ask"}
-        </GhostButton>
-      </div>
-    </div>
-  );
-}
-
-const OUTCOME_CHIP: Record<Outcome, { label: string; cls: string }> = {
-  solid: { label: "Demonstrated", cls: "bg-right-bg text-right-fg" },
-  shaky: { label: "Nearly there", cls: "bg-almost-bg text-almost-fg" },
-  "not-yet": { label: "Not yet", cls: "bg-wrong-bg text-wrong-fg" },
-};
-
-function OutcomeChip({ outcome }: { outcome: Outcome }) {
-  const c = OUTCOME_CHIP[outcome];
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 font-mono text-[0.65rem] font-medium uppercase tracking-[0.12em] ${c.cls}`}
-    >
-      {c.label}
-    </span>
-  );
-}
-
-const TONE: Record<string, { text: string; bg: string; dot: string }> = {
-  right: { text: "text-right-fg", bg: "bg-right-bg", dot: "bg-right-fg" },
-  almost: { text: "text-almost-fg", bg: "bg-almost-bg", dot: "bg-almost-fg" },
-  missed: { text: "text-missed-fg", bg: "bg-missed-bg", dot: "bg-missed-fg" },
-  wrong: { text: "text-wrong-fg", bg: "bg-wrong-bg", dot: "bg-wrong-fg" },
-};
-
-function FeedbackBand({
-  label,
-  items,
-  empty,
-  tone,
-}: {
-  label: string;
-  items: string[];
-  empty: string;
-  tone: keyof typeof TONE;
-}) {
-  const t = TONE[tone];
-  const has = items.length > 0;
-  return (
-    <div className={`rounded-xl px-4 py-3.5 ${has ? t.bg : "bg-surface-sunk"}`}>
-      <div className="flex items-center gap-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${has ? t.dot : "bg-ink-faint"}`} aria-hidden />
-        <h3
-          className={`font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] ${
-            has ? t.text : "text-ink-faint"
-          }`}
-        >
-          {label}
-        </h3>
-      </div>
-      {has ? (
-        <ul className="mt-2 flex flex-col gap-1.5 pl-3.5">
-          {items.map((item, i) => (
-            <li
-              key={i}
-              className="relative text-[0.9rem] leading-relaxed text-ink before:absolute before:-left-3.5 before:text-ink-faint before:content-['–']"
-            >
-              {item}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-1.5 pl-3.5 text-[0.85rem] italic leading-relaxed text-ink-faint">
-          {empty}
-        </p>
-      )}
-    </div>
-  );
 }

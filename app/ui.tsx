@@ -1,39 +1,106 @@
-/* Shared interface primitives for the Learnova session shell.
-   Everything visual that later stages reuse lives here. */
+"use client";
+
+import { useEffect, useRef } from "react";
+
+/* Interface primitives for the Learnova session.
+   The vocabulary lives here so the index, the marks, and the summary all
+   name a concept's state the same way. */
+
+export type ItemStatus = "pending" | "resurfacing" | "demonstrated" | "set-aside";
+
+/* Archivo carries a width axis; labels run slightly narrow so a long status
+   word still fits a compact row without shrinking below a readable size. */
+const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
 export function Wordmark() {
   return (
-    <span className="font-display text-[1.35rem] font-semibold tracking-tight text-ink">
+    <span className="font-read text-[1.3rem] font-medium tracking-[-0.01em] text-ink">
       Learnova
+      <span className="ml-2 align-[0.15em] font-sans text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+        Teach-Back
+      </span>
     </span>
   );
 }
 
-export function Eyebrow({ children }: { children: React.ReactNode }) {
+/** How far the session has got, in the header, where it stays in view. The
+    rule beneath it runs the full width of the page as a progress line. */
+export function SessionProgress({ done, total }: { done: number; total: number }) {
   return (
-    <p className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.18em] text-ink-faint">
+    <div className="flex items-center gap-2.5">
+      <span
+        style={NARROW}
+        className="hidden font-sans text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-ink-faint sm:inline"
+      >
+        Demonstrated
+      </span>
+      <span className="font-mono text-[0.75rem] tabular-nums text-ink-soft">
+        {done}
+        <span className="text-ink-faint">/{total}</span>
+      </span>
+    </div>
+  );
+}
+
+export function Label({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p
+      style={NARROW}
+      className={`font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-ink-faint ${className}`}
+    >
       {children}
     </p>
   );
 }
 
-/** Large italic serif "question" — the app's signature: a concept being asked. */
+/** Something went wrong, or something isn't ready. Said in the broken-mark
+    register, which is the one the student already reads as "look here". */
+export function Notice({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      role="alert"
+      className="settle max-w-[44rem] rounded-[3px] border-l-[3px] border-broken-mark bg-broken-tint px-4 py-3 font-sans text-[0.875rem] leading-[1.6] text-broken-ink"
+    >
+      {children}
+    </p>
+  );
+}
+
+/** The concept being asked, set in the reading face, the one voice on the
+    page that speaks for the material rather than the interface. */
 export function Ask({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-display text-[1.75rem] italic leading-tight text-ink sm:text-[2rem]">
+    <h2 className="max-w-[30ch] text-balance font-read text-[clamp(1.625rem,1.15rem+1.9vw,2.25rem)] font-normal leading-[1.15] tracking-[-0.015em] text-ink">
       {children}
     </h2>
   );
 }
 
+/** The arrow on a forward action. Leans in its own direction on hover. The
+    `.btn` rule drives it, so it only ever moves with its button. */
+export function Arrow() {
+  return (
+    <span aria-hidden className="arrow">
+      →
+    </span>
+  );
+}
+
 export function PrimaryButton({
   children,
+  className = "",
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
-      className="inline-flex items-center gap-1.5 self-start rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-on-brand transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40"
+      className={`btn inline-flex items-center gap-2 self-start rounded-[3px] bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover hover:shadow-[0_8px_20px_-10px_var(--accent)] disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint disabled:shadow-none ${className}`}
     >
       {children}
     </button>
@@ -42,98 +109,270 @@ export function PrimaryButton({
 
 export function GhostButton({
   children,
+  className = "",
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
-      className="inline-flex items-center gap-1.5 self-start rounded-full border border-line px-5 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink-faint hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+      className={`btn inline-flex items-center gap-2 self-start rounded-[3px] border border-line-strong px-5 py-2.5 font-sans text-[0.875rem] font-medium text-ink-soft hover:border-ink-faint hover:text-ink disabled:cursor-not-allowed disabled:border-line disabled:text-ink-faint ${className}`}
     >
       {children}
     </button>
   );
 }
 
-export type ProgressStatus = "pending" | "resurfacing" | "demonstrated" | "set-aside";
+/** Where the pasted source stands against what actually gates submission.
 
-export type ProgressSegment = { status: ProgressStatus; returns: number };
+    Both size floors are shown because both are real, and the bar tracks
+    whichever is further from being met. Nothing here holds a threshold of its
+    own: the status comes from the same function the button and the route
+    consult, so this cannot advertise a target that is not the target. */
 
-/* Colour AND texture carry the meaning, so the bar reads without colour vision:
-   demonstrated = solid fill, resurfacing = diagonal stripes (deepening toward
-   rose with each return), set aside = hollow outline, pending = faint solid. */
-function segmentStyle(seg: ProgressSegment, isCurrent: boolean): React.CSSProperties {
-  switch (seg.status) {
-    case "demonstrated":
-      return { backgroundColor: "var(--right-fg)" };
-    case "resurfacing": {
-      const rosePct = Math.min((seg.returns - 1) * 40, 80); // 1st→amber, 2nd→40%, 3rd+→80% rose
-      const c = `color-mix(in oklab, var(--wrong-fg) ${rosePct}%, var(--almost-fg))`;
-      return {
-        backgroundImage: `repeating-linear-gradient(45deg, ${c} 0 2px, transparent 2px 4px)`,
-      };
-    }
-    case "set-aside":
-      return { backgroundColor: "transparent", boxShadow: "inset 0 0 0 1.5px var(--wrong-fg)" };
-    default:
-      return { backgroundColor: isCurrent ? "var(--ink)" : "var(--line)" };
-  }
+/** The leaf you write on: ruled paper set in the reading face, so what a
+    student types already looks like text worth examining. It grows with the
+    writing instead of scrolling, which also keeps the ruling under the
+    baselines where it belongs. */
+/** Grow a textarea with its writing instead of scrolling, which also keeps the
+    ruling under the baselines where it belongs. Shared with the looseleaf on
+    the source screen, so both surfaces resize identically. */
+export function useAutoGrow(
+  ref: React.RefObject<HTMLTextAreaElement | null>,
+  value: string,
+  minRows: number
+) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [ref, value, minRows]);
 }
 
-const STATUS_LABEL: Record<ProgressStatus, string> = {
-  demonstrated: "demonstrated",
-  resurfacing: "coming back around",
-  "set-aside": "set aside",
-  pending: "not yet attempted",
-};
-
-/** Segmented status indicator: a concept counts when demonstrated, not when visited. */
-export function Progress({
-  segments,
-  current,
+export function Leaf({
+  value,
+  onChange,
+  placeholder,
+  minRows = 8,
+  autoFocus,
 }: {
-  segments: ProgressSegment[];
-  current: number;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  minRows?: number;
+  autoFocus?: boolean;
 }) {
-  const solid = segments.filter((s) => s.status === "demonstrated").length;
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(ref, value, minRows);
+
+  /* No padding utility here on purpose: the leaf's padding-top is what lands
+     the writing on the ruling, so `.leaf` owns all four sides of it. */
   return (
-    <div className="flex items-center gap-3">
-      <span className="font-mono text-[0.7rem] font-medium tracking-wide text-ink">
-        Concept {current + 1}
-        <span className="text-ink-faint">/{segments.length}</span>
-      </span>
-      <div className="flex gap-1.5">
-        {segments.map((seg, i) => (
-          <span
-            key={i}
-            style={segmentStyle(seg, i === current)}
-            className={`h-2 w-6 rounded-full transition-all ${
-              i === current ? "ring-2 ring-ink/30 ring-offset-1 ring-offset-paper" : ""
-            }`}
-            title={`Concept ${i + 1}: ${STATUS_LABEL[seg.status]}${
-              seg.status === "resurfacing" && seg.returns > 1 ? ` (return ${seg.returns})` : ""
-            }${i === current ? " — you are here" : ""}`}
-          />
-        ))}
-      </div>
-      <span className="font-mono text-[0.7rem] tracking-wide text-ink-faint">
-        {solid} solid
-      </span>
+    <div className="relative flex flex-col">
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={minRows}
+        autoFocus={autoFocus}
+        className="leaf prose-read w-full resize-none overflow-hidden rounded-[3px] border border-line bg-page text-ink caret-accent placeholder:text-ink-faint"
+      />
+      <span
+        aria-hidden
+        className="sweep pointer-events-none absolute inset-x-0 bottom-0 h-[2px] rounded-b-[3px] bg-accent"
+      />
     </div>
   );
 }
 
-/** Calm "the app is thinking" state — reads as thought, not a spinner. */
-export function Thinking({ title, sub }: { title: string; sub: string }) {
+/* ── Status glyphs ───────────────────────────────────────────────────────
+   Each state has its own shape, so the index reads with the colour removed:
+   filled square + check = demonstrated, outlined square + bar = set aside,
+   a return arrow = coming back around, an empty ring = not yet attempted. */
+
+export function StatusGlyph({ status }: { status: ItemStatus }) {
+  const common = { width: 13, height: 13, viewBox: "0 0 13 13", "aria-hidden": true } as const;
+
+  switch (status) {
+    case "demonstrated":
+      /* Keyed so becoming demonstrated remounts the glyph: a check that draws
+         itself only reads as an event if it draws when the state changes. */
+      return (
+        <svg {...common} key="demonstrated" className="shrink-0">
+          <rect x="0.5" y="0.5" width="12" height="12" rx="2" fill="var(--solid-mark)" />
+          <path
+            d="M3.4 6.7 5.5 8.8 9.6 4.4"
+            fill="none"
+            stroke="var(--page)"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="draw-check"
+          />
+        </svg>
+      );
+    case "set-aside":
+      return (
+        <svg {...common} className="shrink-0">
+          <rect
+            x="1.1"
+            y="1.1"
+            width="10.8"
+            height="10.8"
+            rx="2"
+            fill="none"
+            stroke="var(--gap-mark)"
+            strokeWidth="1.3"
+          />
+          <path d="M3.9 6.5h5.2" stroke="var(--gap-mark)" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      );
+    case "resurfacing":
+      return (
+        <svg {...common} className="shrink-0">
+          <path
+            d="M10.4 6.5a3.9 3.9 0 1 1-1.5-3.1"
+            fill="none"
+            stroke="var(--shaky-mark)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M10.7 1.4v2.8H7.9"
+            fill="none"
+            stroke="var(--shaky-mark)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...common} className="shrink-0">
+          <circle
+            cx="6.5"
+            cy="6.5"
+            r="4.6"
+            fill="none"
+            stroke="var(--line-strong)"
+            strokeWidth="1.3"
+          />
+        </svg>
+      );
+  }
+}
+
+const STATUS_WORD: Record<ItemStatus, string> = {
+  demonstrated: "Demonstrated",
+  "set-aside": "Set aside",
+  resurfacing: "Coming back",
+  pending: "Not yet",
+};
+
+/* ── The session index ───────────────────────────────────────────────────
+   A standing record of where every concept in the session stands, so the
+   return loop is legible: what's done, what's circling back and how often,
+   and what hasn't been reached. */
+
+export type IndexItem = {
+  name: string;
+  status: ItemStatus;
+  returns: number;
+  attempts: number;
+};
+
+export function SessionIndex({
+  items,
+  current,
+}: {
+  items: IndexItem[];
+  current: number | undefined;
+}) {
+  const done = items.filter((i) => i.status === "demonstrated").length;
+
   return (
-    <div className="rise flex flex-col items-start gap-4 py-10">
-      <div className="flex gap-1.5" aria-hidden>
-        <span className="dot h-2 w-2 rounded-full bg-brand" style={{ animationDelay: "0ms" }} />
-        <span className="dot h-2 w-2 rounded-full bg-brand" style={{ animationDelay: "160ms" }} />
-        <span className="dot h-2 w-2 rounded-full bg-brand" style={{ animationDelay: "320ms" }} />
+    <nav aria-label="Concepts in this session" className="flex min-w-0 flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-2">
+        <Label>This session</Label>
+        <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
+          {done}/{items.length}
+        </span>
+      </div>
+
+      <ol className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:px-0 lg:pb-0">
+        {items.map((item, i) => {
+          const here = i === current;
+          return (
+            <li
+              key={i}
+              aria-current={here ? "step" : undefined}
+              style={{ ["--i" as string]: i }}
+              className={`rise relative flex shrink-0 items-center gap-2.5 rounded-[3px] py-2 pl-2.5 pr-3 transition-colors duration-300 lg:w-full ${
+                here ? "bg-accent-wash lg:-ml-2.5" : "hover:bg-sunk/60"
+              } ${
+                /* The current concept carries a rule in the gutter, the same
+                   device the marks use, at the scale of the whole session. */
+                here
+                  ? "before:absolute before:inset-y-1 before:-left-px before:w-[2px] before:rounded-full before:bg-accent before:content-['']"
+                  : ""
+              }`}
+            >
+              <StatusGlyph status={item.status} />
+              <span className="min-w-0 flex-1">
+                <span
+                  className={`block truncate font-sans text-[0.8125rem] leading-tight ${
+                    here ? "font-semibold text-ink" : "font-medium text-ink-soft"
+                  }`}
+                >
+                  {item.name}
+                </span>
+                <span className="mt-0.5 hidden items-center gap-1.5 lg:flex">
+                  <span
+                    style={NARROW}
+                    className="font-sans text-[0.625rem] uppercase tracking-[0.1em] text-ink-faint"
+                  >
+                    {here ? "You are here" : STATUS_WORD[item.status]}
+                  </span>
+                  {item.returns > 0 && (
+                    <span
+                      className="font-mono text-[0.625rem] tabular-nums text-ink-faint"
+                      title={`Sent back around ${item.returns} time${item.returns === 1 ? "" : "s"}`}
+                    >
+                      ↩{item.returns}
+                    </span>
+                  )}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+/** Reading in progress: a rule travelling down the ruling, the way a finger
+    moves down a page. Deliberately not a spinner: the app is reading. */
+export function Reading({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div className="settle flex flex-col gap-6" role="status">
+      <div
+        className="leaf relative h-32 max-w-[30rem] overflow-hidden rounded-[3px] border border-line bg-page"
+        /* No writing in this one, so it wants ruling edge to edge rather than
+           the leaf's usual margin. */
+        style={{ padding: 0 }}
+        aria-hidden
+      >
+        <div className="reading-rule absolute inset-x-0 top-0 h-8">
+          <div className="h-full w-full bg-gradient-to-b from-transparent to-accent-wash" />
+          <div className="h-px w-full bg-accent/40" />
+        </div>
       </div>
       <div>
-        <p className="text-base font-medium text-ink">{title}</p>
-        <p className="mt-0.5 text-sm text-ink-soft">{sub}</p>
+        <p className="font-sans text-[0.9375rem] font-semibold text-ink">{title}</p>
+        <p className="mt-1 font-sans text-[0.875rem] text-ink-soft">{sub}</p>
       </div>
     </div>
   );
