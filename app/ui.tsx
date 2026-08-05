@@ -16,8 +16,10 @@ export function Wordmark() {
   return (
     <span className="font-read text-[1.3rem] font-medium tracking-[-0.01em] text-ink">
       Learnova
+      {/* Teach-Back is a round now, not the product, so the wordmark names
+          the mode the student is actually in. */}
       <span className="ml-2 align-[0.15em] font-sans text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-        Teach-Back
+        Round Mode
       </span>
     </span>
   );
