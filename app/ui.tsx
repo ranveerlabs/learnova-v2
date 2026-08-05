@@ -2,11 +2,13 @@
 
 import { useEffect, useRef } from "react";
 
-/* Interface primitives for the Learnova session.
-   The vocabulary lives here so the index, the marks, and the summary all
-   name a concept's state the same way. */
+/* Interface primitives shared across the app.
 
-export type ItemStatus = "pending" | "resurfacing" | "demonstrated" | "set-aside";
+   The session index that used to live here went with the Teach-Back session
+   screen it belonged to: a standing list of concepts with per-concept states
+   made sense when a session was a queue of concepts to work through, and
+   means nothing now that a session is a ladder of rounds. Round Mode's own
+   progress furniture is in app/round/ui.tsx. */
 
 /* Archivo carries a width axis; labels run slightly narrow so a long status
    word still fits a compact row without shrinking below a readable size. */
@@ -22,25 +24,6 @@ export function Wordmark() {
         Round Mode
       </span>
     </span>
-  );
-}
-
-/** How far the session has got, in the header, where it stays in view. The
-    rule beneath it runs the full width of the page as a progress line. */
-export function SessionProgress({ done, total }: { done: number; total: number }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span
-        style={NARROW}
-        className="hidden font-sans text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-ink-faint sm:inline"
-      >
-        Demonstrated
-      </span>
-      <span className="font-mono text-[0.75rem] tabular-nums text-ink-soft">
-        {done}
-        <span className="text-ink-faint">/{total}</span>
-      </span>
-    </div>
   );
 }
 
@@ -185,173 +168,6 @@ export function Leaf({
         className="sweep pointer-events-none absolute inset-x-0 bottom-0 h-[2px] rounded-b-[3px] bg-accent"
       />
     </div>
-  );
-}
-
-/* ── Status glyphs ───────────────────────────────────────────────────────
-   Each state has its own shape, so the index reads with the colour removed:
-   filled square + check = demonstrated, outlined square + bar = set aside,
-   a return arrow = coming back around, an empty ring = not yet attempted. */
-
-export function StatusGlyph({ status }: { status: ItemStatus }) {
-  const common = { width: 13, height: 13, viewBox: "0 0 13 13", "aria-hidden": true } as const;
-
-  switch (status) {
-    case "demonstrated":
-      /* Keyed so becoming demonstrated remounts the glyph: a check that draws
-         itself only reads as an event if it draws when the state changes. */
-      return (
-        <svg {...common} key="demonstrated" className="shrink-0">
-          <rect x="0.5" y="0.5" width="12" height="12" rx="2" fill="var(--solid-mark)" />
-          <path
-            d="M3.4 6.7 5.5 8.8 9.6 4.4"
-            fill="none"
-            stroke="var(--page)"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="draw-check"
-          />
-        </svg>
-      );
-    case "set-aside":
-      return (
-        <svg {...common} className="shrink-0">
-          <rect
-            x="1.1"
-            y="1.1"
-            width="10.8"
-            height="10.8"
-            rx="2"
-            fill="none"
-            stroke="var(--gap-mark)"
-            strokeWidth="1.3"
-          />
-          <path d="M3.9 6.5h5.2" stroke="var(--gap-mark)" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      );
-    case "resurfacing":
-      return (
-        <svg {...common} className="shrink-0">
-          <path
-            d="M10.4 6.5a3.9 3.9 0 1 1-1.5-3.1"
-            fill="none"
-            stroke="var(--shaky-mark)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <path
-            d="M10.7 1.4v2.8H7.9"
-            fill="none"
-            stroke="var(--shaky-mark)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...common} className="shrink-0">
-          <circle
-            cx="6.5"
-            cy="6.5"
-            r="4.6"
-            fill="none"
-            stroke="var(--line-strong)"
-            strokeWidth="1.3"
-          />
-        </svg>
-      );
-  }
-}
-
-const STATUS_WORD: Record<ItemStatus, string> = {
-  demonstrated: "Demonstrated",
-  "set-aside": "Set aside",
-  resurfacing: "Coming back",
-  pending: "Not yet",
-};
-
-/* ── The session index ───────────────────────────────────────────────────
-   A standing record of where every concept in the session stands, so the
-   return loop is legible: what's done, what's circling back and how often,
-   and what hasn't been reached. */
-
-export type IndexItem = {
-  name: string;
-  status: ItemStatus;
-  returns: number;
-  attempts: number;
-};
-
-export function SessionIndex({
-  items,
-  current,
-}: {
-  items: IndexItem[];
-  current: number | undefined;
-}) {
-  const done = items.filter((i) => i.status === "demonstrated").length;
-
-  return (
-    <nav aria-label="Concepts in this session" className="flex min-w-0 flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-2">
-        <Label>This session</Label>
-        <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
-          {done}/{items.length}
-        </span>
-      </div>
-
-      <ol className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:px-0 lg:pb-0">
-        {items.map((item, i) => {
-          const here = i === current;
-          return (
-            <li
-              key={i}
-              aria-current={here ? "step" : undefined}
-              style={{ ["--i" as string]: i }}
-              className={`rise relative flex shrink-0 items-center gap-2.5 rounded-[3px] py-2 pl-2.5 pr-3 transition-colors duration-300 lg:w-full ${
-                here ? "bg-accent-wash lg:-ml-2.5" : "hover:bg-sunk/60"
-              } ${
-                /* The current concept carries a rule in the gutter, the same
-                   device the marks use, at the scale of the whole session. */
-                here
-                  ? "before:absolute before:inset-y-1 before:-left-px before:w-[2px] before:rounded-full before:bg-accent before:content-['']"
-                  : ""
-              }`}
-            >
-              <StatusGlyph status={item.status} />
-              <span className="min-w-0 flex-1">
-                <span
-                  className={`block truncate font-sans text-[0.8125rem] leading-tight ${
-                    here ? "font-semibold text-ink" : "font-medium text-ink-soft"
-                  }`}
-                >
-                  {item.name}
-                </span>
-                <span className="mt-0.5 hidden items-center gap-1.5 lg:flex">
-                  <span
-                    style={NARROW}
-                    className="font-sans text-[0.625rem] uppercase tracking-[0.1em] text-ink-faint"
-                  >
-                    {here ? "You are here" : STATUS_WORD[item.status]}
-                  </span>
-                  {item.returns > 0 && (
-                    <span
-                      className="font-mono text-[0.625rem] tabular-nums text-ink-faint"
-                      title={`Sent back around ${item.returns} time${item.returns === 1 ? "" : "s"}`}
-                    >
-                      ↩{item.returns}
-                    </span>
-                  )}
-                </span>
-              </span>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
   );
 }
 
