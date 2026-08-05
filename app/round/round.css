@@ -1,0 +1,375 @@
+/* ═══ Round Mode: the feel ════════════════════════════════════════════════
+   Everything here is scoped to the round screens and leans on the tokens
+   already declared in globals.css, so a round is unmistakably the same app
+   with the tempo turned up rather than a second design.
+
+   One rule governs the whole file: no cue is ever carried by colour alone.
+   Every correct answer arrives as green AND a check AND the word "Correct",
+   and every miss as plum AND a cross AND "Not quite". The mark hues are the
+   pair already validated for deuteranopia in globals.css, so the colour
+   channel is doing real work for the people it works for, and doing no
+   necessary work for anyone else.
+
+   Every animation here is switched off under prefers-reduced-motion at the
+   foot of the file, and the interface still says everything it needs to
+   without them.
+------------------------------------------------------------------------- */
+
+/* ── The question card ──────────────────────────────────────────────────
+   Questions replace each other quickly, so each one arrives with a small
+   forward motion. It reads as the next card being dealt rather than as the
+   page redrawing. */
+@keyframes deal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+.deal-in {
+  animation: deal-in 0.26s cubic-bezier(0.16, 0.9, 0.3, 1) both;
+}
+
+/* Answers land staggered, in reading order, so the eye is pulled down the
+   options instead of meeting four at once. Fast enough to be felt, not
+   waited on: the last option is in place inside a fifth of a second. */
+.deal-in-stagger {
+  animation: deal-in 0.24s cubic-bezier(0.16, 0.9, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 42ms);
+}
+
+/* ── Getting it right ───────────────────────────────────────────────────
+   The reward has to land in the same instant as the tap, so this is short,
+   bright and completely over before the next question arrives. */
+@keyframes right-flash {
+  0% {
+    background-color: transparent;
+    border-color: var(--line);
+  }
+  22% {
+    background-color: var(--solid-tint);
+    border-color: var(--solid-mark);
+  }
+  100% {
+    background-color: transparent;
+    border-color: var(--solid-mark);
+  }
+}
+
+.right-flash {
+  animation: right-flash 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* A ring that expands out of the chosen answer and dissolves. The whole
+   gesture is one push outward from where the finger was. */
+@keyframes right-ring {
+  from {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+.right-ring {
+  animation: right-ring 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* The correct answer's own small lift, so the eye goes to the right answer
+   and not to the feedback text. */
+@keyframes right-lift {
+  0% {
+    transform: translateY(0);
+  }
+  38% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.right-lift {
+  animation: right-lift 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* ── Getting it wrong ───────────────────────────────────────────────────
+   Deliberately smaller than the reward. A miss is information, not a
+   punishment, and a violent failure animation teaches students to fear the
+   thing they are here to do. Two small shakes, no red screen, no noise. */
+@keyframes miss-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+}
+
+.miss-shake {
+  animation: miss-shake 0.3s cubic-bezier(0.3, 0.1, 0.4, 1) both;
+}
+
+@keyframes miss-mark {
+  from {
+    background-color: transparent;
+    border-color: var(--line);
+  }
+}
+
+.miss-mark {
+  animation: miss-mark 0.34s ease-out both;
+}
+
+/* ── The combo ──────────────────────────────────────────────────────────
+   The multiplier is the loudest number on screen while a run is alive, and
+   it grows with the run. `--heat` runs 0 to 1 and is set from the current
+   multiplier, so the glow, the weight and the scale all climb together off
+   one variable rather than three unrelated rules. */
+.combo {
+  --heat: 0;
+  transition:
+    transform 0.22s cubic-bezier(0.2, 1.4, 0.4, 1),
+    text-shadow 0.3s ease,
+    color 0.3s ease;
+  transform: scale(calc(1 + var(--heat) * 0.22));
+  text-shadow:
+    0 0 calc(var(--heat) * 14px) color-mix(in srgb, var(--accent) calc(var(--heat) * 70%), transparent),
+    0 0 calc(var(--heat) * 34px) color-mix(in srgb, var(--accent) calc(var(--heat) * 34%), transparent);
+}
+
+/* The moment the multiplier ticks up. Overshoots, then settles: the whole
+   point is that it should feel like it just got bigger. */
+@keyframes combo-bump {
+  0% { transform: scale(calc(1 + var(--heat) * 0.22)); }
+  38% { transform: scale(calc(1.32 + var(--heat) * 0.22)) rotate(-1.5deg); }
+  100% { transform: scale(calc(1 + var(--heat) * 0.22)); }
+}
+
+.combo-bump {
+  animation: combo-bump 0.42s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+/* Points leaving the answer and rising into the score. */
+@keyframes points-fly {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-28px) scale(1);
+  }
+}
+
+.points-fly {
+  animation: points-fly 0.92s cubic-bezier(0.2, 0.6, 0.3, 1) both;
+}
+
+/* The running score rolling over. A short squash on change is enough to say
+   "that number just moved" without pulling the eye off the question. */
+@keyframes score-tick {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.13); }
+  100% { transform: scale(1); }
+}
+
+.score-tick {
+  animation: score-tick 0.3s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+/* ── The per-question timer ─────────────────────────────────────────────
+   A ring drawn with a conic gradient, driven by `--t` (1 full, 0 empty)
+   which the component updates from a monotonic clock. Not a CSS animation:
+   the ring has to agree exactly with the timer that decides the question is
+   over, and two clocks would drift apart. */
+.ring {
+  --t: 1;
+  background:
+    conic-gradient(
+      var(--ring-ink, var(--accent)) calc(var(--t) * 360deg),
+      var(--line) 0
+    );
+  border-radius: 50%;
+  transition: background 0.12s linear;
+}
+
+/* Under the last few seconds the ring changes colour AND starts pulsing, so
+   the warning is not colour alone. */
+@keyframes urgent-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.09); opacity: 0.82; }
+}
+
+.urgent {
+  --ring-ink: var(--shaky-mark);
+  animation: urgent-pulse 0.62s ease-in-out infinite;
+}
+
+/* ── The speedrun clock ─────────────────────────────────────────────────
+   Runs across the cold open and Rounds 1 to 3. Monospaced and tabular so the
+   digits do not jitter as they change, which is what makes a run timer feel
+   like a run timer rather than like text being rewritten. */
+.run-clock {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* A split landing on the between-rounds screen. */
+@keyframes split-land {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
+.split-land {
+  animation: split-land 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+/* A personal best inside the session. Rare enough to be worth a flourish. */
+@keyframes best-pop {
+  0% { opacity: 0; transform: scale(0.6) rotate(-6deg); }
+  60% { opacity: 1; transform: scale(1.14) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.best-pop {
+  animation: best-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+/* ── Chips ──────────────────────────────────────────────────────────────
+   Round 3. Chips are picked up from the tray and set down in the sentence,
+   so both ends of that need to feel physical. */
+.chip {
+  transition:
+    transform 0.16s cubic-bezier(0.2, 1.3, 0.4, 1),
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.chip:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.chip:not(:disabled):active {
+  transform: translateY(1px) scale(0.97);
+  transition-duration: 0.05s;
+}
+
+/* A chip arriving in the sentence line. */
+@keyframes chip-snap {
+  0% { transform: scale(0.82); opacity: 0; }
+  65% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.chip-snap {
+  animation: chip-snap 0.22s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+/* The gap a chip leaves behind in the tray, so the tray does not reflow out
+   from under the finger mid-tap. */
+.chip-spent {
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+/* ── Stage transitions ──────────────────────────────────────────────────
+   The moment between rounds. The card comes in with weight, because this is
+   the beat where the student is told what just changed. */
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.97);
+  }
+}
+
+.stage-in {
+  animation: stage-in 0.44s cubic-bezier(0.16, 0.9, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+/* The ladder rung lighting up as a round is cleared. */
+@keyframes rung-fill {
+  from { transform: scaleX(0); }
+}
+
+.rung-fill {
+  transform-origin: left center;
+  animation: rung-fill 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 100ms);
+}
+
+/* ── Round 4 ────────────────────────────────────────────────────────────
+   The recording indicator. Slow, steady, unhurried: this is the one screen
+   in the mode that must not feel like it is rushing anybody. */
+@keyframes listening {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+.listening {
+  animation: listening 1.5s ease-in-out infinite;
+}
+
+/* Live transcript arriving. No motion on the text itself, which would make
+   it unreadable while it is being written. */
+.transcript-live {
+  border-left-color: var(--accent);
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────
+   Everything above is decoration on top of an interface that already says
+   what it means in words and shapes. Under reduced motion the words and
+   shapes stay and the movement stops, including the infinite ones, which are
+   the ones that actually hurt. */
+@media (prefers-reduced-motion: reduce) {
+  .deal-in,
+  .deal-in-stagger,
+  .right-flash,
+  .right-ring,
+  .right-lift,
+  .miss-shake,
+  .miss-mark,
+  .combo-bump,
+  .points-fly,
+  .score-tick,
+  .urgent,
+  .split-land,
+  .best-pop,
+  .chip-snap,
+  .stage-in,
+  .rung-fill,
+  .listening {
+    animation: none;
+  }
+
+  .combo {
+    transform: none;
+    text-shadow: none;
+  }
+
+  .chip,
+  .ring {
+    transition-duration: 0.01ms;
+  }
+
+  .chip:not(:disabled):hover,
+  .chip:not(:disabled):active {
+    transform: none;
+  }
+
+  /* The urgent ring still has to warn. Without the pulse it keeps the colour
+     change, and the component keeps the number of seconds on screen, so the
+     warning survives the animation being removed. */
+  .urgent {
+    --ring-ink: var(--shaky-mark);
+  }
+}
