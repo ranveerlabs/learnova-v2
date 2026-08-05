@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Learnova
 
-## Getting Started
+Learnova is a study tool built on active recall, spaced
+practice, and self-explanation. It is a calibration
+instrument rather than a card stack: the aim is to show a
+student the gap between feeling familiar with material and
+actually understanding it.
 
-First, run the development server:
+Teach-Back is the diagnostic. A student explains a concept in
+their own words, the explanation is graded honestly, and
+concepts that are not yet understood resurface until they
+are. Feedback is never softened, and the system will not hand
+over the answer.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Honest note on the research
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Practice testing and spaced practice are the most strongly
+supported study methods in the literature. Self-explanation
+has moderate support. Learnova's contribution is not the
+method itself, it is knowing what to drill and whether
+understanding is real.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Status
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Early development. Not yet released.
 
-## Learn More
+## Privacy
 
-To learn more about Next.js, take a look at the following resources:
+Explanations are sent to a server-side AI model for grading.
+The model call happens on the server, never in the browser,
+and API credentials are never exposed to the client. There
+are no user accounts, and nothing is stored beyond the
+current session. This will change as the project develops,
+and this section will be updated to match rather than
+lagging behind it.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Authorship
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Learnova v2 is a solo rebuild from scratch. An earlier
+version was built with a co-founder.
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Stack
+
+Next.js, TypeScript, Tailwind CSS.
+
+## License
+
+Apache License 2.0. See LICENSE and NOTICE.
