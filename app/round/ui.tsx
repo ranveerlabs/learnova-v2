@@ -835,19 +835,41 @@ export function Generating({ title, sub }: { title: string; sub: string }) {
   );
 }
 
-/** Sound is off until asked for, and the control says which state it is in
-    rather than relying on an icon that could be read either way. */
-export function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+/** A setting, said in words rather than left to an icon that could be read
+    either way. */
+function Toggle({
+  on,
+  onToggle,
+  label,
+  glyph,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  label: string;
+  glyph: [string, string];
+}) {
   return (
     <button
       onClick={onToggle}
       aria-pressed={on}
-      title={on ? "Sound on" : "Sound off"}
+      title={`${label} ${on ? "on" : "off"}`}
       style={NARROW}
       className="flex items-center gap-1.5 rounded-[3px] border border-line px-2 py-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.12em] text-ink-faint transition-colors hover:border-line-strong hover:text-ink-soft"
     >
-      <span aria-hidden>{on ? "♪" : "♪̸"}</span>
-      <span className="hidden sm:inline">Sound {on ? "on" : "off"}</span>
+      <span aria-hidden>{on ? glyph[0] : glyph[1]}</span>
+      <span className="hidden sm:inline">
+        {label} {on ? "on" : "off"}
+      </span>
     </button>
   );
+}
+
+/** Sound is off until asked for. */
+export function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return <Toggle on={on} onToggle={onToggle} label="Sound" glyph={["♪", "♪̸"]} />;
+}
+
+/** Skins are on by default, and turning them off plays Plain throughout. */
+export function SkinToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return <Toggle on={on} onToggle={onToggle} label="Skins" glyph={["◆", "◇"]} />;
 }
