@@ -190,6 +190,53 @@ export function Entry({
           </div>
         )}
       </div>
+
+      <Credits />
     </section>
+  );
+}
+
+/* ── Credit where it is required ──────────────────────────────────────────
+   The background track is used under Creative Commons BY 4.0, and attribution
+   is a condition of that licence rather than a courtesy. It is also in
+   CREDITS.md and in README.md, but neither of those is reachable by a student
+   who is only ever going to see the app, so it is here too.
+
+   Closed by default and one click from open, at the foot of the screen every
+   session begins on. That is as far from buried as a credit can be without
+   taking space from the one field this screen exists for. The text is
+   reproduced exactly as the licence requires: it is not reworded, wrapped in
+   friendlier language, or abbreviated. */
+
+function Credits() {
+  return (
+    <details className="rise group self-start" style={{ ["--i" as string]: 3 }}>
+      <summary
+        style={{ fontVariationSettings: '"wdth" 88' }}
+        className="inline-flex cursor-pointer list-none items-center gap-1.5 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
+      >
+        <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+          ›
+        </span>
+        Credits
+      </summary>
+
+      <div className="mt-3 border-l-2 border-line-strong pl-3.5">
+        <p className="font-sans text-[0.8125rem] leading-[1.7] text-ink-soft">
+          &ldquo;8bit Dungeon Level&rdquo; Kevin MacLeod (incompetech.com)
+          <br />
+          Licensed under Creative Commons: By Attribution 4.0
+          <br />
+          <a
+            href="http://creativecommons.org/licenses/by/4.0/"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent"
+          >
+            http://creativecommons.org/licenses/by/4.0/
+          </a>
+        </p>
+      </div>
+    </details>
   );
 }

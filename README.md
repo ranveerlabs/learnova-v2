@@ -46,6 +46,13 @@ attributed in the commit history.
 
 Next.js, TypeScript, Tailwind CSS.
 
+## Credits
+
+The background music is "8bit Dungeon Level" by Kevin MacLeod, used under
+Creative Commons BY 4.0. See CREDITS.md for the full attribution and for
+anything else third-party.
+
 ## License
 
-Apache License 2.0. See LICENSE and NOTICE.
+Apache License 2.0. See LICENSE and NOTICE. Third-party assets are under
+their own terms, listed in CREDITS.md.

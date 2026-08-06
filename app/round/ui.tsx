@@ -148,22 +148,35 @@ export function TimerRing({ remaining, total }: { remaining: number; total: numb
 
 /* ── The only two things beside the question ────────────────────────────── */
 
-/** The timer, and the combo multiplier once it is worth something.
+/** The timer, the combo multiplier once it is worth something, and the two
+    audio controls.
 
     The multiplier appears at two times and not before. A dead "x1" sitting
     there through every ordinary answer would be four more characters of chrome
-    reporting that nothing is happening. */
+    reporting that nothing is happening.
+
+    The audio toggles are here rather than in the header because the header is
+    empty during a round, and a mute control that disappears the moment the
+    round starts is a mute control for nobody. */
 export function RoundHud({
   streak,
   remaining,
   total,
   scoring,
+  music,
+  sound,
+  onMusic,
+  onSound,
 }: {
   streak: number;
   remaining: number;
   total: number;
   /** False during the warm up, which is unscored. */
   scoring: boolean;
+  music: boolean;
+  sound: boolean;
+  onMusic: () => void;
+  onSound: () => void;
 }) {
   const multiplier = comboMultiplier(streak);
   const heat = (multiplier - 1) / (MAX_COMBO - 1);
@@ -181,10 +194,10 @@ export function RoundHud({
   }, [multiplier]);
 
   return (
-    <div className="flex items-center justify-end gap-4">
+    <div className="flex items-center justify-end gap-3">
       {scoring && multiplier > 1 && (
         <span
-          className={`combo font-mono text-[1.0625rem] font-semibold leading-none text-accent ${
+          className={`combo mr-1 font-mono text-[1.0625rem] font-semibold leading-none text-accent ${
             bumped ? "combo-bump" : ""
           }`}
           style={{ ["--heat" as string]: heat }}
@@ -193,6 +206,8 @@ export function RoundHud({
           &times;{multiplier}
         </span>
       )}
+      <MusicToggle on={music} onToggle={onMusic} />
+      <SoundToggle on={sound} onToggle={onSound} />
       <TimerRing remaining={remaining} total={total} />
     </div>
   );
@@ -671,17 +686,64 @@ export function Generating({ title, sub }: { title: string; sub: string }) {
 }
 
 /* ── Audio ──────────────────────────────────────────────────────────────────
-   There is no control here, and that is deliberate rather than unfinished.
-   Music and the answer tones are on, and the two glyph toggles that sat in the
-   top right have been taken out: they were the last two pieces of chrome in a
-   header that is otherwise empty during a round.
+   These sit in the status strip and stay visible during a round, which is the
+   one exception to the rule at the top of this file about what may be on
+   screen. They earn it: audio nobody can stop is not a feature, it is a
+   reason to close the tab, and a mute control that can only be reached
+   between rounds is no use to somebody whose lecture just started. They pay
+   for the exception by being glyphs, so there is no text to read.
 
-   What that costs is worth writing down where whoever comes to this next will
-   see it. A student in a library cannot mute this from inside the app, and the
-   only remedy is the browser's own tab mute. If that becomes a complaint, the
-   place to put a control is the entry screen or the results screen, both of
-   which are already allowed to carry interface, and not the round.
+   There are two rather than one because the two halves start differently.
+   Music is off until asked for; the answer tones are on, because they are
+   feedback rather than atmosphere. One control cannot express that.
 ------------------------------------------------------------------------- */
+
+/** On is green, off is the same red the app marks a wrong answer in.
+
+    The colours are doing real work here and are also not doing it alone. Red
+    against green is the one pairing that collapses for the eight or so percent
+    of men with deuteranopia, so each state carries a different glyph as well:
+    a slashed note is off whether or not the colour arrives. That is the same
+    discipline the marking screens use, and the palette is the same validated
+    pair, --solid-mark against --broken-mark. */
+function AudioToggle({
+  on,
+  onToggle,
+  label,
+  glyph,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  label: string;
+  /** [on, off]. The two must differ in shape, not only in colour. */
+  glyph: [string, string];
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-pressed={on}
+      aria-label={`${label}: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
+      title={`${label} ${on ? "on" : "off"}`}
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[0.9375rem] leading-none transition-colors ${
+        on
+          ? "border-solid-mark bg-solid-tint text-solid-ink hover:bg-solid-mark hover:text-page"
+          : "border-broken-mark bg-broken-tint text-broken-ink hover:bg-broken-mark hover:text-page"
+      }`}
+    >
+      <span aria-hidden>{on ? glyph[0] : glyph[1]}</span>
+    </button>
+  );
+}
+
+/** The background track. Off until a student asks for it. */
+export function MusicToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return <AudioToggle on={on} onToggle={onToggle} label="Music" glyph={["♫", "♫̸"]} />;
+}
+
+/** The correct and incorrect tones. On by default. */
+export function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return <AudioToggle on={on} onToggle={onToggle} label="Answer sounds" glyph={["♪", "♪̸"]} />;
+}
 
 /* ── The way out to the plain rendering ─────────────────────────────────── */
 
