@@ -73,11 +73,13 @@ function track(): HTMLAudioElement | null {
 
 /** Turn the music on or off.
 
-    There is no autoplay path here, by construction rather than by promise.
-    The session starts with music off, so the only thing that ever calls this
-    with `true` is the toggle, and a toggle click is the user gesture browsers
-    require before audio may start. Nothing plays at a student who has not
-    asked for it.
+    Music is on by default now, which puts the whole weight of "nothing plays
+    on page load" on WHERE this is called from rather than on what it does.
+    The rule, kept in session.ts: this is never called while the page is
+    merely loading. It is called from the start button and from the toggle,
+    both of which are clicks, and a click is the user gesture browsers require
+    before audio may begin. There is deliberately no mount effect that calls
+    it, because that is exactly the autoplay this must not do.
 
     Safe to call repeatedly, and it never throws: audio is a garnish and must
     never be able to break a round. */
