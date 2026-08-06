@@ -211,13 +211,41 @@ export function useSpeech(): Speech {
 }
 
 /* ── Sound ────────────────────────────────────────────────────────────────
-   Off by default and synthesised rather than loaded, so enabling it costs no
-   download and there are no audio assets in the repository.
+   Synthesised rather than loaded, so there is no download and no audio asset
+   in the repository for these.
 
-   Kept short and soft on purpose. A study tool that chimes triumphantly every
-   few seconds is unusable in a library, and this mode is fast enough that
-   anything longer than about a tenth of a second would still be playing when
-   the next question arrives. */
+   Kept short on purpose. This mode is fast enough that anything longer than
+   about a tenth of a second would still be playing when the next question
+   arrives.
+
+   ── Why the levels are what they are ──────────────────────────────────────
+   These are functional, not decorative. A student has to know they got it
+   wrong without looking up, which means the tone has to survive the music
+   playing underneath it rather than merely exist alongside it.
+
+   The levels below were set against a measurement rather than by ear.
+   Decoding the background track gives a peak of 0.5 dBFS and, over its
+   loudest three second window, an RMS of -11.8 dBFS; played at MUSIC_VOLUME
+   of 0.6 that is -16.2 dBFS. A sine at amplitude A has an RMS of A over root
+   two, so:
+
+     amplitude 0.05   -12.8 dB relative to the music   the old value
+     amplitude 0.12    -5.2 dB
+     amplitude 0.17    -2.2 dB
+     amplitude 0.24    +0.8 dB
+
+   Those figures compare total RMS, which understates how well a tone carries:
+   the music spreads its energy across the spectrum while a sine puts all of
+   its own into one critical band, so a tone reads as louder than the
+   arithmetic suggests. They are still the right numbers to reason from.
+
+   Everything here is raised by the factor the music was raised by, 0.18 to
+   0.6, which is roughly three and a third. The one departure is "wrong". It
+   used to be the quietest tone in the set, deliberately, so that a miss was
+   not a buzzer. That was the correct call when it only had to be gentle and
+   the wrong one now that it has to be heard: it is levelled with "right"
+   rather than sitting three decibels under it. Equal, not louder. A miss
+   still is not a buzzer, it is simply no longer the hardest thing to hear. */
 
 type Tone = "right" | "wrong" | "combo" | "done";
 
@@ -240,12 +268,15 @@ function context(): AudioContext | null {
 const TONES: Record<Tone, { freq: number[]; ms: number; gain: number; type: OscillatorType }> = {
   /* A rising two-note figure. Up means right in every musical culture this
      interface is likely to meet. */
-  right: { freq: [660, 990], ms: 90, gain: 0.05, type: "sine" },
-  /* Down, quiet, and low. Audible as "not that" without being a buzzer. */
-  wrong: { freq: [300, 220], ms: 130, gain: 0.035, type: "sine" },
+  right: { freq: [660, 990], ms: 90, gain: 0.17, type: "sine" },
+  /* Down and low, which is what says "not that" without needing volume to do
+     it. Level with "right" rather than under it: the shape carries the
+     meaning, so the loudness does not have to, and this is the one tone a
+     student has to catch without looking at the screen. */
+  wrong: { freq: [300, 220], ms: 130, gain: 0.17, type: "sine" },
   /* Higher each time a combo climbs, which the caller varies by tier. */
-  combo: { freq: [880, 1320], ms: 110, gain: 0.05, type: "triangle" },
-  done: { freq: [523, 784, 1047], ms: 150, gain: 0.055, type: "sine" },
+  combo: { freq: [880, 1320], ms: 110, gain: 0.17, type: "triangle" },
+  done: { freq: [523, 784, 1047], ms: 150, gain: 0.19, type: "sine" },
 };
 
 /** Play one of the session's sounds. Silent and harmless when the browser
