@@ -95,9 +95,11 @@ export function Reveal({
             ? "You started by recognising. You finished by explaining."
             : "You started by recognising."}
         </h2>
-        <p className="max-w-[58ch] font-sans text-[0.9375rem] leading-[1.65] text-ink-soft">
-          These two are not the same test, so they are not compared with a number. Everything below
-          is counted from what you actually did in this session.
+        <p
+          className="max-w-[52ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft"
+          title="The cold open is a two-option guess taken before studying. Round 4 is an explanation produced from nothing and marked on a rubric. There is no arithmetic that turns one into the other, so nothing here subtracts them."
+        >
+          Not the same test, so not compared with a number.
         </p>
       </div>
 
@@ -107,9 +109,9 @@ export function Reveal({
         {data.open && (
           <Panel
             label="Cold open, before studying"
-            note={`Two options a question, so pure guessing scores about ${Math.round(
+            note={`Two options. Guessing alone scores about ${Math.round(
               data.open.chance * data.open.answered
-            )} of ${data.open.answered}. No score was shown at the time, on purpose.`}
+            )} of ${data.open.answered}.`}
           >
             <span className="font-mono text-[2.75rem] font-semibold leading-none tabular-nums text-ink">
               {data.open.correct}
@@ -122,7 +124,7 @@ export function Reveal({
         {produced ? (
           <Panel
             label="Round 4, in your own words"
-            note="Nothing on screen, no options, marked against the material. Guessing scores nothing here, because there is nothing to guess at."
+            note="Nothing on screen, marked against the material. Guessing scores nothing."
           >
             <div className="flex flex-col gap-2">
               {data.productions.map((p) => (
@@ -151,7 +153,7 @@ export function Reveal({
         ) : (
           <Panel
             label="Round 4"
-            note="Round 4 is the only stage that produces real evidence, because it is the only one with nothing on screen to lean on."
+            note="The only stage with nothing on screen to lean on."
           >
             <span className="font-read text-[1.125rem] leading-[1.4] text-ink">
               You did not get to this one.
@@ -228,10 +230,11 @@ export function Reveal({
           </div>
         </div>
 
-        <p className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint">
-          The clock covers the cold open and Rounds 1 to 3. Round 4 is not timed and is not in it:
-          putting a stopwatch on the one moment you have to explain something properly would only
-          teach you to say something fast instead of something true.
+        <p
+          className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint"
+          title="Putting a stopwatch on the one moment you have to explain something properly would only teach you to say something fast instead of something true."
+        >
+          Cold open and Rounds 1 to 3. Round 4 is untimed.
         </p>
       </div>
 
@@ -278,10 +281,11 @@ export function Reveal({
         )}
 
         {provenance === "generated" && (
-          <p className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint">
-            These questions were written by an AI model from the topic you named, not from your own
-            material. Paste your notes next time and every question comes with the line it came
-            from, checked word for word.
+          <p
+            className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint"
+            title="Paste your notes next time and every question arrives with the line it came from, checked word for word on the server."
+          >
+            Written by an AI model from your topic, not from your own material.
           </p>
         )}
       </div>
@@ -293,9 +297,11 @@ export function Reveal({
         <GhostButton onClick={onRestart}>Study something else</GhostButton>
       </div>
 
-      <p className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint">
-        Nothing from this session is saved. There are no accounts yet, so when you close this tab it
-        is gone, and that is the honest state of things rather than a setting.
+      <p
+        className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint"
+        title="There are no accounts yet, so there is nowhere honest to keep it. This is the state of things rather than a setting."
+      >
+        Nothing is saved. Closing this tab ends it.
       </p>
     </section>
   );

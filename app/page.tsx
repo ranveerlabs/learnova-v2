@@ -12,17 +12,23 @@ import {
   BlankField,
   ChipBoard,
   ChoiceGrid,
-  ComboMeter,
   Generating,
   LadderRail,
   PointsFly,
   ProvenanceBadge,
   RunClock,
   SoundToggle,
-  TimerRing,
+  StatusStrip,
   Verdict,
 } from "./round/ui";
-import { ADVANCE_MS, comboMultiplier, MAX_COMBO, type Question, QUESTION_SECONDS, type Round, ROUND_TITLE } from "./round/types";
+import {
+  ADVANCE_MS,
+  comboMultiplier,
+  MAX_COMBO,
+  type Question,
+  QUESTION_SECONDS,
+  type Round,
+} from "./round/types";
 import { play } from "./round/voice";
 import { Notice, Wordmark } from "./ui";
 
@@ -59,10 +65,9 @@ export default function Home() {
               <ProvenanceBadge provenance={s.provenance} />
             )}
             {showRun && <Ghost best={s.best} elapsed={s.runElapsed} live={inPlay} />}
-            {/* Not during the cold open: that stage is unscored, and a points
-                counter beside copy saying "nothing here is scored" would be
-                the interface contradicting itself. */}
-            {inPlay && s.stage !== 0 && <ComboMeter streak={s.streak} points={s.points} />}
+            {/* Score, streak and progress moved to the status strip under
+                this header, so the header carries identity and the run clock
+                and nothing that changes on every answer. */}
             <SoundToggle on={s.sound} onToggle={() => s.setSound(!s.sound)} />
           </div>
         </div>
@@ -100,6 +105,7 @@ export default function Home() {
               limit={s.stageLimit}
               sound={s.sound}
               streak={s.streak}
+              points={s.points}
               onAnswer={s.answer}
               onAdvance={s.advance}
             />
@@ -245,9 +251,11 @@ function BeatIt({
           </p>
         )}
       </div>
-      <p className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint">
-        {runs} run{runs === 1 ? "" : "s"} this tab. These live in memory only and go when the tab
-        closes, because there are no accounts yet to keep them in.
+      <p
+        className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint"
+        title="Run history lives in memory only, because there are no accounts yet to keep it in."
+      >
+        {runs} run{runs === 1 ? "" : "s"} this tab.
       </p>
     </section>
   );
@@ -289,6 +297,7 @@ function QuestionScreen({
   limit,
   sound,
   streak,
+  points,
   onAnswer,
   onAdvance,
 }: {
@@ -298,6 +307,7 @@ function QuestionScreen({
   limit: number;
   sound: boolean;
   streak: number;
+  points: number;
   onAnswer: (given: string | number | string[], timedOut?: boolean) => Result | null;
   onAdvance: () => void;
 }) {
@@ -370,40 +380,42 @@ function QuestionScreen({
   }, [onAdvance, result]);
 
   const revealed = result !== null;
-  const heading = stage === 0 ? "Cold open" : `Round ${stage} · ${ROUND_TITLE[stage as Round]}`;
 
   return (
-    /* Centred in the viewport rather than sitting at the top of it. A
-       question with a screenful of empty page under it reads as a form; the
-       same question held in the middle of the screen reads as the only thing
-       happening, which is what this mode needs it to be. */
-    <section className="relative mx-auto flex min-h-[66vh] w-full max-w-[46rem] flex-col justify-center gap-6 py-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-baseline gap-3">
-          <span
-            style={{ fontVariationSettings: '"wdth" 88' }}
-            className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-ink-faint"
-          >
-            {heading}
-          </span>
-          <span className="font-mono text-[0.75rem] tabular-nums text-ink-faint">
-            {served}/{limit}
-          </span>
-        </div>
-        {!revealed && <TimerRing remaining={remaining} total={total} />}
+    <>
+      {/* Full bleed out of the shell's padding: the strip is a band across
+          the page, which is what makes it read as separate from the question
+          rather than as the top of it. */}
+      <div className="-mx-6 -mt-8 mb-2 lg:-mx-10 xl:-mx-14">
+        <StatusStrip
+          stage={stage}
+          served={served}
+          limit={limit}
+          streak={streak}
+          points={points}
+          remaining={remaining}
+          total={total}
+          scoring={stage !== 0}
+        />
       </div>
 
-      {/* The cold open says what it is, every question, because a student
-          getting them wrong needs to know that is the expected outcome and
-          not a verdict on them. */}
-      {stage === 0 && (
-        <p className="font-sans text-[0.8125rem] leading-[1.55] text-ink-soft">
-          Guess. You have not studied this yet, and missing is the point: guessing first makes the
-          right answer stick harder when it arrives. Nothing here is scored.
-        </p>
-      )}
+      {/* Centred in the viewport rather than sitting at the top of it. A
+          question with a screenful of empty page under it reads as a form;
+          the same question held in the middle of the screen reads as the only
+          thing happening, which is what this mode needs it to be.
 
-      <h2 className="deal-in max-w-[34ch] text-balance font-read text-[clamp(1.375rem,1.1rem+1.3vw,1.875rem)] font-normal leading-[1.2] tracking-[-0.015em] text-ink">
+          Nothing lives in here but the question and its options. The round
+          heading, the progress count and the timer are in the strip above;
+          the cold open's "guessing is the point" explanation is on the entry
+          screen where it is read once; what each round takes away is on the
+          between-rounds screen that opens it. Every one of those was
+          competing with the retrieval itself. */}
+      <section className="relative mx-auto flex min-h-[62vh] w-full max-w-[46rem] flex-col justify-center gap-6 py-4">
+      {/* Given the full column rather than a 34-character measure: the
+          generation prompt now caps questions at 12 words, and the point of
+          capping the words was so the question could fit a line without the
+          type being shrunk to make it. */}
+      <h2 className="deal-in text-balance font-read text-[clamp(1.375rem,1.1rem+1.3vw,1.875rem)] font-normal leading-[1.2] tracking-[-0.015em] text-ink">
         {question.format === "blank" ? "Fill in what is missing." : question.prompt}
       </h2>
 
@@ -461,16 +473,7 @@ function QuestionScreen({
         />
       )}
 
-      {/* A live streak line under the question, so the run is visible where
-          the eye already is rather than only up in the header. */}
-      {!revealed && streak >= 2 && stage !== 0 && (
-        <p
-          style={{ fontVariationSettings: '"wdth" 88' }}
-          className="font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-accent"
-        >
-          {streak} in a row. Next one is worth &times;{comboMultiplier(streak + 1)}.
-        </p>
-      )}
-    </section>
+      </section>
+    </>
   );
 }

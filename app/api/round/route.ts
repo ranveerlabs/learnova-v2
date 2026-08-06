@@ -50,6 +50,8 @@ function citationHolds(quote: string, source: string): boolean {
 
 const HOUSE_RULES = `
 Hard rules for every question you write:
+- LENGTH IS A HARD LIMIT, not a preference. "prompt" must be at most 12 words and must fit on one line. Each option must be at most 5 words. "because" must be one sentence of at most 20 words. A student is reading these against a clock, so every extra word is a word taken from the retrieval itself. If a question cannot be asked in 12 words, ask a narrower question.
+- Do not restate the topic or the concept name inside the prompt. The student already knows what they are studying.
 - Do not use em dashes anywhere in your output. Use commas, colons or separate sentences instead.
 - Address the student as "you" in any explanation.
 - Never write a question whose answer is given away by the wording of the question itself.
@@ -79,8 +81,8 @@ const OPEN_SYSTEM = `Open a rapid study session on the topic given. Reply with J
 "concepts": 3 to 5 distinct ideas worth testing, foundational first, 1 to 4 words each.
 
 "questions": exactly ${COLD_OPEN_COUNT} snap questions, spread across those concepts. Each has exactly TWO options. The student answers on instinct, before studying, so these must be neither tricks nor giveaways.
-- prompt: under 14 words. Each option: under 5 words.
-- because: one short sentence, shown only after they answer.
+- prompt: at most 12 words, fitting one line. Each option: at most 5 words. These are hard limits.
+- because: one sentence, at most 20 words, shown only after they answer.
 - No em dashes. Address the student as "you".
 
 {"concepts":["..."],"questions":[{"concept":"...","prompt":"...","options":["...","..."],"answerIndex":0,"answer":"...","because":"...","citation":"..."}]}`;
@@ -110,7 +112,7 @@ Respond with JSON in exactly this shape:
     return `${shared}
 
 This is Round 2: fill in the blank. No options are shown, so the student must produce the term from memory.
-- "prompt" is one sentence with exactly one gap, written as five underscores: _____
+- "prompt" is one sentence with exactly one gap, written as five underscores: _____ . At most 16 words including the gap, so it fits on one line.
 - The gap must fall on a single term or short phrase carrying real meaning, never on a connective word like "the" or "is".
 - "answer" is what goes in the gap, and nothing else. Keep it to 1 to 3 words.
 - "accepted" lists other forms a student might reasonably type for the same answer: a common synonym, an abbreviation, the spelled-out version of an acronym. Do not list wrong or approximate answers here. Leave it empty if there is genuinely only one way to say it.
@@ -132,7 +134,7 @@ This is Round 3: the student assembles a sentence from chips. Nothing is written
 Respond with JSON in exactly this shape:
 {"questions": [{"concept": "...", "difficulty": "easy" | "medium" | "hard", "prompt": "...", "chips": ["...", "..."], "distractors": ["..."], "answer": "...", "accepted": [], "because": "...", "citation": "..."}]}
 
-"prompt" here is the instruction line, for example "Build the sentence explaining what an enzyme does to activation energy."`;
+"prompt" here is the instruction line, at most 10 words, for example "Build the sentence about what enzymes do to activation energy."`;
 }
 
 /* ── Shapes coming back ──────────────────────────────────────────────── */
