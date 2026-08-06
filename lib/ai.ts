@@ -24,20 +24,34 @@ export class AIError extends Error {
 export const BUSY =
   "Learnova is busy right now. Give it a moment and try again.";
 
-async function callModel(
+/* Reasoning off, deliberately.
+
+   The model reasons by default, at "high" effort, and it is the single
+   biggest thing standing between a student and their first question.
+   Measured on the real Round 1 prompt: 7992 completion tokens with it on
+   against 1837 with it off, and on the cold open 349 to 3398 tokens depending
+   on nothing more than which topic was named. That variance is the problem as
+   much as the size is. The cold open is the one call a student actually waits
+   on, and the whole mode is built on them answering something within about
+   ten seconds of naming a topic.
+
+   What is being given up is small. These prompts do not ask the model to work
+   anything out: they hand it a topic, a format, a shape and about twenty
+   hard rules, and ask it to write. The thinking a study question needs was
+   done in the prompt.
+
+   Not the same as asking for less reasoning. Measured, "low" effort produced
+   MORE reasoning than the default and took longer, which is its own reason
+   not to trust the dial. Off is off. */
+const REASONING = { enabled: false } as const;
+
+async function request(
+  token: string,
   system: string,
   user: string,
   opts: { json: boolean; temperature?: number }
-): Promise<string> {
-  const token = process.env.HACKCLUB_AI_KEY;
-  if (!token || token === "PLACEHOLDER") {
-    throw new AIError(
-      "HACKCLUB_AI_KEY is not set. Add your real key to .env.local and restart the dev server.",
-      500
-    );
-  }
-
-  const res = await fetch(ENDPOINT, {
+): Promise<Response> {
+  return fetch(ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -51,26 +65,56 @@ async function callModel(
       ],
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
       temperature: opts.temperature ?? 0.3,
+      reasoning: REASONING,
     }),
   });
+}
 
-  if (!res.ok) {
-    const detail = await res.text();
-    console.error(`Hack Club AI API error ${res.status} (model ${MODEL}):`, detail);
+async function callModel(
+  system: string,
+  user: string,
+  opts: { json: boolean; temperature?: number }
+): Promise<string> {
+  const token = process.env.HACKCLUB_AI_KEY;
+  if (!token || token === "PLACEHOLDER") {
+    throw new AIError(
+      "HACKCLUB_AI_KEY is not set. Add your real key to .env.local and restart the dev server.",
+      500
+    );
+  }
 
-    if (res.status === 429) {
-      throw new AIError(BUSY, 429);
+  /* Two attempts, and only ever for one reason: a reply that arrived fine and
+     had nothing in it. That happens occasionally and is not a state anything
+     downstream can do anything with, so it is worth one more ask before it
+     becomes an error on a student's screen.
+
+     Deliberately not a retry for anything else. An HTTP error is not retried
+     here, and a rate limit least of all: asking again immediately is the one
+     response to a busy shared key that makes it busier. */
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const res = await request(token, system, user, opts);
+
+    if (!res.ok) {
+      const detail = await res.text();
+      console.error(`Hack Club AI API error ${res.status} (model ${MODEL}):`, detail);
+
+      if (res.status === 429) {
+        throw new AIError(BUSY, 429);
+      }
+      throw new AIError(`The AI service returned an error (HTTP ${res.status}). Try again.`);
     }
-    throw new AIError(`The AI service returned an error (HTTP ${res.status}). Try again.`);
+
+    const data = await res.json();
+    const content: unknown = data?.choices?.[0]?.message?.content;
+    if (typeof content === "string" && content.trim()) return content;
+
+    console.error(
+      `Hack Club AI API returned no message content (attempt ${attempt} of 2):`,
+      JSON.stringify(data).slice(0, 2000)
+    );
   }
 
-  const data = await res.json();
-  const content: unknown = data?.choices?.[0]?.message?.content;
-  if (typeof content !== "string" || !content.trim()) {
-    console.error("Hack Club AI API returned no message content:", JSON.stringify(data).slice(0, 2000));
-    throw new AIError("The AI returned an empty response. Try again.");
-  }
-  return content;
+  throw new AIError("The AI returned an empty response. Try again.");
 }
 
 /* ── Getting the JSON back out of a reply ─────────────────────────────────
