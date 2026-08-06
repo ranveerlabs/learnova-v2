@@ -19,6 +19,32 @@ export type Grade = {
   outcome: Outcome;
 };
 
+/* ── Two rubrics, because there are two kinds of session ──────────────────
+
+   A grounded session has real source material: the student pasted it, every
+   question was cited against it, and grading an explanation against that
+   passage and nothing else is the whole guarantee of the mode. That is the
+   rubric below, unchanged.
+
+   A topic-only session has no source material and never did. What it has is
+   the questions the session happened to ask, and those were being handed to
+   the grader as though they were a passage from a textbook. The result is the
+   one that was reported: asked to define nutrition, a student wrote "the
+   benefit you get from consuming healthy foods", and it came back marked
+   imprecise against the quote "Which mineral is carrots especially rich in?",
+   with that question printed under the heading "Source". The definition was
+   fine. The grader was doing exactly what it was told, which was to judge a
+   general definition against a multiple choice question, and then to quote
+   the question back as evidence.
+
+   So the second rubric below judges a topic-only answer against ordinary
+   established knowledge of the concept, and is told in as many words that
+   there is no source and nothing to quote.
+
+   The two must stay in step on everything that is not that distinction: the
+   tone, the scope, and the outcome definitions are load bearing and were
+   recalibrated deliberately. Change one, change the other. */
+
 const SYSTEM = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Dissect their explanation phrase by phrase against the provided source material ONLY, not against your own knowledge of the topic.
 
 Do not use em dashes anywhere in your output. Use commas, colons or separate sentences instead.
@@ -35,6 +61,32 @@ Judge the explanation against WHAT WAS ASKED, not against the most complete poss
 - "missed": points that the concept being asked REQUIRED, which the student left out entirely. Scope this strictly to the question they were asked, not to everything the source happens to say. If their explanation covers what was asked, "missed" MUST be an empty array. Do not list refinements, further examples, extra detail, or neighbouring facts that would merely have been nice to include. Only put something here when its absence means the concept was not actually demonstrated. An empty array is the correct and expected answer for a complete explanation.
 - "verdict": one or two honest sentences, written to "you". When the outcome is "solid", say so plainly and stop: no "but", no caveat, no list of what else could have been added. A student whose correct answer comes back qualified learns that nothing they do will ever count, and then stops trying to be right. When the outcome is not "solid", name the single most important thing to shore up next, not everything at once.
 - "outcome": your overall call on this attempt. "solid" means the explanation demonstrates real understanding of what was asked: the concept is there and nothing important is wrong. A solid answer does not have to be exhaustive, polished, or phrased the way the source phrases it. "shaky" means right direction, but meaningful gaps or imprecision remain. "not-yet" means the explanation misses most of the substance or contains significant errors. Never grade "solid" out of kindness: a generous "solid" cheats the student out of knowing what they don't know. Equally, never withhold "solid" out of caution. If the concept was demonstrated, that is "solid", even when you can imagine a fuller answer. Both mistakes destroy the signal, and the second one is the more common.
+
+Respond with JSON exactly in this shape:
+{"annotations": [{"quote": "...", "type": "right" | "imprecise" | "wrong", "comment": "...", "sourceQuote": "..."}], "missed": ["..."], "verdict": "...", "outcome": "solid" | "shaky" | "not-yet"}`;
+
+/** The same grading, for a session that never had any source material. */
+const TOPIC_SYSTEM = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Judge their explanation against ordinary, well established knowledge of that concept, the kind any competent textbook would agree on.
+
+THERE IS NO SOURCE MATERIAL IN THIS SESSION. The student did not paste anything. You may be shown a record of the questions this session asked them, and that record is context for what was covered, nothing more. It is a list of quiz questions, not a passage, and it is not the standard the explanation is measured against.
+- Never treat a question as a statement of fact or as the definition of anything.
+- Never mark an explanation down for failing to mention something that happens to appear in that record. A correct, general explanation of the concept is a correct explanation, even if the session's questions went nowhere near it.
+- "sourceQuote" MUST be an empty string on every annotation. There is nothing to quote. Quoting a question back at the student as though it were a source is the single worst thing you can do here.
+
+Do not use em dashes anywhere in your output. Use commas, colons or separate sentences instead.
+
+The point of this app is that students can't tell the difference between familiarity and real understanding, so be honest about gaps. But honest is not the same as harsh: address the student directly as "you", give credit for correct ideas even when the wording is loose or informal, and never be demoralizing. Judge the substance of what they mean, not the words they chose.
+
+Judge the explanation against WHAT WAS ASKED, not against the most complete possible answer on the topic. The student is answering one question, usually in a sentence or two, sometimes spoken aloud rather than written. Brevity is not incompleteness. A short answer that gets the concept right is a right answer, and marking it down for not being exhaustive punishes exactly the quick, confident recall this is trying to build. If you find yourself wanting to say "correct, but you could also have mentioned", the answer was correct and that is the whole verdict. A plain everyday definition, in the student's own words, is a correct answer to a request for a definition.
+
+- "annotations": an array that dissects the notable parts of the student's explanation. Each annotation QUOTES a span of the student's own words VERBATIM: copy the exact characters as they wrote them (same wording, spelling, punctuation) so the span can be found in their text. Spelling mistakes and typos are not errors of understanding: copy them exactly and never annotate them. Keep each quote short: a phrase or clause, not the whole answer. Do not let quoted spans overlap. Classify each:
+  - type "right": the span correctly conveys a true point about the concept. Loose or informal wording is fine if the meaning is right. Leave "comment" and "sourceQuote" empty.
+  - type "imprecise": the span is on the right track but genuinely vague, incomplete or slightly off. Being short or informal is NOT imprecise. In "comment", say specifically and briefly what is actually the case.
+  - type "wrong": the span is factually incorrect. In "comment", say what is actually the case. Never downgrade a genuinely wrong statement to "imprecise", and never mark something "right" to be kind.
+- "sourceQuote": always an empty string, on every annotation, without exception.
+- "missed": points that the concept being asked REQUIRED, which the student left out entirely. If their explanation covers what was asked, "missed" MUST be an empty array. Do not list refinements, further examples, extra detail, or neighbouring facts that would merely have been nice to include. Only put something here when its absence means the concept was not actually demonstrated. An empty array is the correct and expected answer for a complete explanation.
+- "verdict": one or two honest sentences, written to "you". When the outcome is "solid", say so plainly and stop: no "but", no caveat, no list of what else could have been added. A student whose correct answer comes back qualified learns that nothing they do will ever count, and then stops trying to be right. When the outcome is not "solid", name the single most important thing to shore up next, not everything at once.
+- "outcome": your overall call on this attempt. "solid" means the explanation demonstrates real understanding of what was asked: the concept is there and nothing important is wrong. A solid answer does not have to be exhaustive or polished. "shaky" means right direction, but meaningful gaps or imprecision remain. "not-yet" means the explanation misses most of the substance or contains significant errors. Never grade "solid" out of kindness: a generous "solid" cheats the student out of knowing what they don't know. Equally, never withhold "solid" out of caution. If the concept was demonstrated, that is "solid", even when you can imagine a fuller answer. Both mistakes destroy the signal, and the second one is the more common.
 
 Respond with JSON exactly in this shape:
 {"annotations": [{"quote": "...", "type": "right" | "imprecise" | "wrong", "comment": "...", "sourceQuote": "..."}], "missed": ["..."], "verdict": "...", "outcome": "solid" | "shaky" | "not-yet"}`;
@@ -75,8 +127,20 @@ function deflate(s: string): string {
 }
 
 /** Drop any sourceQuote that isn't actually present in the pasted source, so
-    citations can never be fabricated or hallucinated. */
-function verifyCitations(grade: Grade, source: string): Grade {
+    citations can never be fabricated or hallucinated.
+
+    In a topic-only session there is no source to be present in, so every
+    quote goes. The prompt already says so; this is the part that holds when
+    the model does it anyway, and it is the reason a quiz question can no
+    longer be printed under the heading "Source". */
+function verifyCitations(grade: Grade, source: string, grounded: boolean): Grade {
+  if (!grounded) {
+    return {
+      ...grade,
+      annotations: grade.annotations.map((a) => (a.sourceQuote ? { ...a, sourceQuote: "" } : a)),
+    };
+  }
+
   const haystack = flatten(source);
   const tight = deflate(source);
   let dropped = 0;
@@ -116,6 +180,12 @@ export async function POST(req: Request) {
         counts as complete, not how honest the grade is. */
     brief?: unknown;
     via?: unknown;
+    /** Whether `source` is material the student actually pasted. False for a
+        topic-only session, where `source` is only a record of the questions
+        this session asked and must never be graded against. Defaults to the
+        grounded reading, so a caller that forgets to say gets the stricter
+        rubric rather than the looser one. */
+    grounded?: unknown;
   };
   try {
     body = await req.json();
@@ -147,13 +217,26 @@ export async function POST(req: Request) {
       } as a gap.`
     : "";
 
+  /* Grounded unless the caller says otherwise. The stricter rubric is the
+     safe default: applied to a grounded session it is correct, and applied to
+     a topic-only one it is merely what this already did. */
+  const grounded = body.grounded !== false;
+
+  /* The heading this material is given matters as much as the rubric. Called
+     "Source material", a list of the session's own questions reads as a
+     passage to quote from, which is how a multiple choice question ended up
+     printed under the word "Source" as evidence against a student. */
+  const material = grounded
+    ? `Source material:\n\n${source}`
+    : `For context only, the questions this session asked the student about "${concept}". This is a record of what was covered. It is NOT source material, it is NOT a passage, and it is NOT the standard the explanation is judged against:\n\n${source}`;
+
   try {
     const grade = await chatJSON(
-      SYSTEM,
-      `Source material:\n\n${source}\n\n---\n\nConcept being explained: ${concept}\n\nStudent's explanation:\n\n${explanation}${conditions}`,
+      grounded ? SYSTEM : TOPIC_SYSTEM,
+      `${material}\n\n---\n\nConcept being explained: ${concept}\n\nStudent's explanation:\n\n${explanation}${conditions}`,
       isGrade
     );
-    return NextResponse.json(verifyCitations(grade, source));
+    return NextResponse.json(verifyCitations(grade, source, grounded));
   } catch (err) {
     if (err instanceof AIError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
