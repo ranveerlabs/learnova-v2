@@ -1,190 +1,135 @@
 "use client";
 
-import { context } from "./voice";
+/* Background music.
 
-/* Background music, synthesised rather than loaded.
+   One track, played from a file. What was here before was a synthesised pad:
+   three oscillators through a low pass filter, drifting between chord centres
+   on a four second timer. It was clever and it sounded like fan noise, so it
+   has been removed rather than tuned. None of it survives.
 
-   No audio files in the repository, for the same reason the answer tones have
-   none: a loop long enough not to grate is a large binary in a small
-   repository, and a loop short enough to ship is one a student will notice
-   repeating within a round.
+   ── Credit ────────────────────────────────────────────────────────────────
+   "8bit Dungeon Level" Kevin MacLeod (incompetech.com)
+   Licensed under Creative Commons: By Attribution 4.0
+   http://creativecommons.org/licenses/by/4.0/
 
-   What this plays is deliberately close to nothing. A slow pad on a five note
-   scale, one note moving at a time, at a level that sits under the answer
-   tones rather than beside them. Study music that draws attention to itself is
-   working against the only thing the session is for, and a tune with a hook in
-   it would be rehearsing itself in the student's head instead of the material.
+   Attribution is a licence condition, not a courtesy, so it is in three
+   places a person might actually look: CREDITS.md at the repository root,
+   a pointer in README.md, and a control on the entry screen that a student
+   can reach without knowing to go looking. This comment is a fourth, for
+   whoever opens this file next and wonders where the audio came from.
 
-   ── On by default ──────────────────────────────────────────────────────────
-   It is on when the session opens, and so are the answer tones. Both have a
-   visible control.
+   ── Why an audio element and not Web Audio ────────────────────────────────
+   The track is three and a half minutes at 320kbps. Decoding that into an
+   AudioBuffer to get sample accurate looping would cost something like
+   thirty five megabytes of resident memory, on a page whose entire job is to
+   ask short questions quickly. A media element streams it instead and loops
+   it natively.
 
-   It cannot start before the student's first click, and that is a browser
-   rule rather than a setting: audio contexts begin suspended and stay
-   suspended until a real user gesture resumes them. So `set(true)` before any
-   interaction arms the music rather than starting it, and the first click the
-   page sees, which in practice is the start button on the entry screen, is
-   what actually begins it. Nothing here tries to work around that, and nothing
-   plays on a page the student has not touched. */
+   The trade is honest and worth writing down: MP3 carries encoder padding at
+   the head and tail of the file, so a native loop can leave a few
+   milliseconds of silence at the seam. If that ever becomes audible enough to
+   matter, the fix is the file rather than this code, either a trimmed MP3 or
+   an OGG. */
 
-const SCALE = [0, 2, 4, 7, 9];
-const ROOT = 174.61; // F3, low enough to stay under speech
+/** How loud the music sits under everything else.
 
-/** Semitones to a frequency. */
-function step(semitones: number): number {
-  return ROOT * Math.pow(2, semitones / 12);
-}
+    It started at 0.18, which was inaudible in practice: a media element's
+    volume is amplitude rather than perceived loudness, so 0.18 is roughly
+    fifteen decibels down, and a quiet chiptune fifteen decibels down is not
+    background, it is nothing. 0.6 is about five decibels down, which is
+    present without being the loudest thing in the room.
 
-/** The chord centres the pad drifts between. Slow, and only ever a step or
-    two apart, so nothing ever arrives as an event. */
-const CENTRES = [0, 5, -3, 2];
+    One constant, so adjusting it after listening is a one line change rather
+    than an archaeology exercise. If it now sits on top of the answer tones,
+    those have their own levels in voice.ts, at 0.05 for correct and 0.035 for
+    wrong, and they are what should win. */
+export const MUSIC_VOLUME = 0.6;
 
-type Voice = {
-  osc: OscillatorNode;
-  gain: GainNode;
-};
+const TRACK = "/audio/8bit-dungeon-level.mp3";
 
-let master: GainNode | null = null;
-let filter: BiquadFilterNode | null = null;
-let voices: Voice[] = [];
-let timer: ReturnType<typeof setInterval> | null = null;
-let armed = false;
+let element: HTMLAudioElement | null = null;
 let wanted = false;
-let step_ = 0;
 
-const LEVEL = 0.05;
+function track(): HTMLAudioElement | null {
+  if (typeof window === "undefined") return null;
+  if (element) return element;
 
-function build(ctx: AudioContext) {
-  if (master) return;
-
-  master = ctx.createGain();
-  master.gain.value = 0;
-
-  /* A low pass well down the spectrum. What is left is a pad rather than an
-     instrument, which is the point: nothing with an attack in it. */
-  filter = ctx.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.value = 720;
-  filter.Q.value = 0.4;
-
-  filter.connect(master);
-  master.connect(ctx.destination);
-
-  voices = [0, 1, 2].map((i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = i === 2 ? "triangle" : "sine";
-    osc.frequency.value = step(SCALE[i] + (i === 2 ? 12 : 0));
-    gain.gain.value = i === 2 ? 0.22 : 0.4;
-    osc.connect(gain).connect(filter!);
-    osc.start();
-    return { osc, gain };
-  });
-}
-
-/** Move one voice to a new note. One at a time, over four seconds, so the
-    harmony changes without anything sounding like it was played. */
-function drift(ctx: AudioContext) {
-  if (voices.length === 0) return;
-
-  step_ += 1;
-  const centre = CENTRES[Math.floor(step_ / 3) % CENTRES.length];
-  const voice = voices[step_ % voices.length];
-  const degree = SCALE[(step_ * 2) % SCALE.length];
-  const octave = voice === voices[2] ? 12 : 0;
-
-  voice.osc.frequency.setTargetAtTime(step(centre + degree + octave), ctx.currentTime, 1.6);
-
-  /* The filter breathes on the same clock, which is what stops a held chord
-     reading as a dial tone. */
-  filter?.frequency.setTargetAtTime(620 + ((step_ * 137) % 260), ctx.currentTime, 2.4);
-}
-
-function run(ctx: AudioContext) {
-  build(ctx);
-  if (!master) return;
-
-  master.gain.cancelScheduledValues(ctx.currentTime);
-  master.gain.setTargetAtTime(LEVEL, ctx.currentTime, 1.2);
-
-  timer ??= setInterval(() => {
-    const live = context();
-    if (live) drift(live);
-  }, 4000);
-}
-
-/** Fade out and stop scheduling. The oscillators are left running at zero
-    gain: restarting them is not free, and a student toggling the music twice
-    should not hear a click for their trouble. */
-function hush(ctx: AudioContext) {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
+  try {
+    const audio = new Audio();
+    /* Nothing is fetched until the student actually asks for music. It is off
+       by default and most sessions will never turn it on, and eight megabytes
+       downloaded on the chance that somebody might is eight megabytes of
+       somebody's data. */
+    audio.preload = "none";
+    audio.src = TRACK;
+    audio.loop = true;
+    audio.volume = MUSIC_VOLUME;
+    element = audio;
+    return audio;
+  } catch {
+    return null;
   }
-  master?.gain.cancelScheduledValues(ctx.currentTime);
-  master?.gain.setTargetAtTime(0, ctx.currentTime, 0.6);
-}
-
-/** Wait for the first real gesture, then start.
-
-    Registered once. `once: true` on each listener, and `armed` guards against
-    a second registration if the student toggles the music off and on again
-    before touching anything else. */
-function armForGesture() {
-  if (armed || typeof window === "undefined") return;
-  armed = true;
-
-  const begin = () => {
-    armed = false;
-    if (!wanted) return;
-    const ctx = context();
-    if (!ctx) return;
-    void ctx.resume();
-    run(ctx);
-  };
-
-  window.addEventListener("pointerdown", begin, { once: true });
-  window.addEventListener("keydown", begin, { once: true });
 }
 
 /** Turn the music on or off.
 
-    Safe to call on every render: it does nothing when the state already
-    matches, and it never throws. Audio is a garnish and must never be able to
-    break a round. */
+    There is no autoplay path here, by construction rather than by promise.
+    The session starts with music off, so the only thing that ever calls this
+    with `true` is the toggle, and a toggle click is the user gesture browsers
+    require before audio may start. Nothing plays at a student who has not
+    asked for it.
+
+    Safe to call repeatedly, and it never throws: audio is a garnish and must
+    never be able to break a round. */
 export function setMusic(on: boolean): void {
   wanted = on;
 
-  try {
-    const ctx = context();
-    if (!ctx) return;
+  /* Turning off something that was never turned on has nothing to do. Worth
+     the two lines: the session sets this to false on mount, and without the
+     guard every session that never touches the toggle would still construct
+     an audio element to pause it. */
+  if (!on && !element) return;
 
+  const audio = track();
+  if (!audio) return;
+
+  try {
     if (!on) {
-      hush(ctx);
+      audio.pause();
       return;
     }
 
-    /* Suspended means no gesture has reached the page yet. Ask for one rather
-       than trying to talk over the browser. */
-    if (ctx.state === "suspended") {
-      void ctx.resume();
-      if (ctx.state === "suspended") {
-        armForGesture();
-        return;
-      }
+    audio.volume = MUSIC_VOLUME;
+    const started = audio.play();
+    /* play() rejects when a browser decides it has not seen a good enough
+       gesture. There is nothing useful to say to the student about that and
+       nothing to retry, so it is swallowed: the toggle still reads as on,
+       which is what they asked for, and the next toggle will try again. */
+    if (started && typeof started.catch === "function") {
+      started.catch(() => {});
     }
-
-    run(ctx);
   } catch {
     /* Nothing to do and nothing to say. */
   }
 }
 
-/** Whether the music is actually sounding, as opposed to wanted. The interface
-    does not currently show this: the toggle reports the student's choice, and
-    a control that flipped itself back to off because the browser had not seen
-    a click yet would be reporting the browser's state as though it were
-    theirs. */
-export function musicPlaying(): boolean {
-  return wanted && timer !== null;
+/** Stop and release the element. Called when the session unmounts, so a track
+    cannot outlive the page that started it. */
+export function stopMusic(): void {
+  wanted = false;
+  if (!element) return;
+  try {
+    element.pause();
+    element.src = "";
+  } catch {
+    /* Nothing to do. */
+  }
+  element = null;
+}
+
+/** Whether music is currently wanted. The toggle renders from the session's
+    own state rather than from this; it exists for anything that needs to ask
+    without owning the setting. */
+export function musicWanted(): boolean {
+  return wanted;
 }

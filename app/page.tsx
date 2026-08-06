@@ -112,6 +112,9 @@ export default function Home() {
               question={s.current}
               stage={s.stage}
               sound={s.sound}
+              music={s.music}
+              onSound={() => s.setSound(!s.sound)}
+              onMusic={() => s.setMusicOn(!s.music)}
               streak={s.streak}
               seed={s.seed}
               plainOnly={s.plainOnly}
@@ -309,6 +312,9 @@ function QuestionScreen({
   question,
   stage,
   sound,
+  music,
+  onSound,
+  onMusic,
   streak,
   seed,
   plainOnly,
@@ -319,6 +325,9 @@ function QuestionScreen({
   question: Question;
   stage: 0 | Round;
   sound: boolean;
+  music: boolean;
+  onSound: () => void;
+  onMusic: () => void;
   streak: number;
   seed: number;
   plainOnly: boolean;
@@ -440,6 +449,10 @@ function QuestionScreen({
           remaining={remaining}
           total={total}
           scoring={stage !== 0}
+          music={music}
+          sound={sound}
+          onMusic={onMusic}
+          onSound={onSound}
         />
       </div>
 

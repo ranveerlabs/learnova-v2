@@ -12,7 +12,7 @@ import {
   beatsBest,
   rankForProduction,
 } from "./engine";
-import { setMusic } from "./music";
+import { setMusic, stopMusic } from "./music";
 import { newSeed } from "./presentations/registry";
 import {
   type Answer,
@@ -111,19 +111,31 @@ export function useRoundSession() {
 
   const [error, setError] = useState<string | null>(null);
 
-  /* Audio is on, and there is no control for it anywhere in the interface.
+  /* Audio, and both halves of it are the student's to decide.
 
-     Neither part can make a sound before the student's first click: browsers
-     hold an audio context suspended until the page has seen a gesture, so what
-     "on" buys is that the first click starts it rather than that something
-     plays at a student who has not touched the page. In practice the gesture
-     is the start button on the entry screen. */
-  const sound = true;
+     Music starts off. Not "off until a gesture arrives", genuinely off: the
+     only thing that ever turns it on is the toggle, so there is no path
+     through this file that plays anything at somebody who has not asked. A
+     study tool that starts playing music at whoever opens it is unusable in a
+     library or a classroom, which is most of the places it would be opened.
+
+     The answer tones start on, because they are feedback rather than
+     atmosphere and they were already on. That difference in default is why
+     these are two settings and not one: a single control cannot start one of
+     them on and the other off.
+
+     Both survive a restart. Somebody who turned the music on for one run
+     wants it on for the next, and being asked again every time is its own
+     small annoyance. */
+  const [sound, setSound] = useState(true);
+  const [music, setMusicOn] = useState(false);
 
   useEffect(() => {
-    setMusic(true);
-    return () => setMusic(false);
-  }, []);
+    setMusic(music);
+  }, [music]);
+
+  /* A track must not outlive the page that started it. */
+  useEffect(() => stopMusic, []);
 
   /* Presentations are how rounds look, so there is no setting for them. This
      is the one way to the plain rendering, and it is reached through the skip
@@ -524,6 +536,7 @@ export function useRoundSession() {
     points,
     error,
     sound,
+    music,
     best,
     runCount: runs.current.length,
     banks,
@@ -535,6 +548,8 @@ export function useRoundSession() {
     plainOnly,
     seed,
     setPlainOnly,
+    setSound,
+    setMusicOn,
     start,
     answer,
     advance,
