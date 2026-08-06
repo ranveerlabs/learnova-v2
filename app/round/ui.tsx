@@ -23,58 +23,53 @@ const RUNGS: { key: 0 | Round; label: string; short: string }[] = [
   { key: 4, label: "Say it yourself", short: "R4" },
 ];
 
-/** The whole ladder, always in view.
+/** The ladder, as five marks and one word.
 
-    A student should be able to see at a glance that the help is being taken
-    away one rung at a time, because that progression IS the product. Each
-    rung carries its own name rather than a number, so the escalation reads as
-    a change in what is being asked and not merely as progress. */
+    It used to print all five stage names across the header, which put around
+    fourteen words of chrome above every question. The progression still has
+    to be legible, because the help being taken away one rung at a time IS the
+    product, but it does not need to be spelled out five times: only the rung
+    the student is actually on is named, and the rest are marks. Every stage
+    still carries its name in a tooltip and in the accessible label, so
+    nothing is lost to anyone reading it with assistive technology. */
 export function LadderRail({ stage }: { stage: 0 | Round }) {
+  const here = RUNGS.find((r) => r.key === stage);
+
   return (
-    <nav aria-label="Session stages" className="flex items-center gap-1.5">
-      {RUNGS.map((rung, i) => {
-        const done = rung.key < stage;
-        const here = rung.key === stage;
-        return (
-          <div key={rung.key} className="flex items-center gap-1.5">
-            <div
-              aria-current={here ? "step" : undefined}
+    <nav aria-label="Session stages" className="flex items-center gap-2.5">
+      <span className="flex items-center gap-1.5">
+        {RUNGS.map((rung) => {
+          const done = rung.key < stage;
+          const current = rung.key === stage;
+          return (
+            /* Shape, not just colour: a filled square is cleared, a ring is
+               where you are, a faint dot is still ahead. */
+            <span
+              key={rung.key}
               title={rung.label}
-              className={`flex items-center gap-1.5 rounded-[3px] px-2 py-1 transition-colors duration-300 ${
-                here ? "bg-accent-wash" : ""
-              }`}
+              aria-label={`${rung.label}: ${done ? "cleared" : current ? "current" : "ahead"}`}
+              aria-current={current ? "step" : undefined}
+              className="grid h-2.5 w-2.5 place-items-center"
             >
-              {/* Shape, not just colour: a filled square is cleared, a ring is
-                  where you are, a faint dot is still ahead. */}
-              <span aria-hidden className="grid h-2.5 w-2.5 place-items-center">
-                {done ? (
-                  <span className="block h-2.5 w-2.5 rounded-[2px] bg-solid-mark" />
-                ) : here ? (
-                  <span className="block h-2.5 w-2.5 rounded-full border-[2px] border-accent" />
-                ) : (
-                  <span className="block h-1.5 w-1.5 rounded-full bg-line-strong" />
-                )}
-              </span>
-              <span
-                style={NARROW}
-                className={`font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
-                  here ? "text-ink" : done ? "text-ink-soft" : "text-ink-faint"
-                }`}
-              >
-                <span className="hidden sm:inline">{rung.label}</span>
-                <span className="sm:hidden">{rung.short}</span>
-              </span>
-            </div>
-            {i < RUNGS.length - 1 && (
-              <span
-                aria-hidden
-                style={{ ["--i" as string]: i }}
-                className={`rung-fill h-px w-3 sm:w-5 ${done ? "bg-solid-mark" : "bg-line"}`}
-              />
-            )}
-          </div>
-        );
-      })}
+              {done ? (
+                <span className="block h-2.5 w-2.5 rounded-[2px] bg-solid-mark" />
+              ) : current ? (
+                <span className="block h-2.5 w-2.5 rounded-full border-[2px] border-accent" />
+              ) : (
+                <span className="block h-1.5 w-1.5 rounded-full bg-line-strong" />
+              )}
+            </span>
+          );
+        })}
+      </span>
+      {here && (
+        <span
+          style={NARROW}
+          className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-ink-soft"
+        >
+          {here.label}
+        </span>
+      )}
     </nav>
   );
 }
@@ -149,12 +144,132 @@ export function TimerRing({ remaining, total }: { remaining: number; total: numb
 
 /* ── Score, streak, combo ───────────────────────────────────────────────── */
 
-/** The run: points, and the multiplier riding on the current streak.
+/** How far through the round, without words.
 
-    The multiplier is the loudest thing on screen while a streak is alive, and
-    it goes quiet the instant one breaks, which is the whole mechanic. `--heat`
-    carries the intensity so the glow, the scale and the pitch of the sound all
-    move off one number. */
+    Nine pips instead of "1/9". It reads at a glance, it costs no reading, and
+    the exact count is still available to anyone who needs it through the
+    accessible label. */
+function Pips({ served, limit }: { served: number; limit: number }) {
+  return (
+    <span
+      aria-label={`Question ${served} of ${limit}`}
+      className="flex items-center gap-1"
+    >
+      {Array.from({ length: limit }, (_, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className={`block h-1 rounded-full transition-all duration-300 ${
+            i < served - 1
+              ? "w-1.5 bg-ink-faint"
+              : i === served - 1
+                ? "w-4 bg-accent"
+                : "w-1.5 bg-line-strong"
+          }`}
+        />
+      ))}
+    </span>
+  );
+}
+
+/** The status strip: everything that is not the question.
+
+    One thin band, visually separate from the question area, holding progress,
+    the timer, the streak and the score. These used to be spread across the
+    header, the top of the question block and a line underneath it, which
+    meant a student mid-retrieval had four things competing with the thing
+    they were trying to retrieve. Retrieval practice is the one moment where
+    peripheral chrome is not merely untidy but actively costly, so it is all
+    collected here and the question area below is left with nothing else in
+    it. */
+export function StatusStrip({
+  stage,
+  served,
+  limit,
+  streak,
+  points,
+  remaining,
+  total,
+  scoring,
+}: {
+  stage: 0 | Round;
+  served: number;
+  limit: number;
+  streak: number;
+  points: number;
+  remaining: number;
+  total: number;
+  /** False during the cold open, which is unscored. */
+  scoring: boolean;
+}) {
+  const multiplier = comboMultiplier(streak);
+  const heat = (multiplier - 1) / (MAX_COMBO - 1);
+
+  const [bumped, setBumped] = useState(false);
+  const previous = useRef(multiplier);
+  useEffect(() => {
+    if (multiplier > previous.current) {
+      setBumped(true);
+      const t = setTimeout(() => setBumped(false), 460);
+      previous.current = multiplier;
+      return () => clearTimeout(t);
+    }
+    previous.current = multiplier;
+  }, [multiplier]);
+
+  const [ticked, setTicked] = useState(false);
+  const lastPoints = useRef(points);
+  useEffect(() => {
+    if (points !== lastPoints.current) {
+      lastPoints.current = points;
+      setTicked(true);
+      const t = setTimeout(() => setTicked(false), 320);
+      return () => clearTimeout(t);
+    }
+  }, [points]);
+
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-line bg-sunk/50 px-4 py-2">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          style={NARROW}
+          className="shrink-0 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-ink-faint"
+        >
+          {stage === 0 ? "Cold open" : `Round ${stage}`}
+        </span>
+        <Pips served={served} limit={limit} />
+      </div>
+
+      <div className="flex shrink-0 items-center gap-4">
+        {scoring && multiplier > 1 && (
+          <span
+            className={`combo font-mono text-[0.9375rem] font-semibold leading-none text-accent ${
+              bumped ? "combo-bump" : ""
+            }`}
+            style={{ ["--heat" as string]: heat }}
+            aria-label={`${streak} correct in a row, scoring ${multiplier} times`}
+          >
+            &times;{multiplier}
+          </span>
+        )}
+        {scoring && (
+          <span
+            aria-label={`${points} points`}
+            className={`font-mono text-[0.9375rem] font-semibold tabular-nums text-ink ${
+              ticked ? "score-tick" : ""
+            }`}
+          >
+            {points.toLocaleString()}
+          </span>
+        )}
+        <TimerRing remaining={remaining} total={total} />
+      </div>
+    </div>
+  );
+}
+
+/** Kept for the results screen, which shows a run's final numbers rather than
+    a live one. */
 export function ComboMeter({ streak, points }: { streak: number; points: number }) {
   const multiplier = comboMultiplier(streak);
   const heat = (multiplier - 1) / (MAX_COMBO - 1);
@@ -228,14 +343,14 @@ export function ComboMeter({ streak, points }: { streak: number; points: number 
 /** Points flying off a correct answer. Purely decorative, so it is hidden
     from assistive technology: the score itself is already announced. */
 export function PointsFly({ amount, best }: { amount: number; best: boolean }) {
+  /* Sits clear above the options rather than over them. Stacked below the
+     score it used to land on top of the second answer, which is both ugly and
+     the one place on screen that must never be obscured. */
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute -top-1 right-0 flex flex-col items-end gap-1"
+      className="pointer-events-none absolute -top-8 right-0 flex items-center gap-2"
     >
-      <span className="points-fly font-mono text-[0.9375rem] font-semibold text-solid-ink">
-        +{amount}
-      </span>
       {best && (
         <span
           style={NARROW}
@@ -244,6 +359,9 @@ export function PointsFly({ amount, best }: { amount: number; best: boolean }) {
           Fastest yet
         </span>
       )}
+      <span className="points-fly font-mono text-[0.9375rem] font-semibold text-solid-ink">
+        +{amount}
+      </span>
     </span>
   );
 }
@@ -333,16 +451,22 @@ export function Verdict({
   onNext: () => void;
 }) {
   const word = timedOut ? "Time" : correct ? "Correct" : "Not quite";
+  const detail = because || citation;
 
+  /* One line, and it is the whole verdict: the word, and the answer when they
+     did not get it. The reason and the citation used to sit underneath every
+     miss, which meant the moment a student most needed to read six words they
+     were handed forty. Detail is one tap away for anyone who wants it, and
+     out of the way of everyone racing the clock. */
   return (
     <div
       role="status"
       aria-live="assertive"
-      className={`deal-in flex flex-col gap-2.5 rounded-[3px] border-l-[3px] py-3 pl-4 pr-4 ${
+      className={`deal-in flex flex-col gap-1.5 rounded-[3px] border-l-[3px] py-2.5 pl-4 pr-4 ${
         correct ? "border-solid-mark bg-solid-tint" : "border-broken-mark bg-broken-tint"
       }`}
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         {correct ? <Tick /> : <Cross />}
         <span
           style={NARROW}
@@ -352,31 +476,43 @@ export function Verdict({
         >
           {word}
         </span>
+
+        {!correct && (
+          <span className="min-w-0 font-read text-[1rem] leading-tight text-ink">{answer}</span>
+        )}
+
         {!correct && (
           <button
             onClick={onNext}
-            className="btn ml-auto rounded-[3px] border border-line-strong px-2.5 py-1 font-sans text-[0.75rem] font-medium text-ink-soft hover:border-ink-faint hover:text-ink"
+            className="btn ml-auto shrink-0 rounded-[3px] border border-line-strong px-2.5 py-1 font-sans text-[0.75rem] font-medium text-ink-soft hover:border-ink-faint hover:text-ink"
           >
             Next <span aria-hidden className="arrow">→</span>
           </button>
         )}
       </div>
 
-      {!correct && (
-        <p className="font-read text-[1rem] leading-[1.45] text-ink">
-          <span className="text-ink-soft">Answer: </span>
-          <span className="font-medium">{answer}</span>
-        </p>
-      )}
-
-      {because && (
-        <p className="font-sans text-[0.8125rem] leading-[1.55] text-ink-soft">{because}</p>
-      )}
-
-      {citation && (
-        <p className="border-l-2 border-line-strong pl-2.5 font-read text-[0.8125rem] italic leading-[1.5] text-ink-faint">
-          &ldquo;{citation}&rdquo;
-        </p>
+      {detail && (
+        <details className="group">
+          <summary
+            style={NARROW}
+            className="inline-flex cursor-pointer list-none items-center gap-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.12em] text-ink-faint transition-colors hover:text-ink-soft"
+          >
+            <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+              ›
+            </span>
+            Why
+          </summary>
+          <div className="mt-2 flex flex-col gap-2">
+            {because && (
+              <p className="font-sans text-[0.8125rem] leading-[1.55] text-ink-soft">{because}</p>
+            )}
+            {citation && (
+              <p className="border-l-2 border-line-strong pl-2.5 font-read text-[0.8125rem] italic leading-[1.5] text-ink-faint">
+                &ldquo;{citation}&rdquo;
+              </p>
+            )}
+          </div>
+        </details>
       )}
     </div>
   );

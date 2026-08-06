@@ -20,26 +20,12 @@ const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 /** What the next round takes away. Written as a loss on purpose: the student
     should feel the scaffolding going, because that is the mechanic. */
 const NEXT: Record<Round, { name: string; taken: string; asks: string }> = {
-  1: {
-    name: "Round 1",
-    taken: "Two of the four options are wrong now, not one.",
-    asks: "Pick the right answer out of four.",
-  },
-  2: {
-    name: "Round 2",
-    taken: "The options are gone.",
-    asks: "Type the missing term yourself.",
-  },
-  3: {
-    name: "Round 3",
-    taken: "The sentence is gone. You get its pieces, out of order.",
-    asks: "Build the explanation.",
-  },
-  4: {
-    name: "Round 4",
-    taken: "Everything is gone. Nothing on screen but the question.",
-    asks: "Say it in your own words, out loud or typed.",
-  },
+  /* The cold open offers two options; Round 1 offers four, so three of them
+     are wrong rather than one. This line used to say the opposite. */
+  1: { name: "Round 1", taken: "Four options now, not two.", asks: "Pick the right one." },
+  2: { name: "Round 2", taken: "No options.", asks: "Type the missing term." },
+  3: { name: "Round 3", taken: "No sentence. Just its pieces, shuffled.", asks: "Build it." },
+  4: { name: "Round 4", taken: "Nothing on screen.", asks: "Say it in your own words." },
 };
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "good" | "plain" }) {
@@ -101,11 +87,11 @@ export function Interval({
           a mark on it would tell a student they had failed something they were
           never meant to pass. */}
       {summary.stage === 0 ? (
-        <p className="stage-in max-w-[54ch] font-sans text-[0.9375rem] leading-[1.65] text-ink-soft" style={{ ["--i" as string]: 1 }}>
-          No score for that one, on purpose. Guessing before you study is a real technique: it
-          primes you to notice the answer when it arrives, and missing was always the expected
-          outcome. Your answers are kept, and at the end you will see them next to what you can do
-          once the help is gone.
+        <p
+          className="stage-in max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft"
+          style={{ ["--i" as string]: 1 }}
+        >
+          Not scored, on purpose. You will see those answers again at the end.
         </p>
       ) : (
         <div className="stage-in flex flex-wrap gap-x-10 gap-y-6" style={{ ["--i" as string]: 1 }}>
@@ -122,10 +108,12 @@ export function Interval({
       )}
 
       {summary.timedOut > 0 && (
-        <p className="stage-in font-sans text-[0.8125rem] leading-[1.55] text-ink-faint" style={{ ["--i" as string]: 2 }}>
-          {summary.timedOut} question{summary.timedOut === 1 ? "" : "s"} ran out of time. Those are
-          not counted as wrong anywhere: you did not answer them, which is not the same as getting
-          them wrong.
+        <p
+          className="stage-in font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
+          style={{ ["--i" as string]: 2 }}
+          title="Unanswered is not the same as wrong, so these are not counted against you anywhere."
+        >
+          {summary.timedOut} ran out of time. Not counted as wrong.
         </p>
       )}
 
@@ -140,7 +128,7 @@ export function Interval({
             style={NARROW}
             className="font-sans text-[0.625rem] font-bold uppercase tracking-[0.14em] text-solid-ink"
           >
-            You had these wrong before, and right just now
+            Turned around
           </span>
           <ul className="flex flex-wrap gap-2">
             {summary.turnedAround.map((concept, i) => (
@@ -162,7 +150,7 @@ export function Interval({
             style={NARROW}
             className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-ink-faint"
           >
-            Not right yet, at any stage
+            Still open
           </span>
           <p className="font-read text-[0.9375rem] leading-[1.5] text-ink-soft">
             {summary.stillOpen.join(", ")}
