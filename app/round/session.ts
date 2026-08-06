@@ -111,28 +111,35 @@ export function useRoundSession() {
 
   const [error, setError] = useState<string | null>(null);
 
-  /* Audio, and both halves of it are the student's to decide.
+  /* Audio. Both halves on by default, and neither one touched until the
+     student does something.
 
-     Music starts off. Not "off until a gesture arrives", genuinely off: the
-     only thing that ever turns it on is the toggle, so there is no path
-     through this file that plays anything at somebody who has not asked. A
-     study tool that starts playing music at whoever opens it is unusable in a
-     library or a classroom, which is most of the places it would be opened.
+     Those two facts have to be held apart, because "on by default" is a
+     setting and "starts playing" is an event, and conflating them is how a
+     page ends up making noise at somebody who just opened a tab. Browsers
+     block audio until they have seen a real gesture anyway, so a mount effect
+     that tried to start the music would not start it: it would fail silently,
+     and leave a toggle reading "on" next to no sound at all.
 
-     The answer tones start on, because they are feedback rather than
-     atmosphere and they were already on. That difference in default is why
-     these are two settings and not one: a single control cannot start one of
-     them on and the other off.
+     So nothing here plays on load. There is deliberately no effect that
+     starts the music. It begins in `start`, on the click of the start button,
+     which is the first gesture of every session, and thereafter it follows
+     the toggle. Anyone who wants silence turns it off before pressing start,
+     and nothing has made a sound by then.
 
-     Both survive a restart. Somebody who turned the music on for one run
-     wants it on for the next, and being asked again every time is its own
-     small annoyance. */
+     Both settings survive a restart, so the choice is made once per tab. */
   const [sound, setSound] = useState(true);
-  const [music, setMusicOn] = useState(false);
+  const [music, setMusicOn] = useState(true);
 
-  useEffect(() => {
-    setMusic(music);
+  /** Flip the music, and act on it in the same breath. Called from a click,
+      which is what makes the audio permitted. */
+  const toggleMusic = useCallback(() => {
+    const next = !music;
+    setMusicOn(next);
+    setMusic(next);
   }, [music]);
+
+  const toggleSound = useCallback(() => setSound((on) => !on), []);
 
   /* A track must not outlive the page that started it. */
   useEffect(() => stopMusic, []);
@@ -245,6 +252,13 @@ export function useRoundSession() {
       setTopic(nextTopic);
       setNotes(nextNotes);
 
+      /* The first gesture of the session, and so the first moment audio is
+         allowed to begin. Deliberately here and not in an effect: an effect
+         would fire on load, which is the autoplay this must not do. Anyone
+         who wanted silence has already turned it off, and nothing has made a
+         sound before this line. */
+      if (music) setMusic(true);
+
       try {
         const payload = await postJSON<{
           concepts: string[];
@@ -281,7 +295,7 @@ export function useRoundSession() {
         setPhase("entry");
       }
     },
-    [fetchBank, remember, seenFor]
+    [fetchBank, music, remember, seenFor]
   );
 
   /* ── Answering ────────────────────────────────────────────────────────── */
@@ -548,8 +562,8 @@ export function useRoundSession() {
     plainOnly,
     seed,
     setPlainOnly,
-    setSound,
-    setMusicOn,
+    toggleSound,
+    toggleMusic,
     start,
     answer,
     advance,

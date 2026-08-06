@@ -60,13 +60,14 @@ export default function Home() {
           to somebody in the middle of trying to remember something. They come
           back the moment the round does not have them.
 
-          The audio controls are the exception, and they are here on every
-          screen for a reason worth writing down: they were briefly in the
-          status strip and nowhere else, which meant they existed only during a
-          live question. Music is off by default, so a student on the entry
-          screen had silence and no way to turn it on, and no control anywhere
-          to tell them one existed. A control that only appears once you no
-          longer have time to look for it is not a control. */}
+          The audio controls are the exception, and they are on every screen
+          for a reason worth writing down: they were briefly in the status
+          strip and nowhere else, which meant they existed only during a live
+          question. A control that only appears once you no longer have time to
+          look for it is not a control. It matters more now than it did then,
+          because audio is on by default: the entry screen is where somebody
+          who wants silence turns it off, before the start button has made a
+          sound. */}
       <header
         className={`sticky top-0 z-30 bg-ground/85 backdrop-blur-md ${
           inPlay ? "" : "border-b border-line"
@@ -91,8 +92,8 @@ export default function Home() {
                 the timer, so the round keeps its one uncluttered row. */}
             {!inPlay && (
               <>
-                <MusicToggle on={s.music} onToggle={() => s.setMusicOn(!s.music)} />
-                <SoundToggle on={s.sound} onToggle={() => s.setSound(!s.sound)} />
+                <MusicToggle on={s.music} onToggle={s.toggleMusic} />
+                <SoundToggle on={s.sound} onToggle={s.toggleSound} />
               </>
             )}
           </div>
@@ -127,8 +128,8 @@ export default function Home() {
               stage={s.stage}
               sound={s.sound}
               music={s.music}
-              onSound={() => s.setSound(!s.sound)}
-              onMusic={() => s.setMusicOn(!s.music)}
+              onSound={s.toggleSound}
+              onMusic={s.toggleMusic}
               streak={s.streak}
               seed={s.seed}
               plainOnly={s.plainOnly}
