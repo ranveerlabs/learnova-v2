@@ -153,7 +153,11 @@ export function TeachBack({
   const [active, setActive] = useState<number | null>(null);
 
   const speech = useSpeech();
-  const source = provenance === "grounded" && notes ? notes : materialFrom(concept, questions);
+  /* Whether there is any real material behind this session. It decides both
+     what is sent as the source and how the grader is told to treat it, so it
+     is one value rather than the same condition written twice. */
+  const usesNotes = provenance === "grounded" && Boolean(notes);
+  const source = usesNotes ? notes : materialFrom(concept, questions);
   const dissection = useDissection(explanation, grade?.annotations ?? []);
 
   /* Whatever the recogniser has settled on, plus whatever it is still
@@ -183,6 +187,13 @@ export function TeachBack({
            needs to know that, or it marks brevity as a gap. */
         brief: true,
         via: usedVoice ? "voice" : "typed",
+        /* And whether `source` is anything a student actually wrote. In a
+           topic-only session it is a list of the questions they were asked,
+           which is a record of what was covered and not a passage. Grading
+           against it produced the case this was fixed for: a sound plain
+           definition marked imprecise, with a multiple choice question quoted
+           back underneath it as the "Source". */
+        grounded: usesNotes,
       });
       setGrade(result);
       if (sound) play(result.outcome === "not-yet" ? "wrong" : "right", result.outcome === "solid" ? 1 : 0.4);
