@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { sourceProblem } from "@/lib/source";
 import { Looseleaf, PixelSprite, PixelTag } from "../paper";
 import { Notice } from "../ui";
+import { STARTERS } from "./starters";
 
 /* The front door.
 
@@ -19,8 +20,10 @@ import { Notice } from "../ui";
 
 /* Starting points, for the student who wants to try this before deciding
    what to study. Tapping one fills the field and leaves the cursor in it, so
-   it is a starting point rather than a menu. */
-const STARTERS = ["Photosynthesis", "The French Revolution", "Supply and demand", "Neural networks"];
+   it is a starting point rather than a menu.
+
+   The list itself lives in starters.ts, because the server warms these same
+   four topics so that tapping one costs no wait. */
 
 export function Entry({
   onStart,
