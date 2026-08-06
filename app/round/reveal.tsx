@@ -8,8 +8,8 @@ import type { Provenance } from "./types";
 /* Where the session lands.
 
    The honest shape of this screen took more deciding than anything else in the
-   mode. The obvious version compares the cold open to Round 4 and prints the
-   difference as a percentage, and it would be a lie: the cold open is a
+   mode. The obvious version compares the warm up to Round 4 and prints the
+   difference as a percentage, and it would be a lie: the warm up is a
    two-option guess taken before any studying, Round 4 is an explanation
    produced from nothing and marked on a rubric. There is no arithmetic that
    turns one into the other. A student who genuinely learned a great deal can
@@ -42,7 +42,7 @@ const OUTCOME_MARK: Record<Outcome, string> = {
 };
 
 const STAGE_NAME: Record<number, string> = {
-  0: "cold open",
+  0: "warm up",
   1: "Round 1",
   2: "Round 2",
   3: "Round 3",
@@ -97,7 +97,7 @@ export function Reveal({
         </h2>
         <p
           className="max-w-[52ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft"
-          title="The cold open is a two-option guess taken before studying. Round 4 is an explanation produced from nothing and marked on a rubric. There is no arithmetic that turns one into the other, so nothing here subtracts them."
+          title="The warm up is a two-option guess taken before studying. Round 4 is an explanation produced from nothing and marked on a rubric. There is no arithmetic that turns one into the other, so nothing here subtracts them."
         >
           Not the same test, so not compared with a number.
         </p>
@@ -108,7 +108,7 @@ export function Reveal({
       <div className="stage-in flex flex-col gap-4 sm:flex-row" style={{ ["--i" as string]: 1 }}>
         {data.open && (
           <Panel
-            label="Cold open, before studying"
+            label="Warm up, before studying"
             note={`Two options. Guessing alone scores about ${Math.round(
               data.open.chance * data.open.answered
             )} of ${data.open.answered}.`}
@@ -234,7 +234,7 @@ export function Reveal({
           className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint"
           title="Putting a stopwatch on the one moment you have to explain something properly would only teach you to say something fast instead of something true."
         >
-          Cold open and Rounds 1 to 3. Round 4 is untimed.
+          Warm up and Rounds 1 to 3. Round 4 is untimed.
         </p>
       </div>
 
@@ -255,7 +255,7 @@ export function Reveal({
 
               {line.openAnswered > 0 && (
                 <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
-                  cold open {line.openCorrect}/{line.openAnswered}
+                  warm up {line.openCorrect}/{line.openAnswered}
                 </span>
               )}
 

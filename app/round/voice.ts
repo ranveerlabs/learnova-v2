@@ -223,7 +223,13 @@ type Tone = "right" | "wrong" | "combo" | "done";
 
 let audio: AudioContext | null = null;
 
-function context(): AudioContext | null {
+/** The session's one audio context, shared with music.ts.
+
+    One rather than two, because a browser gives a page a small number of them
+    and because the gesture that unlocks one should unlock everything: a
+    student who clicks start and hears the music but not the answer tones would
+    reasonably conclude the sounds are broken. */
+export function context(): AudioContext | null {
   if (typeof window === "undefined") return null;
   try {
     audio ??= new AudioContext();

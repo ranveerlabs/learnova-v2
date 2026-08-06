@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { AIError, chatJSON } from "@/lib/ai";
+import { runningDry, sift, signature, type Signature } from "@/app/round/dedupe";
+import { placeAll } from "@/app/round/shuffle";
 import {
-  COLD_OPEN_COUNT,
   type Difficulty,
   type Format,
   PER_TIER,
@@ -10,6 +11,7 @@ import {
   type Round,
   ROUND_FORMAT,
   TIERS,
+  WARM_UP_COUNT,
 } from "@/app/round/types";
 
 // TODO: prompt-injection hardening: the topic and any pasted notes are
@@ -46,7 +48,15 @@ function citationHolds(quote: string, source: string): boolean {
   return flatten(source).includes(q) || deflate(source).includes(tight);
 }
 
-/* ── What the model is asked for ─────────────────────────────────────── */
+/* ── What the model is asked for ─────────────────────────────────────────
+
+   One thing this prompt deliberately does NOT ask for: a random position for
+   the correct answer. Models are poor at it, and asking would produce output
+   that looks placed without being placed, which is worse than not asking
+   because it invites everyone downstream to trust it. Placement happens after
+   generation, in shuffle.ts, where it can be measured. The shapes below still
+   show varied answer indices, because an example that always says
+   "answerIndex": 0 is a demonstration of where to put the answer. */
 
 const HOUSE_RULES = `
 Hard rules for every question you write:
@@ -57,7 +67,8 @@ Hard rules for every question you write:
 - Never write a question whose answer is given away by the wording of the question itself.
 - Wrong options must be genuinely plausible to someone who half-knows the material. Never pad with obvious filler, jokes, or "none of the above".
 - "because" is one short sentence saying why the right answer is right. It is shown only AFTER the student has answered, never before.
-- Difficulty means how much retrieval the question demands, not how obscure the trivia is. An "easy" question asks for a central idea in plain words. A "hard" question asks for a distinction, a mechanism, or a consequence. Never make a question harder by making it more obscure.`;
+- Difficulty means how much retrieval the question demands, not how obscure the trivia is. An "easy" question asks for a central idea in plain words. A "hard" question asks for a distinction, a mechanism, or a consequence. Never make a question harder by making it more obscure.
+- Every question in your reply must ask for something different. Two questions with the same answer are one question, however differently they are worded.`;
 
 const GROUNDED_RULES = `
 This session is grounded in material the student pasted. Every question MUST be answerable from that material alone.
@@ -70,7 +81,40 @@ This session has no pasted material: the student gave a topic only. Write questi
 - Leave "citation" as an empty string. Do not invent one.
 - Stay on widely agreed, mainstream material for the topic. Do not test contested details, niche trivia, or anything you are unsure of.`;
 
-/* The cold open is the only call a student ever waits on, and the whole mode
+/** What the student has already been asked, given to the model so it writes
+    something new rather than the same question in other words.
+
+    Capped, because this rides on every round call and a session accumulates
+    upwards of fifty questions. The most recent are the ones a rephrasing is
+    most likely to collide with, so those are the ones that fit. */
+function alreadyAsked(asked: Asked[]): string {
+  if (asked.length === 0) return "";
+  const recent = asked.slice(-40);
+  const lines = recent.map((a) => `- ${a.prompt} (answer: ${a.answer})`);
+  return `
+The student has ALREADY been asked the questions below, in earlier rounds of this same session. Every question you write must be genuinely new.
+- Do not reuse any of these. Do not reword them. Do not ask for the same answer from a different angle: if the answer below is "stroma", do not write another question whose answer is "stroma".
+- Same concepts, new ground. Ask about a different property, mechanism, consequence, comparison or edge case of the concept than the one already asked.
+
+${lines.join("\n")}`;
+}
+
+/** The instruction added when a first attempt came back mostly repeats.
+
+    Deliberately not "try again". A generator that has said everything it has
+    to say about a narrow topic will say it again if asked the same way, so the
+    second attempt asks for something different in kind rather than for another
+    draw from the same pool. */
+const ESCALATE = `
+IMPORTANT: your previous reply for this round was almost entirely questions the student has already answered, so it was discarded. The plain version of this topic is used up.
+
+Do not write easier or more general questions to get around this. Go the other way:
+- Ask for distinctions between two of the concepts rather than facts about one.
+- Ask what follows from something, what would break if it were absent, or what a stated condition changes.
+- Ask about the boundary of a rule: where it stops applying, and what happens then.
+- Prefer "hard" and "medium" over "easy" throughout. If you cannot write a genuinely new easy question, write a medium one instead and label it honestly.`;
+
+/* The warm up is the only call a student ever waits on, and the whole mode
    is built on them answering something within about ten seconds of naming a
    topic. So this prompt is kept deliberately short and asks for deliberately
    short output: the round prompts can afford to be thorough because they are
@@ -80,12 +124,13 @@ const OPEN_SYSTEM = `Open a rapid study session on the topic given. Reply with J
 
 "concepts": 3 to 5 distinct ideas worth testing, foundational first, 1 to 4 words each.
 
-"questions": exactly ${COLD_OPEN_COUNT} snap questions, spread across those concepts. Each has exactly TWO options. The student answers on instinct, before studying, so these must be neither tricks nor giveaways.
+"questions": exactly ${WARM_UP_COUNT} snap questions, spread across those concepts. Each has exactly TWO options. The student answers on instinct, before studying, so these must be neither tricks nor giveaways.
 - prompt: at most 12 words, fitting one line. Each option: at most 5 words. These are hard limits.
 - because: one sentence, at most 20 words, shown only after they answer.
+- Every question must ask for something different. No two may have the same answer.
 - No em dashes. Address the student as "you".
 
-{"concepts":["..."],"questions":[{"concept":"...","prompt":"...","options":["...","..."],"answerIndex":0,"answer":"...","because":"...","citation":"..."}]}`;
+{"concepts":["..."],"questions":[{"concept":"...","prompt":"...","options":["...","..."],"answerIndex":1,"answer":"...","because":"...","citation":"..."}]}`;
 
 function roundSystem(round: Round, concepts: string[]): string {
   const format = ROUND_FORMAT[round];
@@ -105,7 +150,7 @@ ${HOUSE_RULES}`;
 This is Round 1: four-option multiple choice. Exactly four options per question, exactly one correct. "answer" repeats the correct option's text.
 
 Respond with JSON in exactly this shape:
-{"questions": [{"concept": "...", "difficulty": "easy" | "medium" | "hard", "prompt": "...", "options": ["...", "...", "...", "..."], "answerIndex": 0, "answer": "...", "because": "...", "citation": "..."}]}`;
+{"questions": [{"concept": "...", "difficulty": "easy" | "medium" | "hard", "prompt": "...", "options": ["...", "...", "...", "..."], "answerIndex": 2, "answer": "...", "because": "...", "citation": "..."}]}`;
   }
 
   if (format === "blank") {
@@ -115,6 +160,7 @@ This is Round 2: fill in the blank. No options are shown, so the student must pr
 - "prompt" is one sentence with exactly one gap, written as five underscores: _____ . At most 16 words including the gap, so it fits on one line.
 - The gap must fall on a single term or short phrase carrying real meaning, never on a connective word like "the" or "is".
 - "answer" is what goes in the gap, and nothing else. Keep it to 1 to 3 words.
+- No two questions in this round may have the same answer. The answer IS the question here, so two sentences with the same word missing are one question asked twice.
 - "accepted" lists other forms a student might reasonably type for the same answer: a common synonym, an abbreviation, the spelled-out version of an acronym. Do not list wrong or approximate answers here. Leave it empty if there is genuinely only one way to say it.
 - The rest of the sentence must make the gap unambiguous. If two different terms could both honestly fill it, rewrite the sentence.
 
@@ -125,7 +171,7 @@ Respond with JSON in exactly this shape:
   return `${shared}
 
 This is Round 3: the student assembles a sentence from chips. Nothing is written for them; they are given the pieces of the explanation out of order and must put them in order.
-- "chips" is the correct sentence, already split into 5 to 7 pieces, IN THE CORRECT ORDER. Each chip is a word or a short phrase, 1 to 4 words. Split at natural joints, so each chip is a meaningful unit rather than a fragment.
+- "chips" is the correct sentence, already split into 5 to 7 pieces, IN THE CORRECT ORDER. Each chip is a word or a short phrase, 1 to 4 words. Split at natural joints, so each chip is a meaningful unit rather than a fragment. They are shuffled before the student sees them, so give them in reading order and do not try to mix them yourself.
 - "distractors" are chips that do NOT belong in the sentence but look like they might: a plausible wrong verb, a wrong quantity, a related but incorrect term. Give 0 for easy, 1 for medium, 2 for hard.
 - "answer" is the assembled correct sentence as plain text.
 - "accepted" may list one alternative full sentence that is equally correct with the same chips in a different valid order. Leave it empty if there is only one correct order, which is usually the case.
@@ -174,6 +220,31 @@ function isRoundPayload(v: unknown): v is RoundPayload {
   if (typeof v !== "object" || v === null) return false;
   const p = v as RoundPayload;
   return Array.isArray(p.questions) && p.questions.every(isRawQuestion);
+}
+
+/** A question the session has already generated, as the client reports it
+    back. Only the four fields that decide whether something is a repeat: the
+    rest of a Question is presentation and would be pointless to ship back and
+    forth. */
+type Asked = { concept: string; answer: string; prompt: string; format: Format };
+
+const FORMATS: Format[] = ["recognition", "choice", "blank", "assemble", "open"];
+
+function readAsked(v: unknown): Asked[] {
+  if (!Array.isArray(v)) return [];
+  return v.flatMap((item) => {
+    if (typeof item !== "object" || item === null) return [];
+    const a = item as Record<string, unknown>;
+    if (typeof a.prompt !== "string" || typeof a.answer !== "string") return [];
+    return [
+      {
+        prompt: a.prompt,
+        answer: a.answer,
+        concept: typeof a.concept === "string" ? a.concept : "",
+        format: FORMATS.includes(a.format as Format) ? (a.format as Format) : "choice",
+      },
+    ];
+  });
 }
 
 /* ── Turning raw output into questions we will actually serve ─────────── */
@@ -266,6 +337,7 @@ export async function POST(req: Request) {
     topic?: unknown;
     notes?: unknown;
     concepts?: unknown;
+    asked?: unknown;
   };
   try {
     body = await req.json();
@@ -282,15 +354,22 @@ export async function POST(req: Request) {
   const provenance: Provenance = notes ? "grounded" : "generated";
   const rules = provenance === "grounded" ? GROUNDED_RULES : GENERATED_RULES;
 
+  const asked = readAsked(body.asked);
+  const seen: Signature[] = asked.map(signature);
+
   const material =
     provenance === "grounded"
       ? `The student is studying: ${topic}\n\nTheir own material, which every question must come from:\n\n${notes}`
       : `The student is studying: ${topic}`;
 
   try {
-    /* ── The cold open, and the concepts the whole session runs on ─── */
+    /* ── The warm up, and the concepts the whole session runs on ───── */
     if (body.stage === "open") {
-      const payload = await chatJSON(`${OPEN_SYSTEM}\n${rules}`, material, isOpenPayload);
+      const payload = await chatJSON(
+        `${OPEN_SYSTEM}\n${rules}${alreadyAsked(asked)}`,
+        material,
+        isOpenPayload
+      );
 
       const concepts = (payload.concepts as string[])
         .map((c) => c.trim())
@@ -306,8 +385,7 @@ export async function POST(req: Request) {
 
       let questions = (payload.questions as RawQuestion[])
         .map((raw, i) => shape(raw, "recognition", "easy", concepts, i, "open"))
-        .filter(usable)
-        .slice(0, COLD_OPEN_COUNT);
+        .filter(usable);
 
       let dropped = 0;
       if (provenance === "grounded") {
@@ -315,6 +393,11 @@ export async function POST(req: Request) {
         questions = checked.kept;
         dropped = checked.dropped;
       }
+
+      /* The warm up sifts against itself, and against anything a previous run
+         in this tab already asked on the same topic. */
+      const sifted = sift(questions, seen);
+      questions = sifted.kept.slice(0, WARM_UP_COUNT);
 
       if (questions.length === 0) {
         return NextResponse.json(
@@ -329,10 +412,20 @@ export async function POST(req: Request) {
       }
 
       if (dropped > 0) {
-        console.warn(`Round open: dropped ${dropped} question(s) with unverifiable citations.`);
+        console.warn(`Warm up: dropped ${dropped} question(s) with unverifiable citations.`);
+      }
+      if (sifted.repeats > 0) {
+        console.warn(`Warm up: dropped ${sifted.repeats} repeated question(s).`);
       }
 
-      return NextResponse.json({ concepts, questions, provenance, dropped });
+      return NextResponse.json({
+        concepts,
+        questions: placeAll(questions),
+        provenance,
+        dropped,
+        repeats: sifted.repeats,
+        exhausted: false,
+      });
     }
 
     /* ── One round's bank ──────────────────────────────────────────── */
@@ -346,25 +439,57 @@ export async function POST(req: Request) {
 
     const concepts = body.concepts.map((c) => c.trim()).filter(Boolean);
     const format = ROUND_FORMAT[round];
+    const wanted = PER_TIER * 3;
 
-    const payload = await chatJSON(
-      `${roundSystem(round, concepts)}\n${rules}`,
-      material,
-      isRoundPayload
-    );
+    /** One generation, validated, cited, and sifted against everything the
+        session has already used. */
+    const draw = async (extra: string, idPrefix: string, against: Signature[]) => {
+      const payload = await chatJSON(
+        `${roundSystem(round, concepts)}\n${rules}${alreadyAsked(asked)}${extra}`,
+        material,
+        isRoundPayload
+      );
 
-    let questions = (payload.questions as RawQuestion[])
-      .map((raw, i) => shape(raw, format, "medium", concepts, i, `r${round}`))
-      .filter(usable);
+      let questions = (payload.questions as RawQuestion[])
+        .map((raw, i) => shape(raw, format, "medium", concepts, i, idPrefix))
+        .filter(usable);
 
-    let dropped = 0;
-    if (provenance === "grounded") {
-      const checked = keepGrounded(questions, notes);
-      questions = checked.kept;
-      dropped = checked.dropped;
+      let dropped = 0;
+      if (provenance === "grounded") {
+        const checked = keepGrounded(questions, notes);
+        questions = checked.kept;
+        dropped = checked.dropped;
+      }
+
+      const sifted = sift(questions, against);
+      return { kept: sifted.kept, repeats: sifted.repeats, dropped };
+    };
+
+    const first = await draw("", `r${round}`, seen);
+    let kept = first.kept;
+    let repeats = first.repeats;
+    let dropped = first.dropped;
+    let exhausted = false;
+
+    /* Running dry is detected, not predicted: it is the share of a freshly
+       written bank that turned out to be something the student has already
+       answered. One retry, and the retry is not a retry of the same request.
+       It asks for harder questions and different angles, because a generator
+       that has exhausted the plain version of a topic will produce the plain
+       version again if asked the same way. */
+    if (runningDry(kept.length, wanted)) {
+      console.warn(
+        `Round ${round}: only ${kept.length} of ${wanted} were new. Escalating rather than repeating.`
+      );
+      exhausted = true;
+
+      const retry = await draw(ESCALATE, `r${round}b`, [...seen, ...kept.map(signature)]);
+      kept = [...kept, ...retry.kept];
+      repeats += retry.repeats;
+      dropped += retry.dropped;
     }
 
-    if (questions.length === 0) {
+    if (kept.length === 0) {
       return NextResponse.json(
         {
           error:
@@ -379,8 +504,19 @@ export async function POST(req: Request) {
     if (dropped > 0) {
       console.warn(`Round ${round}: dropped ${dropped} question(s) with unverifiable citations.`);
     }
+    if (repeats > 0) {
+      console.warn(`Round ${round}: dropped ${repeats} question(s) already asked this session.`);
+    }
 
-    return NextResponse.json({ questions, provenance, dropped });
+    return NextResponse.json({
+      questions: placeAll(kept),
+      provenance,
+      dropped,
+      repeats,
+      /* The session raises the floor on difficulty when this is true, rather
+         than serving anything twice. */
+      exhausted,
+    });
   } catch (err) {
     if (err instanceof AIError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
