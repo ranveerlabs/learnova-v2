@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import type { Annotation, Grade, Outcome } from "../api/grade/route";
-import { postJSON } from "../client";
+import { isBusy, postJSON } from "../client";
 import { MarginNotes, MarkedUpText, useDissection } from "../dissection";
 import { Followups } from "../followups";
-import { Arrow, Ask, GhostButton, Label, Leaf, Notice, PrimaryButton } from "../ui";
+import { Arrow, Aside, Ask, GhostButton, Label, Leaf, Notice, PrimaryButton } from "../ui";
 import type { Production, Provenance, Question } from "./types";
 import { play, useSpeech } from "./voice";
 
@@ -147,6 +147,9 @@ export function TeachBack({
   const [grade, setGrade] = useState<Grade | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Whether that error was the shared key being busy rather than a fault.
+      Changes the register it is said in, not what the student can do next. */
+  const [wasBusy, setWasBusy] = useState(false);
   const [active, setActive] = useState<number | null>(null);
 
   const speech = useSpeech();
@@ -170,6 +173,7 @@ export function TeachBack({
     if (!said) return;
     setLoading(true);
     setError(null);
+    setWasBusy(false);
     try {
       const result = await postJSON<Grade>("/api/grade", {
         source,
@@ -189,6 +193,7 @@ export function TeachBack({
         outcome: result.outcome,
       });
     } catch (err) {
+      setWasBusy(isBusy(err));
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
@@ -291,7 +296,26 @@ export function TeachBack({
         </p>
       </div>
 
-      {error && <Notice>{error}</Notice>}
+      {/* An answer that could not be marked must not be a dead end.
+
+          Everything the student typed is still in the box, so Submit is a
+          real retry. But this is the last screen before the results, and it
+          used to be the only one with no way past it: a student who has
+          played four rounds and cannot get an explanation marked was stuck
+          there, with the whole run behind them and nothing to do but keep
+          pressing a button that was going to fail again. Both ways out are
+          offered whatever went wrong, and neither costs them the session. */}
+      {error && (
+        <div className="flex flex-col gap-3.5">
+          {wasBusy ? <Aside>{error}</Aside> : <Notice>{error}</Notice>}
+          <div className="flex flex-wrap items-center gap-3">
+            {index + 1 < total && (
+              <GhostButton onClick={onNext}>Try a different concept</GhostButton>
+            )}
+            <GhostButton onClick={onStop}>Skip this and see your results</GhostButton>
+          </div>
+        </div>
+      )}
 
       {/* Voice, when the browser has it. The typed field below is always
           present regardless: speech is an alternative way in, never the only

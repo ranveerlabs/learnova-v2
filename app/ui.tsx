@@ -57,6 +57,25 @@ export function Notice({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Something the student should know about, that is nobody's fault and stops
+    nothing.
+
+    Deliberately not a Notice. The broken-mark register means "look here,
+    something is wrong", and a shared key being busy is neither wrong nor the
+    student's problem to solve. Dressing a queue up as a failure teaches them
+    to distrust a screen that was working fine. This says its piece in the
+    quiet register and gets out of the way. */
+export function Aside({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      role="status"
+      className="settle max-w-[44rem] rounded-[3px] border border-line bg-sunk/60 px-4 py-3 font-sans text-[0.875rem] leading-[1.6] text-ink-soft"
+    >
+      {children}
+    </p>
+  );
+}
+
 /** The concept being asked, set in the reading face, the one voice on the
     page that speaks for the material rather than the interface. */
 export function Ask({ children }: { children: React.ReactNode }) {

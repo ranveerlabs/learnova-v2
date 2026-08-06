@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { postJSON } from "../client";
+import { isBusy, postJSON } from "../client";
 import {
   buildReveal,
   currentStreak,
@@ -110,6 +110,16 @@ export function useRoundSession() {
   const [pendingRound, setPendingRound] = useState<Round | null>(null);
 
   const [error, setError] = useState<string | null>(null);
+
+  /** A round that could not be written because the shared key was busy.
+
+      Held apart from `error` because it is a different kind of news and gets
+      different treatment. An error stops the session; this does not. The
+      rounds already played still happened, still count, and still lead to
+      Round 4 and the results. All that is lost is the round nobody could
+      write, and the student is told that in one calm line rather than left to
+      notice a round went missing. */
+  const [busyRounds, setBusyRounds] = useState<Round[]>([]);
 
   /* Audio. Both halves on by default, and the music starts as early as a
      browser will let it.
@@ -249,8 +259,16 @@ export function useRoundSession() {
       } catch (err) {
         /* A failed bank is not fatal to the session: the rounds before it
            still happened and still count. It surfaces when the student
-           reaches that round, not as an interruption to the one they are in. */
+           reaches that round, not as an interruption to the one they are in.
+
+           The empty array is what makes that true, and it is set on every
+           failure including this one. `beginRound` reads undefined as "still
+           being written" and an empty array as "this round has nothing", and
+           only the second of those lets the session walk on. A rate limit
+           that left the bank undefined would leave a student watching the
+           waiting screen for a request that had already failed. */
         console.error(`Round ${round} bank failed:`, err);
+        if (isBusy(err)) setBusyRounds((prev) => (prev.includes(round) ? prev : [...prev, round]));
         setBanks((prev) => ({ ...prev, [round]: [] }));
       }
     },
@@ -481,6 +499,26 @@ export function useRoundSession() {
     setPhase("reveal");
   }, []);
 
+  /** The round continuing on will actually land on.
+
+      `stage + 1` is the next rung of the ladder. This is the next rung this
+      session still has, which is a different thing once a bank has come back
+      empty, and a bank coming back empty is what a rate limited round looks
+      like from in here. The between-rounds screen announces the round it is
+      about to start, and announcing one that was skipped would put "Round 1
+      was skipped" and "Start round 1" on the same screen.
+
+      The walk matches `beginRound`, including on the distinction that matters:
+      an undefined bank is one still being written, and that round is still the
+      next one. Only an empty array is a round with nothing in it. */
+  const nextPlayable: Round = (() => {
+    let target = (stage + 1) as Round;
+    while (target <= 3 && banks[target]?.length === 0) {
+      target = (target + 1) as Round;
+    }
+    return target > 3 ? 4 : target;
+  })();
+
   /* ── Ending and going again ───────────────────────────────────────────── */
 
   const reveal = useCallback(
@@ -533,6 +571,7 @@ export function useRoundSession() {
     setProductionIndex(0);
     setPendingRound(null);
     setError(null);
+    setBusyRounds([]);
     /* A new seed for the next run, so going again does not draw the same
        presentations in the same order. */
     setSeed(newSeed());
@@ -554,6 +593,8 @@ export function useRoundSession() {
     streak,
     points,
     error,
+    busyRounds,
+    nextPlayable,
     sound,
     music,
     best,

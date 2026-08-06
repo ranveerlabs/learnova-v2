@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AIError, chatJSON } from "@/lib/ai";
+import { bankKey, keep, recall } from "@/lib/bank-cache";
 import { runningDry, sift, signature, type Signature } from "@/app/round/dedupe";
 import { placeAll } from "@/app/round/shuffle";
 import {
@@ -357,6 +358,17 @@ export async function POST(req: Request) {
   const asked = readAsked(body.asked);
   const seen: Signature[] = asked.map(signature);
 
+  /* Whether this request's bank may be shared with anyone else.
+
+     Only a request that has asked nothing yet. A session on its second run
+     through a topic sends everything it has already served, so the generator
+     can write around it and the sift can drop what it writes anyway. Serving
+     that request from the cache would hand back the very questions the
+     history was sent to avoid, and it would do it silently. So the cache is
+     read and written on first requests only, which is exactly the case it was
+     asked for: two students arriving at the same topic. */
+  const shareable = asked.length === 0;
+
   const material =
     provenance === "grounded"
       ? `The student is studying: ${topic}\n\nTheir own material, which every question must come from:\n\n${notes}`
@@ -365,6 +377,30 @@ export async function POST(req: Request) {
   try {
     /* ── The warm up, and the concepts the whole session runs on ───── */
     if (body.stage === "open") {
+      const key = bankKey({ stage: "open", topic, notes });
+
+      if (shareable) {
+        const hit = recall(key);
+        /* The key carries a hash of the notes, so a hit is already material
+           this student pasted themselves. Running the citation check over it
+           again anyway costs nothing and means a bug in the key could only
+           ever cost a cache miss, never a question citing somebody else's
+           notes. Citations are the whole guarantee of a grounded session. */
+        const questions =
+          hit && provenance === "grounded" ? keepGrounded(hit.questions, notes).kept : hit?.questions;
+
+        if (hit && questions && questions.length > 0) {
+          return NextResponse.json({
+            concepts: hit.concepts,
+            questions: placeAll(questions),
+            provenance,
+            dropped: 0,
+            repeats: 0,
+            exhausted: false,
+          });
+        }
+      }
+
       const payload = await chatJSON(
         `${OPEN_SYSTEM}\n${rules}${alreadyAsked(asked)}`,
         material,
@@ -418,6 +454,8 @@ export async function POST(req: Request) {
         console.warn(`Warm up: dropped ${sifted.repeats} repeated question(s).`);
       }
 
+      if (shareable) keep(key, { concepts, questions, exhausted: false });
+
       return NextResponse.json({
         concepts,
         questions: placeAll(questions),
@@ -440,6 +478,24 @@ export async function POST(req: Request) {
     const concepts = body.concepts.map((c) => c.trim()).filter(Boolean);
     const format = ROUND_FORMAT[round];
     const wanted = PER_TIER * 3;
+
+    const key = bankKey({ stage: round, topic, notes, concepts });
+
+    if (shareable) {
+      const hit = recall(key);
+      const questions =
+        hit && provenance === "grounded" ? keepGrounded(hit.questions, notes).kept : hit?.questions;
+
+      if (hit && questions && questions.length > 0) {
+        return NextResponse.json({
+          questions: placeAll(questions),
+          provenance,
+          dropped: 0,
+          repeats: 0,
+          exhausted: hit.exhausted,
+        });
+      }
+    }
 
     /** One generation, validated, cited, and sifted against everything the
         session has already used. */
@@ -507,6 +563,8 @@ export async function POST(req: Request) {
     if (repeats > 0) {
       console.warn(`Round ${round}: dropped ${repeats} question(s) already asked this session.`);
     }
+
+    if (shareable) keep(key, { concepts, questions: kept, exhausted });
 
     return NextResponse.json({
       questions: placeAll(kept),

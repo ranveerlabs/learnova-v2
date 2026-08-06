@@ -15,6 +15,15 @@ export class AIError extends Error {
   }
 }
 
+/* One key serves everyone on the deployment, at 450 requests per thirty
+   minutes between them. So being rate limited is not an error in the sense
+   that something is broken: it is a busy afternoon, and the student who runs
+   into it did nothing wrong and needs no diagnosis. It is said in those terms
+   wherever it surfaces, and it is said in one place so it cannot drift into
+   four slightly different apologies. */
+export const BUSY =
+  "Learnova is busy right now. Give it a moment and try again.";
+
 async function callModel(
   system: string,
   user: string,
@@ -50,7 +59,7 @@ async function callModel(
     console.error(`Hack Club AI API error ${res.status} (model ${MODEL}):`, detail);
 
     if (res.status === 429) {
-      throw new AIError("The AI service is rate-limited right now, try again in a moment.", 429);
+      throw new AIError(BUSY, 429);
     }
     throw new AIError(`The AI service returned an error (HTTP ${res.status}). Try again.`);
   }
