@@ -2,19 +2,19 @@
 
 import { Component, type ReactNode } from "react";
 import { plain } from "./plain";
-import type { SkinProps } from "./types";
+import type { PresentationProps } from "./types";
 
-/* If a skin throws, the round carries on in Plain.
+/* If a presentation throws, the round carries on plainly.
 
-   A skin is decoration over a study session. A student mid-round has answers
-   and a streak and a run clock behind them, and losing all of that because a
-   presentation layer had a bad render would be a far worse failure than the
-   presentation being boring. So a throw inside a skin is caught here and the
-   question is re-rendered plainly, in place, with the answer still to give.
+   A student mid-round has answers and a streak and a run clock behind them,
+   and losing all of that because a drawing of a vending machine had a bad
+   render would be a far worse failure than the drawing being missing. So a
+   throw is caught here and the question is re-rendered in place, with the
+   answer still to give and the timer still running against the same question.
 
    This has to be a class component: error boundaries have no hook form. */
 
-type Props = SkinProps & {
+type Props = PresentationProps & {
   /** Changing this resets the boundary, so one bad question does not pin a
       student to Plain for the rest of the round. */
   resetKey: string;
@@ -23,7 +23,7 @@ type Props = SkinProps & {
 
 type State = { failed: boolean; forKey: string };
 
-export class SkinBoundary extends Component<Props, State> {
+export class PresentationBoundary extends Component<Props, State> {
   state: State = { failed: false, forKey: this.props.resetKey };
 
   static getDerivedStateFromError(): Partial<State> {
@@ -36,15 +36,15 @@ export class SkinBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
-    console.error("Skin failed, falling back to plain:", error);
+    console.error("Presentation failed, falling back to plain:", error);
   }
 
   render() {
     if (this.state.failed) {
-      const { children, resetKey, ...skinProps } = this.props;
+      const { children, resetKey, ...rest } = this.props;
       void children;
       void resetKey;
-      return <plain.Component {...skinProps} />;
+      return <plain.Component {...rest} />;
     }
     return this.props.children;
   }

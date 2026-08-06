@@ -180,9 +180,10 @@ export function ladderAccuracy(answers: Answer[]): number {
   return answers.filter((a) => a.correct).length / answers.length;
 }
 
-function step(d: Difficulty, by: -1 | 0 | 1): Difficulty {
+function step(d: Difficulty, by: -1 | 0 | 1, floor: Difficulty = "easy"): Difficulty {
   const i = TIERS.indexOf(d);
-  return TIERS[Math.min(TIERS.length - 1, Math.max(0, i + by))];
+  const lowest = Math.max(0, TIERS.indexOf(floor));
+  return TIERS[Math.min(TIERS.length - 1, Math.max(lowest, i + by))];
 }
 
 /** The tier the next question in this round should come from.
@@ -190,15 +191,25 @@ function step(d: Difficulty, by: -1 | 0 | 1): Difficulty {
     `roundAnswers` is this round's answers only. Difficulty does not carry
     across rounds, because the format changes underneath it: hard recall and
     hard multiple choice are not the same demand, and a student who earned the
-    top tier by recognising answers has not earned it for producing them. */
-export function nextDifficulty(current: Difficulty, roundAnswers: Answer[]): Difficulty {
+    top tier by recognising answers has not earned it for producing them.
+
+    `floor` is raised when the generator has run out of new easy questions on
+    this topic. Easing into a tier with nothing left in it would mean either a
+    repeated question or a round that stops early, and of the two ways to
+    honour "never ask the same thing twice", holding the difficulty up is the
+    one that still gives the student a round to play. */
+export function nextDifficulty(
+  current: Difficulty,
+  roundAnswers: Answer[],
+  floor: Difficulty = "easy"
+): Difficulty {
   /* Two failures in a row eases immediately, whatever the running average
      says. A streak of failures is the specific thing that does the damage,
      and averaging it away over a good start is how a student ends a round
      having got the last four wrong. A timeout counts here. */
   const lastTwo = roundAnswers.slice(-2);
   if (lastTwo.length === 2 && lastTwo.every((a) => !a.correct)) {
-    return step(current, -1);
+    return step(current, -1, floor);
   }
 
   /* One answer is not evidence: it can only read as 0 or 100 percent, and
@@ -207,8 +218,8 @@ export function nextDifficulty(current: Difficulty, roundAnswers: Answer[]): Dif
   if (roundAnswers.length < 2) return current;
 
   const rate = ladderAccuracy(roundAnswers);
-  if (rate < TARGET_LOW) return step(current, -1);
-  if (rate > TARGET_HIGH) return step(current, 1);
+  if (rate < TARGET_LOW) return step(current, -1, floor);
+  if (rate > TARGET_HIGH) return step(current, 1, floor);
   return current;
 }
 
@@ -218,43 +229,31 @@ function unasked(pool: Question[], tier: Difficulty, asked: Set<string>): Questi
   return pool.find((q) => q.difficulty === tier && !asked.has(q.id));
 }
 
-/** A question the student got wrong earlier this round, brought back around.
-
-    Never the one they just answered, which would read as a glitch rather than
-    as a second chance. */
-function repeatMissed(pool: Question[], roundAnswers: Answer[]): Question | null {
-  const lastId = roundAnswers[roundAnswers.length - 1]?.questionId;
-  for (const a of roundAnswers) {
-    if (a.correct || a.questionId === lastId) continue;
-    const q = pool.find((p) => p.id === a.questionId);
-    if (q) return q;
-  }
-  return null;
-}
-
 /** Pull the next question from a round's bank at, or as near as possible to,
     the wanted tier.
 
-    The fallback order is not symmetric, on purpose. A student sitting at the
-    bottom tier got there by struggling, so if the easy questions run out they
-    meet a missed one again before they are pushed up a tier. Meeting a missed
-    question again inside the same session is the exercise, not filler, and
-    escalating someone who is already easing would undo the whole point of
-    the ladder. */
+    Nothing is ever served twice. There used to be a fallback here that brought
+    back a question the student had got wrong earlier in the round when the
+    wanted tier ran dry, on the reasoning that meeting a missed question again
+    is the exercise rather than filler. That reasoning still holds for a study
+    tool in general and it is wrong for this one: the ladder's whole claim is
+    that each rung measured a fresh retrieval, and a rung padded with a
+    question answered ninety seconds ago measures recall of the last ninety
+    seconds. It is now removed at the root, so no path through this function
+    can return an id that is already in `asked`.
+
+    What replaces it is upward pressure. The banks are generated with a third
+    to spare, the route refuses to write repeats and escalates instead when it
+    runs dry, and the tier fallback below walks outward from the wanted tier.
+    If all of that is exhausted the round ends early, which is the honest
+    outcome and is reported as one. */
 export function pickQuestion(
   pool: Question[],
   want: Difficulty,
-  asked: Set<string>,
-  roundAnswers: Answer[]
+  asked: Set<string>
 ): Question | null {
   const direct = unasked(pool, want, asked);
   if (direct) return direct;
-
-  if (want === "easy") {
-    const again = repeatMissed(pool, roundAnswers);
-    if (again) return again;
-    return unasked(pool, "medium", asked) ?? unasked(pool, "hard", asked) ?? null;
-  }
 
   const wantIndex = TIERS.indexOf(want);
   const order = [...TIERS].sort((a, b) => {
@@ -271,7 +270,7 @@ export function pickQuestion(
     if (found) return found;
   }
 
-  return repeatMissed(pool, roundAnswers);
+  return null;
 }
 
 /* ── Streaks, combo, points ───────────────────────────────────────────────
@@ -361,7 +360,7 @@ export function beatsBest(previous: Answer[], ms: number, correct: boolean): boo
    says so rather than finding something flattering to show. */
 
 export type RoundSummary = {
-  /** 0 is the cold open, which gets a summary of its own shape: it is
+  /** 0 is the warm up, which gets a summary of its own shape: it is
       reported without a score, because it was taken before any studying. */
   stage: 0 | Round;
   correct: number;
@@ -436,7 +435,7 @@ function median(ns: number[]): number | null {
 
     "Confidently" is not measurable, so it is not claimed. What is measurable
     is how far up the escalation a concept survived and how quickly the
-    correct answers came, and that pair decides the order. Cold open answers
+    correct answers came, and that pair decides the order. Warm up answers
     are excluded outright: that stage is guessing by design, and a lucky coin
     flip is not evidence of anything. */
 export function rankForProduction(answers: Answer[]): ProductionRank[] {
@@ -470,7 +469,7 @@ export function rankForProduction(answers: Answer[]): ProductionRank[] {
 /* ── The results screen ───────────────────────────────────────────────────
    This session's answers, counted. Nothing else.
 
-   There is deliberately no improvement figure. The cold open is two-option
+   There is deliberately no improvement figure. The warm up is two-option
    recognition; Round 4 is unscaffolded production graded on a rubric. They
    are not the same test and there is no arithmetic that turns one into the
    other, so subtracting them would produce a number that looks like progress
@@ -506,7 +505,7 @@ export type Reveal = {
   /** Questions that ran out of time, reported on their own so they are never
       folded into a wrong answer. */
   timedOut: number;
-  /** Per-stage splits and the total run, covering the cold open and Rounds 1
+  /** Per-stage splits and the total run, covering the warm up and Rounds 1
       to 3 only. Round 4 is untimed and outside the run. */
   splits: Split[];
   runTime: number;

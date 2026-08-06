@@ -20,7 +20,7 @@ const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 /** What the next round takes away. Written as a loss on purpose: the student
     should feel the scaffolding going, because that is the mechanic. */
 const NEXT: Record<Round, { name: string; taken: string; asks: string }> = {
-  /* The cold open offers two options; Round 1 offers four, so three of them
+  /* The warm up offers two options; Round 1 offers four, so three of them
      are wrong rather than one. This line used to say the opposite. */
   1: { name: "Round 1", taken: "Four options now, not two.", asks: "Pick the right one." },
   2: { name: "Round 2", taken: "No options.", asks: "Type the missing term." },
@@ -53,15 +53,20 @@ export function Interval({
   next,
   splitMs,
   runMs,
+  points,
   onContinue,
 }: {
   summary: RoundSummary;
   next: Round;
   splitMs: number;
   runMs: number;
+  /** The running total across the whole session, which no longer appears
+      anywhere during a round. This screen and the results screen are the only
+      two places it is shown. */
+  points: number;
   onContinue: () => void;
 }) {
-  const cleared = summary.stage === 0 ? "Cold open" : `Round ${summary.stage}`;
+  const cleared = summary.stage === 0 ? "Warm up" : `Round ${summary.stage}`;
   const upNext = NEXT[next];
 
   return (
@@ -82,7 +87,7 @@ export function Interval({
         </h2>
       </div>
 
-      {/* The numbers, all of them real. The cold open deliberately shows no
+      {/* The numbers, all of them real. The warm up deliberately shows no
           score at all: it is a baseline taken before any studying, and putting
           a mark on it would tell a student they had failed something they were
           never meant to pass. */}
@@ -101,7 +106,8 @@ export function Interval({
             tone={summary.answered > 0 && summary.correct / summary.answered >= 0.7 ? "good" : "plain"}
           />
           <Stat label="Best run" value={`${summary.bestStreak}`} />
-          <Stat label="Points" value={summary.points.toLocaleString()} />
+          <Stat label="This round" value={summary.points.toLocaleString()} />
+          <Stat label="Points" value={points.toLocaleString()} />
           <Stat label="Split" value={formatClock(splitMs)} />
           <Stat label="Total" value={formatClock(runMs)} />
         </div>

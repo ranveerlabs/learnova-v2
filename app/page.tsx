@@ -8,18 +8,17 @@ import { Interval } from "./round/interval";
 import { Reveal } from "./round/reveal";
 import { useRoundSession } from "./round/session";
 import { TeachBack } from "./round/teachback";
-import { SkinBoundary } from "./round/skins/boundary";
-import { pickSkin } from "./round/skins/registry";
+import { PresentationBoundary } from "./round/presentations/boundary";
+import { pickPresentation } from "./round/presentations/registry";
 import {
   Generating,
   LadderRail,
-  PointsFly,
+  PlainEscape,
   ProvenanceBadge,
+  RoundHud,
   RunClock,
-  SkinToggle,
-  SoundToggle,
-  StatusStrip,
   Verdict,
+  WarmUpLines,
 } from "./round/ui";
 import {
   ADVANCE_MS,
@@ -53,32 +52,42 @@ export default function Home() {
         s.phase === "entry" ? "desk-grid" : ""
       }`}
     >
-      <header className="sticky top-0 z-30 border-b border-line bg-ground/85 backdrop-blur-md">
-        <div className={`${SHELL} flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3.5`}>
+      {/* During a question this is empty. The wordmark, the rung, where the
+          questions came from and the run clock are all true and all worth
+          showing, and none of them is worth showing to somebody in the middle
+          of trying to remember something. They come back the moment the round
+          does not have them.
+
+          The audio controls that used to live on the right have been removed
+          outright rather than hidden during play. Music and answer sounds are
+          on, and there is no longer any control for either. */}
+      <header
+        className={`sticky top-0 z-30 bg-ground/85 backdrop-blur-md ${
+          inPlay ? "" : "border-b border-line"
+        }`}
+      >
+        <div
+          className={`${SHELL} flex flex-wrap items-center justify-between gap-x-6 gap-y-3 ${
+            inPlay ? "py-1" : "py-3.5"
+          }`}
+        >
           <div className="flex items-center gap-5">
-            <Wordmark />
-            {showRun && <LadderRail stage={s.stage} />}
+            {!inPlay && <Wordmark />}
+            {showRun && !inPlay && <LadderRail stage={s.stage} />}
           </div>
 
-          <div className="flex items-center gap-4">
-            {showRun && s.provenance && s.phase !== "opening" && (
+          <div className="flex items-center gap-3">
+            {showRun && !inPlay && s.phase !== "opening" && (
               <ProvenanceBadge provenance={s.provenance} />
             )}
-            {showRun && <Ghost best={s.best} elapsed={s.runElapsed} live={inPlay} />}
-            {/* Score, streak and progress moved to the status strip under
-                this header, so the header carries identity and the run clock
-                and nothing that changes on every answer. */}
-            {showRun && <SkinToggle on={s.skinsOn} onToggle={() => s.setSkinsOn(!s.skinsOn)} />}
-            <SoundToggle on={s.sound} onToggle={() => s.setSound(!s.sound)} />
+            {showRun && !inPlay && <Ghost best={s.best} elapsed={s.runElapsed} live={false} />}
           </div>
         </div>
       </header>
 
       <div className={`${SHELL} flex-1 py-8 lg:py-10`}>
         <main className="min-w-0">
-          {s.phase === "entry" && (
-            <Entry onStart={s.start} error={s.error} />
-          )}
+          {s.phase === "entry" && <Entry onStart={s.start} error={s.error} />}
 
           {s.phase === "opening" && (
             <Generating
@@ -102,13 +111,11 @@ export default function Home() {
               key={s.current.id}
               question={s.current}
               stage={s.stage}
-              served={s.servedThisStage}
-              limit={s.stageLimit}
               sound={s.sound}
               streak={s.streak}
-              points={s.points}
-              skinSeed={s.skinSeed}
-              skinsOn={s.skinsOn}
+              seed={s.seed}
+              plainOnly={s.plainOnly}
+              onPlainOnly={() => s.setPlainOnly(true)}
               onAnswer={s.answer}
               onAdvance={s.advance}
             />
@@ -120,12 +127,13 @@ export default function Home() {
               next={(s.stage + 1) as Round}
               splitMs={s.splits[s.splits.length - 1]?.ms ?? 0}
               runMs={s.splits.reduce((sum, sp) => sum + sp.ms, 0)}
+              points={s.points}
               onContinue={s.continueOn}
             />
           )}
 
-          {s.phase === "round4" && (
-            s.productionOrder.length > 0 && s.productionIndex < s.productionOrder.length ? (
+          {s.phase === "round4" &&
+            (s.productionOrder.length > 0 && s.productionIndex < s.productionOrder.length ? (
               <TeachBack
                 key={s.productionOrder[s.productionIndex]}
                 concept={s.productionOrder[s.productionIndex]}
@@ -141,8 +149,7 @@ export default function Home() {
               />
             ) : (
               <NothingToProduce onFinish={s.finish} />
-            )
-          )}
+            ))}
 
           {s.phase === "reveal" && (
             <>
@@ -164,7 +171,13 @@ export default function Home() {
 /* ── The ghost ────────────────────────────────────────────────────────────
    A speedrun ghost, in the literal sense: the run you are racing is your own
    last one. It only appears once there is a real previous run in this tab to
-   race, because a ghost with nothing behind it is just a clock. */
+   race, because a ghost with nothing behind it is just a clock.
+
+   It no longer ticks during a question. A number counting up against a
+   personal best, in the corner of the eye, while trying to retrieve something,
+   is the exact shape of the chrome this round was cleared of. The run is still
+   timed to the millisecond and the comparison is still real; it is shown
+   between rounds and at the end. */
 
 function Ghost({
   best,
@@ -194,17 +207,15 @@ function Ghost({
   return (
     <div className="flex items-center gap-3">
       <RunClock elapsed={elapsed} live={live} />
-      {Number.isFinite(best.runTime) && (
-        <span
-          title="Against your last completed run in this tab"
-          className={`run-clock rounded-[3px] px-1.5 py-0.5 font-mono text-[0.75rem] font-semibold tabular-nums ${
-            ahead ? "bg-solid-tint text-solid-ink" : "bg-sunk text-ink-faint"
-          }`}
-        >
-          {ahead ? "-" : "+"}
-          {formatClock(Math.abs(delta))}
-        </span>
-      )}
+      <span
+        title="Against your last completed run in this tab"
+        className={`run-clock rounded-[3px] px-1.5 py-0.5 font-mono text-[0.75rem] font-semibold tabular-nums ${
+          ahead ? "bg-solid-tint text-solid-ink" : "bg-sunk text-ink-faint"
+        }`}
+      >
+        {ahead ? "-" : "+"}
+        {formatClock(Math.abs(delta))}
+      </span>
     </div>
   );
 }
@@ -225,7 +236,7 @@ function BeatIt({
   const beatTime = Number.isFinite(best.runTime) && data.runTime < best.runTime;
 
   return (
-    <section className={`${""} mx-auto mt-2 flex w-full max-w-[58rem] flex-col gap-3 rounded-[3px] border border-line bg-page p-5`}>
+    <section className="mx-auto mt-2 flex w-full max-w-[58rem] flex-col gap-3 rounded-[3px] border border-line bg-page p-5">
       <span
         style={{ fontVariationSettings: '"wdth" 88' }}
         className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-ink-faint"
@@ -282,8 +293,9 @@ function NothingToProduce({ onFinish }: { onFinish: () => void }) {
 }
 
 /* ── A question ───────────────────────────────────────────────────────────
-   One screen, three possible answer surfaces, and a timer that decides when
-   the question is over. */
+   The question, the options, the timer, and the combo multiplier when it is
+   above one. Nothing else is on this screen, and everything that used to be is
+   accounted for in the note at the top of ui.tsx. */
 
 type Result = {
   correct: boolean;
@@ -296,25 +308,21 @@ type Result = {
 function QuestionScreen({
   question,
   stage,
-  served,
-  limit,
   sound,
   streak,
-  points,
-  skinSeed,
-  skinsOn,
+  seed,
+  plainOnly,
+  onPlainOnly,
   onAnswer,
   onAdvance,
 }: {
   question: Question;
   stage: 0 | Round;
-  served: number;
-  limit: number;
   sound: boolean;
   streak: number;
-  points: number;
-  skinSeed: number;
-  skinsOn: boolean;
+  seed: number;
+  plainOnly: boolean;
+  onPlainOnly: () => void;
   onAnswer: (given: string | number | string[], timedOut?: boolean) => Result | null;
   onAdvance: () => void;
 }) {
@@ -322,6 +330,7 @@ function QuestionScreen({
   const [typed, setTyped] = useState("");
   const [built, setBuilt] = useState<string[]>([]);
   const [result, setResult] = useState<Result | null>(null);
+  const [ranOut, setRanOut] = useState(false);
   const [remaining, setRemaining] = useState(QUESTION_SECONDS * 1000);
 
   const startedAt = useRef(performance.now());
@@ -337,6 +346,7 @@ function QuestionScreen({
 
       const outcome = onAnswer(given, timedOut);
       if (!outcome) return;
+      setRanOut(timedOut);
       setResult(outcome);
 
       if (sound) {
@@ -371,8 +381,8 @@ function QuestionScreen({
     };
   }, []);
 
-  /* Any key advances once an answer is showing, which is what makes a fast
-     run possible without reaching for the mouse. */
+  /* Enter or space advances once an answer is showing, which is what makes a
+     fast run possible without reaching for the mouse. */
   useEffect(() => {
     if (!result) return;
     function onKey(e: KeyboardEvent) {
@@ -390,20 +400,20 @@ function QuestionScreen({
 
   /* Chosen once per question and remembered, so a re-render cannot swap the
      presentation out from under a student mid-answer. */
-  const skin = useMemo(
+  const presentation = useMemo(
     () =>
-      pickSkin({
+      pickPresentation({
         format: question.format,
         question,
-        seed: skinSeed,
+        seed,
         round: stage,
-        enabled: skinsOn,
+        plainOnly,
       }),
-    [question, skinSeed, skinsOn, stage]
+    [plainOnly, question, seed, stage]
   );
-  const SkinComponent = skin.Component;
+  const Drawn = presentation.Component;
 
-  const skinProps = {
+  const props = {
     question,
     revealed,
     correct: result?.correct ?? false,
@@ -419,72 +429,49 @@ function QuestionScreen({
   };
 
   return (
-    <>
-      {/* Full bleed out of the shell's padding: the strip is a band across
-          the page, which is what makes it read as separate from the question
-          rather than as the top of it. */}
-      <div className="-mx-6 -mt-8 mb-2 lg:-mx-10 xl:-mx-14">
-        <StatusStrip
-          stage={stage}
-          served={served}
-          limit={limit}
+    <section className="relative mx-auto flex min-h-[70vh] w-full max-w-[46rem] flex-col justify-center gap-6 py-4">
+      {/* First in the tab order, invisible until focused. See PlainEscape. */}
+      {!plainOnly && <PlainEscape onChoose={onPlainOnly} />}
+
+      <div className="flex items-start justify-between gap-6">
+        {stage === 0 ? <WarmUpLines /> : <span />}
+        <RoundHud
           streak={streak}
-          points={points}
           remaining={remaining}
           total={total}
           scoring={stage !== 0}
         />
       </div>
 
-      {/* Centred in the viewport rather than sitting at the top of it. A
-          question with a screenful of empty page under it reads as a form;
-          the same question held in the middle of the screen reads as the only
-          thing happening, which is what this mode needs it to be.
-
-          Nothing lives in here but the question and its options. The round
-          heading, the progress count and the timer are in the strip above;
-          the cold open's "guessing is the point" explanation is on the entry
-          screen where it is read once; what each round takes away is on the
-          between-rounds screen that opens it. Every one of those was
-          competing with the retrieval itself. */}
-      <section className="relative mx-auto flex min-h-[62vh] w-full max-w-[46rem] flex-col justify-center gap-6 py-4">
       {/* Given the full column rather than a 34-character measure: the
-          generation prompt now caps questions at 12 words, and the point of
+          generation prompt caps questions at 12 words, and the point of
           capping the words was so the question could fit a line without the
           type being shrunk to make it. */}
-      <h2 className="deal-in text-balance font-read text-[clamp(1.375rem,1.1rem+1.3vw,1.875rem)] font-normal leading-[1.2] tracking-[-0.015em] text-ink">
-        {question.format === "blank" ? "Fill in what is missing." : question.prompt}
-      </h2>
+      {question.format !== "blank" && (
+        <h2 className="deal-in text-balance font-read text-[clamp(1.375rem,1.1rem+1.3vw,1.875rem)] font-normal leading-[1.2] tracking-[-0.015em] text-ink">
+          {question.prompt}
+        </h2>
+      )}
 
-      <div className="relative">
-        {result?.correct && result.points > 0 && (
-          <PointsFly amount={result.points} best={result.record} />
-        )}
-
-        {/* The one place the skin layer touches the round. Everything below
-            this point is the same whichever skin is on: the answer comes back
-            in the shape checking already understands, and the skin has no way
-            to reach the ladder, the timer or the grade. */}
-        <SkinBoundary {...skinProps} resetKey={question.id}>
-          <SkinComponent {...skinProps} />
-        </SkinBoundary>
-      </div>
+      {/* The one place the presentation layer touches the round. Everything
+          below this point is the same whichever one is drawn: the answer comes
+          back in the shape checking already understands, and a presentation
+          has no way to reach the ladder, the timer or the grade. */}
+      <PresentationBoundary {...props} resetKey={question.id}>
+        <Drawn {...props} />
+      </PresentationBoundary>
 
       {result && (
         <Verdict
           correct={result.correct}
-          timedOut={remaining <= 0 && !result.correct && chosen === null && !typed && built.length === 0}
+          timedOut={ranOut}
           answer={question.answer}
-          because={question.because}
-          citation={question.citation}
           onNext={() => {
             if (advanceTimer.current) clearTimeout(advanceTimer.current);
             onAdvance();
           }}
         />
       )}
-
-      </section>
-    </>
+    </section>
   );
 }

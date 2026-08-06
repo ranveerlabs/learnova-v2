@@ -12,17 +12,19 @@ import {
   beatsBest,
   rankForProduction,
 } from "./engine";
-import { newSeed } from "./skins/registry";
+import { setMusic } from "./music";
+import { newSeed } from "./presentations/registry";
 import {
   type Answer,
-  COLD_OPEN_COUNT,
   type Difficulty,
+  type Format,
   type Production,
   type Provenance,
   type Question,
   QUESTIONS_PER_ROUND,
   type Round,
   type Split,
+  WARM_UP_COUNT,
 } from "./types";
 
 /* The session, start to finish.
@@ -69,7 +71,16 @@ export type Best = {
   runTime: number;
 } | null;
 
+/** A question as the repeat check needs it. Four fields, because the rest of a
+    Question is presentation and shipping it back to the server would be
+    bandwidth spent on nothing. */
+type Asked = { concept: string; answer: string; prompt: string; format: Format };
+
 const MAX_PRODUCTIONS = 3;
+
+function lite(q: Question): Asked {
+  return { concept: q.concept, answer: q.answer, prompt: q.prompt, format: q.format };
+}
 
 export function useRoundSession() {
   const [phase, setPhase] = useState<Phase>("entry");
@@ -78,9 +89,13 @@ export function useRoundSession() {
   const [provenance, setProvenance] = useState<Provenance>("generated");
   const [concepts, setConcepts] = useState<string[]>([]);
 
-  const [coldOpen, setColdOpen] = useState<Question[]>([]);
+  const [warmUp, setWarmUp] = useState<Question[]>([]);
   const [banks, setBanks] = useState<Partial<Record<Round, Question[]>>>({});
-  const [bankPending, setBankPending] = useState<Partial<Record<Round, boolean>>>({});
+
+  /** Rounds where the generator ran out of genuinely new questions. The ladder
+      will not ease below medium in one of these: there is nothing down there
+      left to serve that the student has not already answered. */
+  const [floors, setFloors] = useState<Partial<Record<Round, Difficulty>>>({});
 
   const [stage, setStage] = useState<0 | Round>(0);
   const [current, setCurrent] = useState<Question | null>(null);
@@ -95,19 +110,58 @@ export function useRoundSession() {
   const [pendingRound, setPendingRound] = useState<Round | null>(null);
 
   const [error, setError] = useState<string | null>(null);
-  const [sound, setSound] = useState(false);
 
-  /* Skins are on by default and can be turned off for the whole session. The
-     rotation seed is drawn once per session and changes on restart, which is
-     what stops a second run through the same topic presenting identically. */
-  const [skinsOn, setSkinsOn] = useState(true);
-  const [skinSeed, setSkinSeed] = useState(() => newSeed());
+  /* Audio is on, and there is no control for it anywhere in the interface.
+
+     Neither part can make a sound before the student's first click: browsers
+     hold an audio context suspended until the page has seen a gesture, so what
+     "on" buys is that the first click starts it rather than that something
+     plays at a student who has not touched the page. In practice the gesture
+     is the start button on the entry screen. */
+  const sound = true;
+
+  useEffect(() => {
+    setMusic(true);
+    return () => setMusic(false);
+  }, []);
+
+  /* Presentations are how rounds look, so there is no setting for them. This
+     is the one way to the plain rendering, and it is reached through the skip
+     link in the question area rather than through any menu. It lasts the
+     session and survives a restart, because someone who needed it once needs
+     it on the next run too. */
+  const [plainOnly, setPlainOnly] = useState(false);
+  const [seed, setSeed] = useState(() => newSeed());
 
   /* Run history for the tab. A ref rather than state: nothing renders off it
      directly except through `best`, and it must survive a restart, which
      resets everything else. */
   const runs = useRef<RunRecord[]>([]);
   const [best, setBest] = useState<Best>(null);
+
+  /* Every question this tab has generated, by topic, so a second run on the
+     same topic is not the first one again. In memory, like everything else
+     here: it dies with the tab and is never written anywhere. */
+  const seenByTopic = useRef<Map<string, Asked[]>>(new Map());
+  /* Rounds already requested, so a bank cannot be fetched twice. State would
+     be a frame behind and let a double fetch through. */
+  const requested = useRef<Set<Round>>(new Set());
+
+  const key = useCallback((t: string) => t.trim().toLowerCase(), []);
+
+  const remember = useCallback(
+    (forTopic: string, questions: Question[]) => {
+      const k = key(forTopic);
+      const held = seenByTopic.current.get(k) ?? [];
+      seenByTopic.current.set(k, [...held, ...questions.map(lite)]);
+    },
+    [key]
+  );
+
+  const seenFor = useCallback(
+    (forTopic: string): Asked[] => seenByTopic.current.get(key(forTopic)) ?? [],
+    [key]
+  );
 
   /* Clocks. `performance.now()` throughout, because it is monotonic: a
      student whose machine adjusts its wall clock mid-session should not get a
@@ -116,39 +170,50 @@ export function useRoundSession() {
   const stageStartedAt = useRef<number>(0);
   const runStartedAt = useRef<number | null>(null);
 
-  /* The cold open is outside the game entirely. It is taken before any
-     studying, it is explicitly not scored, and the screen says so while the
-     student is answering it. Letting points or a streak accumulate there
-     would contradict that in the header, and would also hand Round 1 a combo
-     the student earned by guessing. Scoring starts at Round 1 and the cold
-     open stays what it says it is: a baseline, not a performance. */
+  /* The warm up is outside the game entirely. It is taken before any studying,
+     it is explicitly not scored, and the screen says so in two words while the
+     student is answering it. Letting points or a streak accumulate there would
+     contradict that, and would also hand Round 1 a combo the student earned by
+     guessing. Scoring starts at Round 1. */
   const scoring = answers.filter((a) => a.stage >= 1);
   const streak = currentStreak(scoring);
   const points = scoring.reduce((sum, a) => sum + (a.points ?? 0), 0);
 
-  /** Elapsed run time so far, for the live ghost comparison. */
+  /** Elapsed run time so far, for the ghost comparison between rounds. */
   const runElapsed = useCallback(
     () => (runStartedAt.current === null ? 0 : performance.now() - runStartedAt.current),
     []
   );
 
   /* ── Generation ───────────────────────────────────────────────────────
-     The cold open is the only call ever waited on. Every round bank is
-     fetched while the student is busy with the round before it, so the
-     latency lands in time they were already spending. */
+     The warm up is the only call ever waited on. Every round bank is fetched
+     while the student is busy with the round before it, so the latency lands
+     in time they were already spending. */
 
   const fetchBank = useCallback(
     async (round: Round, forTopic: string, forNotes: string, forConcepts: string[]) => {
       if (round === 4) return;
-      setBankPending((prev) => ({ ...prev, [round]: true }));
+      if (requested.current.has(round)) return;
+      requested.current.add(round);
+
       try {
-        const { questions } = await postJSON<{ questions: Question[] }>("/api/round", {
+        const { questions, exhausted } = await postJSON<{
+          questions: Question[];
+          exhausted?: boolean;
+        }>("/api/round", {
           stage: "round",
           round,
           topic: forTopic,
           notes: forNotes,
           concepts: forConcepts,
+          /* Everything already asked, so the model writes something new rather
+             than the same question in different words, and so the server can
+             drop what it writes anyway. */
+          asked: seenFor(forTopic),
         });
+
+        remember(forTopic, questions);
+        if (exhausted) setFloors((prev) => ({ ...prev, [round]: "medium" }));
         setBanks((prev) => ({ ...prev, [round]: questions }));
       } catch (err) {
         /* A failed bank is not fatal to the session: the rounds before it
@@ -156,11 +221,9 @@ export function useRoundSession() {
            reaches that round, not as an interruption to the one they are in. */
         console.error(`Round ${round} bank failed:`, err);
         setBanks((prev) => ({ ...prev, [round]: [] }));
-      } finally {
-        setBankPending((prev) => ({ ...prev, [round]: false }));
       }
     },
-    []
+    [remember, seenFor]
   );
 
   const start = useCallback(
@@ -175,13 +238,19 @@ export function useRoundSession() {
           concepts: string[];
           questions: Question[];
           provenance: Provenance;
-        }>("/api/round", { stage: "open", topic: nextTopic, notes: nextNotes });
+        }>("/api/round", {
+          stage: "open",
+          topic: nextTopic,
+          notes: nextNotes,
+          asked: seenFor(nextTopic),
+        });
 
         setConcepts(payload.concepts);
-        setColdOpen(payload.questions);
+        setWarmUp(payload.questions);
         setProvenance(payload.provenance);
+        remember(nextTopic, payload.questions);
 
-        /* Round 1 starts generating the instant the cold open lands, so it is
+        /* Round 1 starts generating the instant the warm up lands, so it is
            ready long before it is needed. */
         void fetchBank(1, nextTopic, nextNotes, payload.concepts);
 
@@ -200,13 +269,13 @@ export function useRoundSession() {
         setPhase("entry");
       }
     },
-    [fetchBank]
+    [fetchBank, remember, seenFor]
   );
 
   /* ── Answering ────────────────────────────────────────────────────────── */
 
   /** Record an answer and return what just happened, so the interface can
-      celebrate it in the same frame rather than a render later. */
+      react in the same frame rather than a render later. */
   const answer = useCallback(
     (given: string | number | string[], timedOut = false) => {
       const question = current;
@@ -215,7 +284,7 @@ export function useRoundSession() {
       const ms = performance.now() - questionShownAt.current;
       const right = !timedOut && isCorrect(question, given);
 
-      /* Nothing in the game layer moves during the cold open. */
+      /* Nothing in the game layer moves during the warm up. */
       const counts = stage >= 1;
       const earlier = answers.filter((a) => a.stage >= 1);
       const newStreak = counts && right ? currentStreak(earlier) + 1 : 0;
@@ -243,18 +312,19 @@ export function useRoundSession() {
 
   /** Move to the next question, or end the stage when there is no next one. */
   const advance = useCallback(() => {
-    const limit = stage === 0 ? COLD_OPEN_COUNT : QUESTIONS_PER_ROUND;
-    const pool = stage === 0 ? coldOpen : (banks[stage as Round] ?? []);
+    const limit = stage === 0 ? WARM_UP_COUNT : QUESTIONS_PER_ROUND;
+    const pool = stage === 0 ? warmUp : (banks[stage as Round] ?? []);
 
     const roundAnswers = answers.filter((a) => a.stage === stage);
     const done = servedThisStage >= limit;
 
     if (!done) {
-      const wanted = stage === 0 ? difficulty : nextDifficulty(difficulty, roundAnswers);
+      const floor = stage === 0 ? "easy" : (floors[stage as Round] ?? "easy");
+      const wanted = stage === 0 ? difficulty : nextDifficulty(difficulty, roundAnswers, floor);
       const next =
         stage === 0
-          ? pool.find((q) => !asked.has(q.id)) ?? null
-          : pickQuestion(pool, wanted, asked, roundAnswers);
+          ? (pool.find((q) => !asked.has(q.id)) ?? null)
+          : pickQuestion(pool, wanted, asked);
 
       if (next) {
         setDifficulty(wanted);
@@ -264,6 +334,9 @@ export function useRoundSession() {
         questionShownAt.current = performance.now();
         return;
       }
+      /* Nothing left that has not been asked. The round ends here rather than
+         serving anything twice, which is the trade this mode makes: a short
+         round is honest, a padded one is not. */
     }
 
     /* Stage over. The split is closed here and nowhere else, so the sum of
@@ -272,7 +345,7 @@ export function useRoundSession() {
     setSplits((prev) => [...prev, { stage, ms: now - stageStartedAt.current }]);
     setCurrent(null);
     setPhase("interval");
-  }, [answers, asked, banks, coldOpen, difficulty, servedThisStage, stage]);
+  }, [answers, asked, banks, difficulty, floors, servedThisStage, stage, warmUp]);
 
   const openRound4 = useCallback(() => {
     setStage(4);
@@ -283,11 +356,15 @@ export function useRoundSession() {
   /** Begin a round, or wait for it if it is not built yet.
 
       A bank that is still generating and a bank that failed are different
-      situations and used to be treated as one, which meant a student who
-      answered the cold open faster than the model could write Round 1 was
-      thrown past Rounds 1 to 3 and straight to the end. Undefined means keep
-      waiting; an empty array means that round genuinely has nothing and the
-      session moves on to the next one it can actually run. */
+      situations. Undefined means keep waiting; an empty array means that round
+      genuinely has nothing and the session moves on to the next one it can
+      actually run.
+
+      Walking forward past a failed round used to be able to strand a student
+      forever: banks are fetched one round ahead, so skipping Round 1 arrived
+      at a Round 2 nobody had asked for, and the waiting screen waited on a
+      request that was never going to be made. Anything walked into that has
+      not been requested is requested here. */
   const beginRound = useCallback(
     (from: Round) => {
       let target = from;
@@ -295,6 +372,7 @@ export function useRoundSession() {
       while (target <= 3) {
         const pool = banks[target];
         if (pool === undefined) {
+          void fetchBank(target, topic, notes, concepts);
           setPendingRound(target);
           setPhase("waiting");
           return;
@@ -313,7 +391,7 @@ export function useRoundSession() {
         void fetchBank((target + 1) as Round, topic, notes, concepts);
       }
 
-      const first = pickQuestion(banks[target] ?? [], "medium", new Set(), []);
+      const first = pickQuestion(banks[target] ?? [], "medium", new Set());
       if (!first) {
         openRound4();
         return;
@@ -380,7 +458,8 @@ export function useRoundSession() {
   );
 
   /** Bank this run and reset for another, keeping the run history so the next
-      one has a target. */
+      one has a target, and keeping every question already asked so the next
+      run on the same topic is a different set of questions. */
   const restart = useCallback(() => {
     const data = buildReveal(answers, productions, splits);
     if (data.splits.length > 0) {
@@ -408,9 +487,10 @@ export function useRoundSession() {
     setTopic("");
     setNotes("");
     setConcepts([]);
-    setColdOpen([]);
+    setWarmUp([]);
     setBanks({});
-    setBankPending({});
+    setFloors({});
+    requested.current = new Set();
     setStage(0);
     setCurrent(null);
     setAsked(new Set());
@@ -422,9 +502,9 @@ export function useRoundSession() {
     setProductionIndex(0);
     setPendingRound(null);
     setError(null);
-    /* A new seed for the next run, so going again is not the same session
-       twice. The on/off choice is the student's and survives the restart. */
-    setSkinSeed(newSeed());
+    /* A new seed for the next run, so going again does not draw the same
+       presentations in the same order. */
+    setSeed(newSeed());
     runStartedAt.current = null;
   }, [answers, productions, splits]);
 
@@ -446,17 +526,15 @@ export function useRoundSession() {
     sound,
     best,
     runCount: runs.current.length,
-    bankPending,
     banks,
     servedThisStage,
     productionOrder,
     productionIndex,
     pendingRound,
-    stageLimit: stage === 0 ? COLD_OPEN_COUNT : QUESTIONS_PER_ROUND,
-    skinsOn,
-    skinSeed,
-    setSkinsOn,
-    setSound,
+    stageLimit: stage === 0 ? WARM_UP_COUNT : QUESTIONS_PER_ROUND,
+    plainOnly,
+    seed,
+    setPlainOnly,
     start,
     answer,
     advance,

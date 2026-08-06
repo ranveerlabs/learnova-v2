@@ -77,24 +77,6 @@
   animation: right-ring 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
-/* The correct answer's own small lift, so the eye goes to the right answer
-   and not to the feedback text. */
-@keyframes right-lift {
-  0% {
-    transform: translateY(0);
-  }
-  38% {
-    transform: translateY(-3px);
-  }
-  100% {
-    transform: translateY(0);
-  }
-}
-
-.right-lift {
-  animation: right-lift 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both;
-}
-
 /* ── Getting it wrong ───────────────────────────────────────────────────
    Deliberately smaller than the reward. A miss is information, not a
    punishment, and a violent failure animation teaches students to fear the
@@ -150,37 +132,12 @@
   animation: combo-bump 0.42s cubic-bezier(0.2, 1.3, 0.4, 1) both;
 }
 
-/* Points leaving the answer and rising into the score. */
-@keyframes points-fly {
-  0% {
-    opacity: 0;
-    transform: translateY(6px) scale(0.9);
-  }
-  18% {
-    opacity: 1;
-    transform: translateY(0) scale(1.04);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-28px) scale(1);
-  }
-}
-
-.points-fly {
-  animation: points-fly 0.92s cubic-bezier(0.2, 0.6, 0.3, 1) both;
-}
-
-/* The running score rolling over. A short squash on change is enough to say
-   "that number just moved" without pulling the eye off the question. */
-@keyframes score-tick {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.13); }
-  100% { transform: scale(1); }
-}
-
-.score-tick {
-  animation: score-tick 0.3s cubic-bezier(0.2, 1.2, 0.4, 1) both;
-}
+/* The points animations that used to live here, `points-fly` and
+   `score-tick`, have gone with the numbers they animated. A round shows the
+   question, the options, the timer and the combo; a score flying off a correct
+   answer and a total squashing as it rolls over were two of the four things
+   competing with the retrieval. The totals are on the between-rounds screen
+   and the results screen, where looking at them costs nothing. */
 
 /* ── The per-question timer ─────────────────────────────────────────────
    A ring drawn with a conic gradient, driven by `--t` (1 full, 0 empty)
@@ -230,17 +187,6 @@
 .split-land {
   animation: split-land 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
   animation-delay: calc(var(--i, 0) * 90ms);
-}
-
-/* A personal best inside the session. Rare enough to be worth a flourish. */
-@keyframes best-pop {
-  0% { opacity: 0; transform: scale(0.6) rotate(-6deg); }
-  60% { opacity: 1; transform: scale(1.14) rotate(2deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
-}
-
-.best-pop {
-  animation: best-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
 /* ── Chips ──────────────────────────────────────────────────────────────
@@ -335,7 +281,6 @@
   .deal-in-stagger,
   .right-flash,
   .right-ring,
-  .right-lift,
   .miss-shake,
   .miss-mark,
   .combo-bump,
@@ -343,7 +288,6 @@
   .score-tick,
   .urgent,
   .split-land,
-  .best-pop,
   .chip-snap,
   .stage-in,
   .rung-fill,

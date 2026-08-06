@@ -18,7 +18,7 @@ export const TIERS: Difficulty[] = ["easy", "medium", "hard"];
    you". The gap between those two answers is the entire product. */
 
 export type Format =
-  /** Cold open. Two options, answered on sight, before any studying. */
+  /** Warm up. Two options, answered on sight, before any studying. */
   | "recognition"
   /** Round 1. Four options. */
   | "choice"
@@ -51,7 +51,12 @@ export const ROUND_TITLE: Record<Round, string> = {
 
     This number exists so the results screen can never quietly compare two
     scores that were never the same test. Three out of five on a two-option
-    question and three out of five on open production are different events. */
+    question and three out of five on open production are different events.
+
+    These hold because option order is placed rather than generated: see
+    shuffle.ts. A model that puts the correct answer first three times in four
+    turns the 0.25 below into something closer to 0.75 for anyone who notices,
+    and every figure downstream of it into fiction. */
 export const CHANCE: Record<Format, number> = {
   recognition: 0.5,
   choice: 0.25,
@@ -83,6 +88,12 @@ export type Question = {
   chips?: string[];
   /** "assemble": plausible chips that do not belong in the sentence. */
   distractors?: string[];
+  /** "assemble": the chips and distractors together, in the order they are
+      laid out for the student. Decided on the server for the same reason
+      option order is: an order chosen in the browser is an order nobody can
+      measure. Absent only on questions that predate placement, where the
+      presentation falls back to laying the pieces out itself. */
+  tray?: string[];
   /** The canonical correct answer, always shown in feedback. */
   answer: string;
   /** One line on why, shown after the answer. Never shown before it. */
@@ -106,7 +117,7 @@ export type Answer = {
   concept: string;
   difficulty: Difficulty;
   format: Format;
-  /** 0 for the cold open, 1 to 4 for the rounds. */
+  /** 0 for the warm up, 1 to 4 for the rounds. */
   stage: 0 | Round;
   correct: boolean;
   /** Time from the question appearing to the answer landing. */
@@ -140,7 +151,7 @@ export type Bank = {
 
 /** A stage's elapsed time, in the speedrun sense: how long that leg took.
 
-    The clock runs across the cold open and Rounds 1 to 3 and stops there.
+    The clock runs across the warm up and Rounds 1 to 3 and stops there.
     Round 4 is deliberately outside it. Speed on a four-option question is a
     fair thing to chase; speed on the one moment a student has to produce an
     explanation in their own words is not, and putting a running clock next to
@@ -157,7 +168,7 @@ export const TIMED_STAGES: (0 | Round)[] = [0, 1, 2, 3];
 
 /* ── The numbers the session runs on ─────────────────────────────────────── */
 
-export const COLD_OPEN_COUNT = 5;
+export const WARM_UP_COUNT = 5;
 
 /** Questions served per round. Enough to feel like a round rather than a
     handful, short enough that the ladder is still climbing at the end. */
