@@ -3,7 +3,10 @@
 // TODO: prompt-injection hardening: source material is untrusted input fed straight into prompts.
 const BASE_URL = "https://ai.hackclub.com/proxy/v1";
 const ENDPOINT = `${BASE_URL}/chat/completions`;
-const MODEL = process.env.HACKCLUB_AI_MODEL ?? "google/gemini-3.6-flash";
+/* The tilde is the proxy's own marker for a moving alias, not a typo: it
+   resolves to deepseek/deepseek-v4-flash-0731 today and to whatever succeeds
+   it later. Without it the id is rejected outright as invalid. */
+const MODEL = process.env.HACKCLUB_AI_MODEL ?? "~deepseek/deepseek-v4-flash-latest";
 
 /** Error whose message is safe to show the user; details stay in server logs. */
 export class AIError extends Error {
