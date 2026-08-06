@@ -13,10 +13,12 @@ import { pickPresentation } from "./round/presentations/registry";
 import {
   Generating,
   LadderRail,
+  MusicToggle,
   PlainEscape,
   ProvenanceBadge,
   RoundHud,
   RunClock,
+  SoundToggle,
   Verdict,
   WarmUpLines,
 } from "./round/ui";
@@ -52,15 +54,19 @@ export default function Home() {
         s.phase === "entry" ? "desk-grid" : ""
       }`}
     >
-      {/* During a question this is empty. The wordmark, the rung, where the
-          questions came from and the run clock are all true and all worth
-          showing, and none of them is worth showing to somebody in the middle
-          of trying to remember something. They come back the moment the round
-          does not have them.
+      {/* During a question this holds nothing but the audio controls. The
+          wordmark, the rung, where the questions came from and the run clock
+          are all true and all worth showing, and none of them is worth showing
+          to somebody in the middle of trying to remember something. They come
+          back the moment the round does not have them.
 
-          The audio controls that used to live on the right have been removed
-          outright rather than hidden during play. Music and answer sounds are
-          on, and there is no longer any control for either. */}
+          The audio controls are the exception, and they are here on every
+          screen for a reason worth writing down: they were briefly in the
+          status strip and nowhere else, which meant they existed only during a
+          live question. Music is off by default, so a student on the entry
+          screen had silence and no way to turn it on, and no control anywhere
+          to tell them one existed. A control that only appears once you no
+          longer have time to look for it is not a control. */}
       <header
         className={`sticky top-0 z-30 bg-ground/85 backdrop-blur-md ${
           inPlay ? "" : "border-b border-line"
@@ -81,6 +87,14 @@ export default function Home() {
               <ProvenanceBadge provenance={s.provenance} />
             )}
             {showRun && !inPlay && <Ghost best={s.best} elapsed={s.runElapsed} live={false} />}
+            {/* During a question these are in the status strip instead, beside
+                the timer, so the round keeps its one uncluttered row. */}
+            {!inPlay && (
+              <>
+                <MusicToggle on={s.music} onToggle={() => s.setMusicOn(!s.music)} />
+                <SoundToggle on={s.sound} onToggle={() => s.setSound(!s.sound)} />
+              </>
+            )}
           </div>
         </div>
       </header>
