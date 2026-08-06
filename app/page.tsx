@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./round/round.css";
 import { Entry } from "./round/entry";
 import { formatClock, summarizeRound } from "./round/engine";
@@ -8,15 +8,15 @@ import { Interval } from "./round/interval";
 import { Reveal } from "./round/reveal";
 import { useRoundSession } from "./round/session";
 import { TeachBack } from "./round/teachback";
+import { SkinBoundary } from "./round/skins/boundary";
+import { pickSkin } from "./round/skins/registry";
 import {
-  BlankField,
-  ChipBoard,
-  ChoiceGrid,
   Generating,
   LadderRail,
   PointsFly,
   ProvenanceBadge,
   RunClock,
+  SkinToggle,
   SoundToggle,
   StatusStrip,
   Verdict,
@@ -68,6 +68,7 @@ export default function Home() {
             {/* Score, streak and progress moved to the status strip under
                 this header, so the header carries identity and the run clock
                 and nothing that changes on every answer. */}
+            {showRun && <SkinToggle on={s.skinsOn} onToggle={() => s.setSkinsOn(!s.skinsOn)} />}
             <SoundToggle on={s.sound} onToggle={() => s.setSound(!s.sound)} />
           </div>
         </div>
@@ -106,6 +107,8 @@ export default function Home() {
               sound={s.sound}
               streak={s.streak}
               points={s.points}
+              skinSeed={s.skinSeed}
+              skinsOn={s.skinsOn}
               onAnswer={s.answer}
               onAdvance={s.advance}
             />
@@ -298,6 +301,8 @@ function QuestionScreen({
   sound,
   streak,
   points,
+  skinSeed,
+  skinsOn,
   onAnswer,
   onAdvance,
 }: {
@@ -308,6 +313,8 @@ function QuestionScreen({
   sound: boolean;
   streak: number;
   points: number;
+  skinSeed: number;
+  skinsOn: boolean;
   onAnswer: (given: string | number | string[], timedOut?: boolean) => Result | null;
   onAdvance: () => void;
 }) {
@@ -381,6 +388,36 @@ function QuestionScreen({
 
   const revealed = result !== null;
 
+  /* Chosen once per question and remembered, so a re-render cannot swap the
+     presentation out from under a student mid-answer. */
+  const skin = useMemo(
+    () =>
+      pickSkin({
+        format: question.format,
+        question,
+        seed: skinSeed,
+        round: stage,
+        enabled: skinsOn,
+      }),
+    [question, skinSeed, skinsOn, stage]
+  );
+  const SkinComponent = skin.Component;
+
+  const skinProps = {
+    question,
+    revealed,
+    correct: result?.correct ?? false,
+    chosen,
+    value: typed,
+    onChange: setTyped,
+    built,
+    onBuild: setBuilt,
+    onAnswer: (given: string | number | string[]) => {
+      if (typeof given === "number") setChosen(given);
+      settle(given);
+    },
+  };
+
   return (
     <>
       {/* Full bleed out of the shell's padding: the strip is a band across
@@ -424,39 +461,13 @@ function QuestionScreen({
           <PointsFly amount={result.points} best={result.record} />
         )}
 
-        {(question.format === "recognition" || question.format === "choice") && (
-          <ChoiceGrid
-            question={question}
-            chosen={chosen}
-            revealed={revealed}
-            onPick={(i) => {
-              setChosen(i);
-              settle(i);
-            }}
-          />
-        )}
-
-        {question.format === "blank" && (
-          <BlankField
-            question={question}
-            value={typed}
-            revealed={revealed}
-            correct={result?.correct ?? false}
-            onChange={setTyped}
-            onSubmit={() => settle(typed)}
-          />
-        )}
-
-        {question.format === "assemble" && (
-          <ChipBoard
-            question={question}
-            built={built}
-            revealed={revealed}
-            correct={result?.correct ?? false}
-            onBuild={setBuilt}
-            onSubmit={() => settle(built)}
-          />
-        )}
+        {/* The one place the skin layer touches the round. Everything below
+            this point is the same whichever skin is on: the answer comes back
+            in the shape checking already understands, and the skin has no way
+            to reach the ladder, the timer or the grade. */}
+        <SkinBoundary {...skinProps} resetKey={question.id}>
+          <SkinComponent {...skinProps} />
+        </SkinBoundary>
       </div>
 
       {result && (

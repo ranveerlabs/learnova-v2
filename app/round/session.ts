@@ -12,6 +12,7 @@ import {
   beatsBest,
   rankForProduction,
 } from "./engine";
+import { newSeed } from "./skins/registry";
 import {
   type Answer,
   COLD_OPEN_COUNT,
@@ -95,6 +96,12 @@ export function useRoundSession() {
 
   const [error, setError] = useState<string | null>(null);
   const [sound, setSound] = useState(false);
+
+  /* Skins are on by default and can be turned off for the whole session. The
+     rotation seed is drawn once per session and changes on restart, which is
+     what stops a second run through the same topic presenting identically. */
+  const [skinsOn, setSkinsOn] = useState(true);
+  const [skinSeed, setSkinSeed] = useState(() => newSeed());
 
   /* Run history for the tab. A ref rather than state: nothing renders off it
      directly except through `best`, and it must survive a restart, which
@@ -415,6 +422,9 @@ export function useRoundSession() {
     setProductionIndex(0);
     setPendingRound(null);
     setError(null);
+    /* A new seed for the next run, so going again is not the same session
+       twice. The on/off choice is the student's and survives the restart. */
+    setSkinSeed(newSeed());
     runStartedAt.current = null;
   }, [answers, productions, splits]);
 
@@ -443,6 +453,9 @@ export function useRoundSession() {
     productionIndex,
     pendingRound,
     stageLimit: stage === 0 ? COLD_OPEN_COUNT : QUESTIONS_PER_ROUND,
+    skinsOn,
+    skinSeed,
+    setSkinsOn,
     setSound,
     start,
     answer,
