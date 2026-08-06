@@ -31,7 +31,7 @@ import {
   type Round,
 } from "./round/types";
 import { play } from "./round/voice";
-import { Notice, Wordmark } from "./ui";
+import { Aside, Notice, Wordmark } from "./ui";
 
 /* Learnova, Round Mode.
 
@@ -102,6 +102,17 @@ export default function Home() {
 
       <div className={`${SHELL} flex-1 py-8 lg:py-10`}>
         <main className="min-w-0">
+          {/* A round the shared key was too busy to write. Said once, between
+              rounds, where there is room to read it: never over a live
+              question, which is the one screen this app keeps clear of
+              everything that is not the question. The session has already
+              stepped around the missing round by the time this appears. */}
+          {s.busyRounds.length > 0 && !inPlay && (
+            <div className="mx-auto mb-6 w-full max-w-[46rem]">
+              <SkippedRounds rounds={s.busyRounds} />
+            </div>
+          )}
+
           {s.phase === "entry" && <Entry onStart={s.start} error={s.error} />}
 
           {s.phase === "opening" && (
@@ -142,7 +153,9 @@ export default function Home() {
           {s.phase === "interval" && (
             <Interval
               summary={summarizeRound(s.answers, s.stage as Round)}
-              next={(s.stage + 1) as Round}
+              /* The round the session will actually reach, not the next rung
+                 of the ladder. They differ when a round was skipped. */
+              next={s.nextPlayable}
               splitMs={s.splits[s.splits.length - 1]?.ms ?? 0}
               runMs={s.splits.reduce((sum, sp) => sum + sp.ms, 0)}
               points={s.points}
@@ -290,6 +303,30 @@ function BeatIt({
         {runs} run{runs === 1 ? "" : "s"} this tab.
       </p>
     </section>
+  );
+}
+
+/** Which rounds were lost to the shared key being busy, and what that did and
+    did not cost.
+
+    The second sentence is the whole point of showing this at all. A round
+    quietly missing is the sort of thing a student blames themselves or the app
+    for; a round that is named, explained, and followed by everything else
+    still working is just a queue. */
+function SkippedRounds({ rounds }: { rounds: Round[] }) {
+  const listed = [...rounds].sort((a, b) => a - b);
+  const names = listed.map((r) => `Round ${r}`);
+  const which =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+
+  return (
+    <Aside>
+      Learnova was busy when {which} {names.length === 1 ? "was" : "were"} due, so{" "}
+      {names.length === 1 ? "it was" : "they were"} skipped. Everything you have already answered
+      still counts, and the rest of the session carries on from here.
+    </Aside>
   );
 }
 
