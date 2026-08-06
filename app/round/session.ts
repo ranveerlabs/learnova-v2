@@ -111,28 +111,40 @@ export function useRoundSession() {
 
   const [error, setError] = useState<string | null>(null);
 
-  /* Audio. Both halves on by default, and neither one touched until the
-     student does something.
+  /* Audio. Both halves on by default, and the music starts as early as a
+     browser will let it.
 
-     Those two facts have to be held apart, because "on by default" is a
-     setting and "starts playing" is an event, and conflating them is how a
-     page ends up making noise at somebody who just opened a tab. Browsers
-     block audio until they have seen a real gesture anyway, so a mount effect
-     that tried to start the music would not start it: it would fail silently,
-     and leave a toggle reading "on" next to no sound at all.
+     Asked for on mount rather than at any particular button, so that a
+     student who lands on the entry screen and reads it for a moment has music
+     while they read. A browser will not actually allow sound on a page nobody
+     has touched, so in practice it begins at the first interaction, whatever
+     that turns out to be: clicking the topic field, tapping a starter chip,
+     typing the first letter of a topic, or pressing start. music.ts handles
+     that fallback; nothing here needs to know which gesture won.
 
-     So nothing here plays on load. There is deliberately no effect that
-     starts the music. It begins in `start`, on the click of the start button,
-     which is the first gesture of every session, and thereafter it follows
-     the toggle. Anyone who wants silence turns it off before pressing start,
-     and nothing has made a sound by then.
+     Turning it off is one click on a control that is on every screen, and the
+     control is on the entry screen precisely so it can be reached before the
+     first gesture has started anything.
 
      Both settings survive a restart, so the choice is made once per tab. */
   const [sound, setSound] = useState(true);
   const [music, setMusicOn] = useState(true);
 
-  /** Flip the music, and act on it in the same breath. Called from a click,
-      which is what makes the audio permitted. */
+  useEffect(() => {
+    setMusic(music);
+  }, [music]);
+
+  /** Flip the music, and tell music.ts immediately rather than waiting for the
+      effect above to notice.
+
+      The duplicate call is deliberate and load bearing. React batches state,
+      so the effect does not run until after this click has finished
+      propagating, and music.ts is meanwhile listening on window for the first
+      gesture. Without this line, a student whose very first action is hitting
+      mute gets: React sets the state, the window listener fires with the old
+      value still in place, starts the track, and the effect pauses it a frame
+      later. A blip of music played at exactly the person switching it off.
+      Setting it synchronously here means the listener sees the truth. */
   const toggleMusic = useCallback(() => {
     const next = !music;
     setMusicOn(next);
@@ -252,13 +264,6 @@ export function useRoundSession() {
       setTopic(nextTopic);
       setNotes(nextNotes);
 
-      /* The first gesture of the session, and so the first moment audio is
-         allowed to begin. Deliberately here and not in an effect: an effect
-         would fire on load, which is the autoplay this must not do. Anyone
-         who wanted silence has already turned it off, and nothing has made a
-         sound before this line. */
-      if (music) setMusic(true);
-
       try {
         const payload = await postJSON<{
           concepts: string[];
@@ -295,7 +300,7 @@ export function useRoundSession() {
         setPhase("entry");
       }
     },
-    [fetchBank, music, remember, seenFor]
+    [fetchBank, remember, seenFor]
   );
 
   /* ── Answering ────────────────────────────────────────────────────────── */

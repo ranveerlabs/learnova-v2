@@ -49,6 +49,35 @@ const TRACK = "/audio/8bit-dungeon-level.mp3";
 
 let element: HTMLAudioElement | null = null;
 let wanted = false;
+let armed = false;
+
+/** Start at the student's first interaction, whatever it happens to be.
+
+    The music is meant to be playing as early as it possibly can, and the
+    earliest a browser permits is the first real gesture on the page. That is
+    usually a click on the topic field or a starter chip, sometimes the first
+    keystroke of a topic, sometimes the start button; this does not care which.
+
+    The listener is `click` rather than `pointerdown` on purpose. React's
+    handlers run before a bubbled window listener, so if the very first thing a
+    student does is reach for the mute control, the toggle has already set
+    `wanted` to false by the time this fires and it correctly declines to
+    start. Arming on `pointerdown` instead would fire first and play a tenth of
+    a second of music at exactly the person who was trying to switch it off. */
+function beginOnFirstGesture(): void {
+  if (armed || typeof window === "undefined") return;
+  armed = true;
+
+  const go = () => {
+    armed = false;
+    window.removeEventListener("click", go);
+    window.removeEventListener("keydown", go);
+    if (wanted) setMusic(true);
+  };
+
+  window.addEventListener("click", go, { once: true });
+  window.addEventListener("keydown", go, { once: true });
+}
 
 function track(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
@@ -73,13 +102,12 @@ function track(): HTMLAudioElement | null {
 
 /** Turn the music on or off.
 
-    Music is on by default now, which puts the whole weight of "nothing plays
-    on page load" on WHERE this is called from rather than on what it does.
-    The rule, kept in session.ts: this is never called while the page is
-    merely loading. It is called from the start button and from the toggle,
-    both of which are clicks, and a click is the user gesture browsers require
-    before audio may begin. There is deliberately no mount effect that calls
-    it, because that is exactly the autoplay this must not do.
+    Called on mount with the session's setting, so the music starts as early
+    as the browser will allow rather than waiting for any particular button.
+    On a page nobody has touched yet, the browser refuses and `play()` rejects;
+    that rejection is not a failure, it is the signal to wait for the first
+    gesture, which is what `beginOnFirstGesture` then does. The student
+    experiences it as music that was already there.
 
     Safe to call repeatedly, and it never throws: audio is a garnish and must
     never be able to break a round. */
@@ -103,15 +131,15 @@ export function setMusic(on: boolean): void {
 
     audio.volume = MUSIC_VOLUME;
     const started = audio.play();
-    /* play() rejects when a browser decides it has not seen a good enough
-       gesture. There is nothing useful to say to the student about that and
-       nothing to retry, so it is swallowed: the toggle still reads as on,
-       which is what they asked for, and the next toggle will try again. */
+    /* A rejection here means the browser has not seen a gesture yet. Nothing
+       has gone wrong and there is nothing to tell the student: the toggle
+       still reads as on, which is the setting they have, and the first thing
+       they touch will start it. */
     if (started && typeof started.catch === "function") {
-      started.catch(() => {});
+      started.catch(() => beginOnFirstGesture());
     }
   } catch {
-    /* Nothing to do and nothing to say. */
+    beginOnFirstGesture();
   }
 }
 
