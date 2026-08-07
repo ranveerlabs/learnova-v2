@@ -1,25 +1,5 @@
 import type { Format, Question } from "../types";
-import { balloons } from "./choice/balloons";
-import { circuit } from "./choice/circuit";
-import { constellation } from "./choice/constellation";
-import { crane } from "./choice/crane";
-import { darts } from "./choice/darts";
-import { doors } from "./choice/doors";
-import { elevator } from "./choice/elevator";
-import { fishing } from "./choice/fishing";
-import { hoops } from "./choice/hoops";
-import { lanes } from "./choice/lanes";
-import { magnets } from "./choice/magnets";
-import { match3 } from "./choice/match3";
-import { moles } from "./choice/moles";
-import { parachute } from "./choice/parachute";
-import { pipes } from "./choice/pipes";
-import { vending } from "./choice/vending";
 import { wire } from "./choice/wire";
-import { crossword } from "./blank/crossword";
-import { keylock } from "./blank/keylock";
-import { reels } from "./blank/reels";
-import { tetris } from "./blank/tetris";
 import { plain } from "./plain";
 import type { Presentation } from "./types";
 
@@ -30,38 +10,33 @@ import type { Presentation } from "./types";
    whatever this file returns, and gets an answer back in the shape checking
    already understands.
 
+   There were twenty of these and now there is one. The other nineteen were a
+   picture with a click in it: a balloon, a dart, a mole, a fish, each one a
+   different drawing wrapped around the identical act of choosing one of four
+   things, none of them giving the student anything the drawing beside it did
+   not. Twenty ways to click is not variety, it is one presentation in twenty
+   costumes, and it cost real confusion: a round could open as a vending
+   machine or a crane game for no reason, and the student had to work out how
+   to answer before they could answer.
+
+   Wire connect is the exception and the reason the layer still exists. It is
+   the only one where the gesture means the thing: you draw a line from the
+   question to the answer, which is what choosing IS, rather than popping a
+   balloon that happens to have the answer written on it.
+
    Plain is deliberately NOT in this list. It is the floor rather than an
    option, and putting it in the rotation would mean a student sometimes drew
-   the absence of a presentation the way they might draw doors, which is not a
-   thing that should be possible to draw. It is reached in exactly three ways,
-   all of them below or in boundary.tsx: nothing here supports the question,
-   the presentation threw, or the student asked for it. */
+   the absence of a presentation the way they might draw a wire, which is not
+   a thing that should be possible to draw. It is reached in exactly three
+   ways, all of them below or in boundary.tsx: nothing here supports the
+   question, the presentation threw, or the student asked for it.
 
-export const PRESENTATIONS: Presentation[] = [
-  /* Choice and recognition. */
-  doors,
-  elevator,
-  balloons,
-  vending,
-  crane,
-  darts,
-  parachute,
-  lanes,
-  moles,
-  hoops,
-  wire,
-  fishing,
-  constellation,
-  pipes,
-  magnets,
-  circuit,
-  match3,
-  /* Fill in the blank. Typed, every one of them. */
-  tetris,
-  crossword,
-  keylock,
-  reels,
-];
+   It is reached often now, and by design rather than by omission. Wire
+   presents four-option choice and nothing else, so the warm up, Round 2 and
+   Round 3 are all drawn plain: two options, a gap in a sentence, and a row of
+   chips, each rendered as the thing it is. */
+
+export const PRESENTATIONS: Presentation[] = [wire];
 
 /** Every presentation that could draw this question. */
 export function eligible(format: Format, question: Question): Presentation[] {
