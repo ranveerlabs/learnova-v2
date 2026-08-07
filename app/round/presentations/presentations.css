@@ -1,20 +1,20 @@
 /* Motion for the presentations.
 
-   One stylesheet rather than a style tag in each file. Twenty presentations
-   with their own inline CSS is twenty places for the reduced-motion rule to be
-   forgotten, and the rule is not a nicety: a study tool that cannot be used by
+   One stylesheet rather than a style tag in each file, so the reduced-motion
+   rule has one place to be kept rather than one place per presentation to be
+   forgotten. The rule is not a nicety: a study tool that cannot be used by
    someone who gets motion sick is a study tool with a demographic filter on
    it. Every animation named here is switched off in one block at the bottom,
-   and every presentation is fully playable with all of them off.
+   and the presentation is fully playable with all of them off.
 
    The other rule these obey is the one that cannot bend. Nothing selectable
    moves. Not "moves slowly", not "moves predictably": a student reaching for
-   an answer is never reaching for a moving thing. Where a presentation looks
-   like it should have something in flight, the thing in flight is scenery and
-   the answer under it is a static target, or the motion only starts once the
-   answer has already been committed. The two exceptions are gentle: a two
-   pixel bob, which does not move a hit area meaningfully, and the pond in
-   Fishing, which stops the instant anything reaches for it.
+   an answer is never reaching for a moving thing. What is here happens on the
+   way in, before there is anything to reach for.
+
+   This carried the motion for twenty presentations. Nineteen of them are
+   gone, and so is theirs. Wire connect draws its wire as an SVG path with the
+   geometry computed in the component, so it needs almost nothing from here.
 ------------------------------------------------------------------------- */
 
 .stage {
@@ -40,23 +40,8 @@
 }
 
 /* ── Arrivals ─────────────────────────────────────────────────────────────
-   Options entering the screen. Staggered by --i, which `Pick` sets from the
-   option index. */
-
-@keyframes fall-in {
-  from {
-    opacity: 0;
-    transform: translateY(-14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.fall-in {
-  animation: fall-in 320ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
-  animation-delay: calc(var(--i, 0) * 55ms);
-}
+   Candidates entering the screen, staggered by --i, which `Pick` sets from
+   the option index. */
 
 @keyframes rise-in {
   from {
@@ -73,356 +58,14 @@
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-@keyframes grow-in {
-  from {
-    opacity: 0;
-    transform: scale(0.86);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-.grow-in {
-  animation: grow-in 300ms cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
-  animation-delay: calc(var(--i, 0) * 55ms);
-}
-
-/* ── Idle ─────────────────────────────────────────────────────────────────
-   Two pixels, so a balloon reads as buoyant without the hit area meaningfully
-   moving under a pointer already travelling towards it. */
-
-@keyframes bob {
-  0%,
-  100% {
-    transform: translateY(-2px);
-  }
-  50% {
-    transform: translateY(2px);
-  }
-}
-.bob {
-  animation: bob 3.4s ease-in-out infinite;
-  animation-delay: calc(var(--i, 0) * -0.7s);
-}
-.stage[data-settled="true"] .bob {
-  animation-play-state: paused;
-}
-
-/* ── Doors ──────────────────────────────────────────────────────────────── */
-
-/* Thirty four degrees, not the seventy odd it opened to at first. A door that
-   swings properly open turns its own face edge on, and the face is where the
-   answer is written: the correct option was ending up as a two pixel sliver of
-   foreshortened text at the exact moment it most needed reading. The swing has
-   to lose to the legibility of the thing swinging. */
-@keyframes door-swing {
-  from {
-    transform: perspective(900px) rotateY(0deg);
-  }
-  to {
-    transform: perspective(900px) rotateY(-34deg);
-  }
-}
-.door-open {
-  transform-origin: left center;
-  animation: door-swing 480ms cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
-}
-
-/* ── Elevator ───────────────────────────────────────────────────────────── */
-
-@keyframes car-arrive {
-  from {
-    transform: translateY(var(--from, 40px));
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-.car-arrive {
-  animation: car-arrive 520ms cubic-bezier(0.3, 0.7, 0.2, 1) both;
-}
-
-/* ── Balloon ────────────────────────────────────────────────────────────── */
-
-/* It bursts, it does not disappear. A wrong answer is never softened here, and
-   fading the thing the student actually picked down to a quarter opacity is a
-   way of softening it: they are left unable to read what they got wrong at the
-   one moment that is worth reading. It shrinks and stays legible. */
-@keyframes burst {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  40% {
-    transform: scale(1.22);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.88);
-    opacity: 0.72;
-  }
-}
-.burst {
-  animation: burst 340ms ease-out forwards;
-}
-
-/* ── Vending, crane, parachute: things arriving from above ──────────────── */
-
-@keyframes deliver {
-  from {
-    transform: translateY(-26px);
-    opacity: 0.2;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-.deliver {
-  animation: deliver 420ms cubic-bezier(0.25, 0.8, 0.3, 1) both;
-}
-
-@keyframes sway {
-  0%,
-  100% {
-    transform: rotate(-2.4deg);
-  }
-  50% {
-    transform: rotate(2.4deg);
-  }
-}
-.sway {
-  transform-origin: top center;
-  animation: sway 4.2s ease-in-out infinite;
-}
-.stage[data-settled="true"] .sway {
-  animation-play-state: paused;
-}
-
-/* ── Things that travel once, after the answer is in ───────────────────── */
-
-@keyframes travel {
-  from {
-    transform: translate(var(--fx, -60px), var(--fy, 0)) scale(0.8);
-    opacity: 0;
-  }
-  60% {
-    opacity: 1;
-  }
-  to {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-}
-.travel {
-  animation: travel 460ms cubic-bezier(0.3, 0.7, 0.2, 1) both;
-}
-
-/* ── Lines being drawn: wires, constellations, circuits ─────────────────── */
-
-@keyframes draw-line {
-  from {
-    stroke-dashoffset: var(--len, 400);
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-.draw-line {
-  stroke-dasharray: var(--len, 400);
-  animation: draw-line 420ms ease-out forwards;
-}
-
-@keyframes flow {
-  to {
-    stroke-dashoffset: -28;
-  }
-}
-.flow {
-  stroke-dasharray: 6 8;
-  animation: flow 900ms linear infinite;
-}
-
-/* ── Magnets and match-3: things that snap together ─────────────────────── */
-
-@keyframes snap {
-  0% {
-    transform: translateX(var(--gap, -10px));
-  }
-  70% {
-    transform: translateX(2px);
-  }
-  100% {
-    transform: translateX(0);
-  }
-}
-.snap {
-  animation: snap 320ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
-}
-
-@keyframes clear-away {
-  from {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  to {
-    transform: scale(0.6) rotate(8deg);
-    opacity: 0;
-  }
-}
-.clear-away {
-  animation: clear-away 380ms ease-in forwards;
-}
-
-/* ── Round 2: the gap being filled ──────────────────────────────────────── */
-
-@keyframes block-drop {
-  from {
-    transform: translateY(-58px);
-  }
-  70% {
-    transform: translateY(3px);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-.block-drop {
-  animation: block-drop 440ms cubic-bezier(0.3, 0.8, 0.3, 1) both;
-}
-
-@keyframes key-turn {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(84deg);
-  }
-}
-.key-turn {
-  transform-origin: 12% 50%;
-  animation: key-turn 420ms cubic-bezier(0.4, 0.1, 0.2, 1) forwards;
-}
-
-@keyframes reel-settle {
-  0% {
-    transform: translateY(-46px);
-    filter: blur(1.4px);
-  }
-  70% {
-    transform: translateY(4px);
-    filter: blur(0);
-  }
-  100% {
-    transform: translateY(0);
-  }
-}
-.reel-settle {
-  animation: reel-settle 480ms cubic-bezier(0.3, 0.8, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 45ms);
-}
-
-@keyframes cell-set {
-  from {
-    transform: scale(0.7);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-.cell-set {
-  animation: cell-set 220ms ease-out both;
-  animation-delay: calc(var(--i, 0) * 30ms);
-}
-
-/* Where a typed answer is going, when the presentation shows a destination
-   before the answer lands in it. */
-.slot-empty {
-  border: 2px dashed var(--line-strong);
-  background: color-mix(in srgb, var(--sunk) 60%, transparent);
-}
-
-/* ── Fishing ────────────────────────────────────────────────────────────── */
-
-.pond {
-  position: relative;
-}
-.lane {
-  position: relative;
-  height: 3.25rem;
-  overflow: hidden;
-}
-.fish {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  animation-name: swim;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-}
-@keyframes swim {
-  from {
-    left: 0%;
-    transform: translate(0, -50%);
-  }
-  to {
-    left: 100%;
-    transform: translate(-100%, -50%);
-  }
-}
-/* Reaching for a fish stops the whole pond, so nothing is ever chased. */
-.pond:hover .fish,
-.pond:focus-within .fish,
-.stage[data-settled="true"] .fish {
-  animation-play-state: paused;
-}
-
 /* ── Everything above, off ──────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-  .fall-in,
-  .rise-in,
-  .grow-in,
-  .bob,
-  .door-open,
-  .car-arrive,
-  .burst,
-  .deliver,
-  .sway,
-  .travel,
-  .draw-line,
-  .flow,
-  .snap,
-  .clear-away,
-  .block-drop,
-  .key-turn,
-  .reel-settle,
-  .cell-set,
-  .fish {
+  .rise-in {
     animation: none !important;
     transition: none !important;
   }
   .pick:not(:disabled):hover {
-    transform: none;
-  }
-  .draw-line {
-    stroke-dasharray: none;
-  }
-  /* The doors are the one shape whose closed state hides its own label, so
-     with motion off they simply start open. */
-  .door-open {
-    transform: perspective(700px) rotateY(-72deg);
-  }
-  .lane {
-    height: auto;
-    overflow: visible;
-  }
-  .fish {
-    position: static;
     transform: none;
   }
 }
