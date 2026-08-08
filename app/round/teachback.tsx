@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { Annotation, Grade, Outcome } from "../api/grade/route";
 import { isBusy, postJSON } from "../client";
 import { MarginNotes, MarkedUpText, useDissection } from "../dissection";
-import { Followups } from "../followups";
 import { Arrow, Aside, Ask, GhostButton, Label, Leaf, Notice, PrimaryButton } from "../ui";
 import type { Production, Provenance, Question } from "./types";
 import { play, useSpeech } from "./voice";
@@ -95,20 +94,6 @@ function LeftOut({ items }: { items: string[] }) {
       </ul>
     </section>
   );
-}
-
-/** Compact summary of a grade, given to the follow-up route for context. */
-function feedbackSummary(grade: Grade): string {
-  const flagged = grade.annotations
-    .filter((a: Annotation) => a.type !== "right")
-    .map((a: Annotation) => {
-      const src = a.sourceQuote ? ` (source: "${a.sourceQuote}")` : "";
-      return `- ${a.type}: "${a.quote}". ${a.comment}${src}`;
-    });
-  const parts = [`Verdict: ${grade.verdict}`];
-  if (flagged.length) parts.push(`Flagged:\n${flagged.join("\n")}`);
-  if (grade.missed.length) parts.push(`Left out:\n${grade.missed.map((m) => `- ${m}`).join("\n")}`);
-  return parts.join("\n\n");
 }
 
 /* ── The round ──────────────────────────────────────────────────────────── */
@@ -248,17 +233,14 @@ export function TeachBack({
             </div>
           )}
 
+          {/* "Ask about a mark" sat here: a box that took a question about
+              the grade and sent it back to the model for a written answer. It
+              is gone, and so are the component and the route behind it. This
+              is the screen at the end of a run that a room is watching, and a
+              free-text conversation with the marker is the opposite of what
+              that moment wants. */}
           <div className="rise min-w-0 xl:col-start-1" style={{ ["--i" as string]: 2 }}>
             <LeftOut items={grade.missed} />
-          </div>
-
-          <div className="rise min-w-0 xl:col-start-1" style={{ ["--i" as string]: 3 }}>
-            <Followups
-              source={source}
-              concept={concept}
-              explanation={explanation}
-              feedback={feedbackSummary(grade)}
-            />
           </div>
         </div>
 
