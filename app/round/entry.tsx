@@ -63,8 +63,13 @@ export function Entry({
     onStart(t, trimmed);
   }
 
+  /* The front door has more on it than a round does, because pasting notes
+     opens a textarea ten rows tall. It does not arrange its own scrolling for
+     that: the shell in page.tsx owns the viewport lock and gives every screen
+     that is not a live question a panel to scroll inside. This one just says
+     how wide it is and gets out of the way. */
   return (
-    <section className="mx-auto flex min-h-[74vh] w-full max-w-[52rem] flex-col justify-center gap-9 py-6">
+    <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-8 py-2">
       <div className="rise flex flex-col gap-5">
         <div className="flex items-center gap-2">
           <PixelTag className="press-on -rotate-2">10 seconds to your first question</PixelTag>
@@ -174,9 +179,9 @@ export function Entry({
             </div>
 
             <p className="max-w-[62ch] font-sans text-[0.875rem] leading-[1.6] text-ink-soft">
-              Paste it and every question comes with the line from your own notes that it came from,
-              checked word for word on the server. Leave it empty and the questions are written by
-              an AI model instead, which the session will say on every screen.
+              Paste it and every question comes with the line from your own notes that it came
+              from, checked word for word on the server. Leave it empty and the questions are
+              written by an AI model instead, which the session will say on every screen.
             </p>
 
             <Looseleaf

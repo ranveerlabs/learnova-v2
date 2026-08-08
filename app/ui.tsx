@@ -159,12 +159,19 @@ export function Leaf({
   placeholder,
   minRows = 8,
   autoFocus,
+  onSubmit,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   minRows?: number;
   autoFocus?: boolean;
+  /** Given, Enter commits and Shift+Enter starts a new line.
+
+      Opt-in rather than automatic, because Enter meaning "send" is only right
+      where the writing is one or two sentences answering a prompt. On a leaf
+      being used for pasted notes it would be a trap. */
+  onSubmit?: () => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(ref, value, minRows);
@@ -177,6 +184,12 @@ export function Leaf({
         ref={ref}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (!onSubmit) return;
+          if (e.key !== "Enter" || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+          e.preventDefault();
+          onSubmit();
+        }}
         placeholder={placeholder}
         rows={minRows}
         autoFocus={autoFocus}

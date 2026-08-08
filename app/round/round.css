@@ -103,41 +103,82 @@
   animation: miss-mark 0.34s ease-out both;
 }
 
-/* ── The combo ──────────────────────────────────────────────────────────
-   The multiplier is the loudest number on screen while a run is alive, and
-   it grows with the run. `--heat` runs 0 to 1 and is set from the current
-   multiplier, so the glow, the weight and the scale all climb together off
-   one variable rather than three unrelated rules. */
-.combo {
-  --heat: 0;
-  transition:
-    transform 0.22s cubic-bezier(0.2, 1.4, 0.4, 1),
-    text-shadow 0.3s ease,
-    color 0.3s ease;
-  transform: scale(calc(1 + var(--heat) * 0.22));
-  text-shadow:
-    0 0 calc(var(--heat) * 14px) color-mix(in srgb, var(--accent) calc(var(--heat) * 70%), transparent),
-    0 0 calc(var(--heat) * 34px) color-mix(in srgb, var(--accent) calc(var(--heat) * 34%), transparent);
+/* The combo and points styles that used to live here are gone with the
+   numbers they animated: `combo`, `combo-bump`, `points-fly` and
+   `score-tick`. There is no score and no multiplier any more, so there is
+   nothing for a glowing number to say. What replaced them is above: the
+   reward is now the answer itself lighting up, which is the thing the student
+   is already looking at. */
+
+/* ── The payoff ─────────────────────────────────────────────────────────
+   A correct answer is the moment the whole round exists for, and it used to
+   be marked by a colour change and a tick. These make it land harder without
+   breaking the one rule that cannot bend: nothing selectable moves. Every
+   animation here runs on an element that is either not a target at all, or
+   has already been answered and is disabled.
+
+   All of them are short. The round advances 600ms after a correct answer, so
+   anything that has not finished by then is a thing the student never sees
+   the end of. */
+
+/* The chosen answer takes a beat: a quick swell and settle. */
+@keyframes right-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.035); }
+  100% { transform: scale(1); }
 }
 
-/* The moment the multiplier ticks up. Overshoots, then settles: the whole
-   point is that it should feel like it just got bigger. */
-@keyframes combo-bump {
-  0% { transform: scale(calc(1 + var(--heat) * 0.22)); }
-  38% { transform: scale(calc(1.32 + var(--heat) * 0.22)) rotate(-1.5deg); }
-  100% { transform: scale(calc(1 + var(--heat) * 0.22)); }
+.right-pop {
+  animation: right-pop 0.42s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
-.combo-bump {
-  animation: combo-bump 0.42s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+/* A sweep of light across the correct row, left to right, once. Pure
+   decoration over the top of the answer: it is drawn in an overlay with
+   pointer events off, so it cannot come between a finger and anything. */
+@keyframes right-sheen {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(110%); }
 }
 
-/* The points animations that used to live here, `points-fly` and
-   `score-tick`, have gone with the numbers they animated. A round shows the
-   question, the options, the timer and the combo; a score flying off a correct
-   answer and a total squashing as it rolls over were two of the four things
-   competing with the retrieval. The totals are on the between-rounds screen
-   and the results screen, where looking at them costs nothing. */
+.right-sheen {
+  overflow: hidden;
+}
+.right-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--solid-mark) 26%, transparent) 50%,
+    transparent 70%
+  );
+  animation: right-sheen 0.62s cubic-bezier(0.3, 0.5, 0.4, 1) both;
+}
+
+/* The verdict word arriving. Overshoots once, then holds. */
+@keyframes verdict-in {
+  0% { opacity: 0; transform: translateY(8px) scale(0.94); }
+  60% { opacity: 1; transform: translateY(0) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.verdict-in {
+  animation: verdict-in 0.34s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+/* The timer ring, when an answer lands with time to spare. One pulse of the
+   correct-answer green through the ring, so the reward reaches the one piece
+   of chrome the whole room is already staring at. */
+@keyframes clock-cheer {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.14); }
+}
+
+.clock-cheer {
+  animation: clock-cheer 0.4s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
 
 /* ── The per-question timer ─────────────────────────────────────────────
    A ring drawn with a conic gradient, driven by `--t` (1 full, 0 empty)
@@ -281,11 +322,12 @@
   .deal-in-stagger,
   .right-flash,
   .right-ring,
+  .right-pop,
+  .verdict-in,
+  .clock-cheer,
   .miss-shake,
   .miss-mark,
-  .combo-bump,
-  .points-fly,
-  .score-tick,
+
   .urgent,
   .split-land,
   .chip-snap,
@@ -295,10 +337,14 @@
     animation: none;
   }
 
-  .combo {
-    transform: none;
-    text-shadow: none;
+  /* The sheen is drawn by a pseudo-element, so it has to be switched off by
+     one: removing the animation alone would leave the highlight parked over
+     the answer at whatever position it started from. */
+  .right-sheen::after {
+    animation: none;
+    content: none;
   }
+
 
   .chip,
   .ring {

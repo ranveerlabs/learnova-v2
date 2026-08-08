@@ -58,6 +58,48 @@
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
+/* ── The wire, at rest ────────────────────────────────────────────────────
+   A stub of wire hangs off the plug and points at the options, and its dashes
+   march along it. This is the whole instruction: a loose end travelling in a
+   direction is what makes a plug read as a plug rather than as a blue dot.
+
+   It marches rather than moving, which matters. The path itself never shifts
+   by a pixel and neither does anything under it, so the rule at the top of
+   this file holds: nothing selectable moves, and here nothing at all moves,
+   only the dashes drawn along a stationary line. It stops the instant the
+   student takes hold of the wire, because by then it has said its piece. */
+
+@keyframes wire-march {
+  to {
+    stroke-dashoffset: -24px;
+  }
+}
+
+.wire-hint {
+  animation: wire-march 0.9s linear infinite;
+}
+
+/* ── The plug ─────────────────────────────────────────────────────────────
+   Breathes, gently, so the one thing on screen you are meant to grab is the
+   one thing advertising itself. Scale only, on a decorative ring rather than
+   on the plug body, so the grab target itself is exactly where it looks. */
+
+@keyframes plug-ready {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.12;
+    transform: scale(1.5);
+  }
+}
+
+.plug-ready {
+  animation: plug-ready 1.9s ease-in-out infinite;
+}
+
 /* ── Everything above, off ──────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -67,5 +109,15 @@
   }
   .pick:not(:disabled):hover {
     transform: none;
+  }
+  /* The hint wire keeps its dashes and its arrowhead, and stops travelling.
+     A dashed line ending in an arrow pointed at the options still says which
+     way this goes without anything on screen moving. */
+  .wire-hint {
+    animation: none;
+  }
+  .plug-ready {
+    animation: none;
+    opacity: 0.4;
   }
 }
