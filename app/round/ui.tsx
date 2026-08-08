@@ -1,30 +1,29 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { comboMultiplier, MAX_COMBO, type Provenance, type Question, type Round } from "./types";
+import { type Provenance, type Question, type Round } from "./types";
 import { formatClock } from "./engine";
 
 /* Round Mode's own primitives.
 
-   ── What is allowed on screen during a round ─────────────────────────────
-   The question, the options, the timer, and the combo multiplier when it is
-   above one. That is the complete list, and everything that used to sit
-   alongside them has been moved or deleted:
+   ── What is on screen during a round ─────────────────────────────────────
+   The header, which is the same on every screen: the wordmark, the rung, where
+   the questions came from, the run clock, the audio controls and the question
+   timer. Then the question and the answers, and nothing else.
 
-   points and the running total   → between rounds, and the results screen
-   the round name and the pip row → gone; the question is on screen, which is
-                                    the only fact a student mid-retrieval needs
-   the run clock and the ghost    → between rounds, and the results screen
-   "Fastest yet", points flying   → gone
-   the "Why" disclosure on a miss → gone, on the grounds that a round moving at
-                                    this pace never gave anyone time to open it
-   instructions of any kind       → gone
+   Two things that used to be here are gone entirely rather than moved, and
+   they are worth naming so nobody adds them back:
 
-   This is not tidiness. Retrieval is the one moment where peripheral chrome is
-   not merely untidy but actively costly: everything in the corner of the eye
-   is competing for the working memory that the retrieval itself needs. The
-   totals still exist, they are still real, and they are shown at the moments
-   when looking at them is not taking anything away. */
+   points, the running total and the  → deleted. Both were numbers computed
+   combo multiplier                      from how fast and how often you were
+                                         right, shown next to how fast and how
+                                         often you were right. The clock and
+                                         the marks say it already.
+   "Guess. Not scored."               → deleted with the scoring it referred
+                                         to. There is no score to be outside
+                                         of any more.
+
+   What is left is a clock and whether you got it right. */
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
@@ -40,18 +39,20 @@ const RUNGS: { key: 0 | Round; label: string }[] = [
 
 /** The ladder, as five marks and one word.
 
-    Shown between rounds and on the way in and out of them. Not during one:
-    the rung a student is on is not something they need reminding of while
-    they are standing on it. */
-export function LadderRail({ stage }: { stage: 0 | Round }) {
+    On the results screen every mark is filled and the word is "Finished".
+    Leaving the last rung drawn as the current one told a student who had just
+    completed the whole session that they were still standing on it, with one
+    square unfilled, which is the one moment the rail should be saying the
+    opposite. A cleared ladder is the reward for clearing it. */
+export function LadderRail({ stage, finished = false }: { stage: 0 | Round; finished?: boolean }) {
   const here = RUNGS.find((r) => r.key === stage);
 
   return (
     <nav aria-label="Session stages" className="flex items-center gap-2.5">
       <span className="flex items-center gap-1.5">
         {RUNGS.map((rung) => {
-          const done = rung.key < stage;
-          const current = rung.key === stage;
+          const done = finished || rung.key < stage;
+          const current = !finished && rung.key === stage;
           return (
             /* Shape, not just colour: a filled square is cleared, a ring is
                where you are, a faint dot is still ahead. */
@@ -73,12 +74,14 @@ export function LadderRail({ stage }: { stage: 0 | Round }) {
           );
         })}
       </span>
-      {here && (
+      {(finished || here) && (
         <span
           style={NARROW}
-          className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-ink-soft"
+          className={`font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
+            finished ? "text-solid-ink" : "text-ink-soft"
+          }`}
         >
-          {here.label}
+          {finished ? "Finished" : here?.label}
         </span>
       )}
     </nav>
@@ -96,7 +99,13 @@ export function RunClock({ elapsed, live }: { elapsed: () => number; live: boole
   const [ms, setMs] = useState(0);
 
   useEffect(() => {
-    if (!live) return;
+    /* Not live: sample once and hold. Returning early instead would leave
+       whatever frame the animation happened to stop on, and on a clock that
+       mounts already frozen it would leave 0:00.0 next to a run in progress. */
+    if (!live) {
+      setMs(elapsed());
+      return;
+    }
     let raf = 0;
     const tick = () => {
       setMs(elapsed());
@@ -121,94 +130,46 @@ export function RunClock({ elapsed, live }: { elapsed: () => number; live: boole
     warning never depends on the colour change or on the pulse: someone who
     cannot see the hue and someone running with reduced motion both still get
     a number counting down. */
-export function TimerRing({ remaining, total }: { remaining: number; total: number }) {
+export function TimerRing({
+  remaining,
+  total,
+  cheering = false,
+}: {
+  remaining: number;
+  total: number;
+  /** Set briefly when an answer lands correctly, so the reward reaches the one
+      piece of chrome the whole room is already watching. */
+  cheering?: boolean;
+}) {
   const t = Math.max(0, Math.min(1, remaining / total));
   const seconds = Math.ceil(remaining / 1000);
   const urgent = remaining <= 5000;
 
+  /* Sized to be watched by a room rather than glanced at by one person. The
+     count is the thing everybody shouts along with in the last five seconds,
+     so it is set large, in the ink the interface reserves for text people are
+     meant to read, and it goes amber and bold when the ring does. */
   return (
     <div
       role="timer"
       aria-label={`${seconds} seconds left`}
-      className={`ring grid h-9 w-9 place-items-center ${urgent ? "urgent" : ""}`}
-      style={{ ["--t" as string]: t }}
+      className={`ring grid h-16 w-16 place-items-center ${urgent ? "urgent" : ""} ${
+        cheering ? "clock-cheer" : ""
+      }`}
+      style={{
+        ["--t" as string]: t,
+        ...(cheering ? { ["--ring-ink" as string]: "var(--solid-mark)" } : {}),
+      }}
     >
-      <span className="grid h-[1.9rem] w-[1.9rem] place-items-center rounded-full bg-ground">
+      <span className="grid h-[3.4rem] w-[3.4rem] place-items-center rounded-full bg-ground">
         <span
-          className={`font-mono text-[0.6875rem] tabular-nums ${
-            urgent ? "font-semibold text-shaky-ink" : "text-ink-faint"
+          className={`font-mono text-[1.375rem] font-semibold tabular-nums ${
+            cheering ? "text-solid-ink" : urgent ? "text-shaky-ink" : "text-ink-soft"
           }`}
         >
           {seconds}
         </span>
       </span>
-    </div>
-  );
-}
-
-/* ── The only two things beside the question ────────────────────────────── */
-
-/** The timer, the combo multiplier once it is worth something, and the two
-    audio controls.
-
-    The multiplier appears at two times and not before. A dead "x1" sitting
-    there through every ordinary answer would be four more characters of chrome
-    reporting that nothing is happening.
-
-    The audio toggles are here rather than in the header because the header is
-    empty during a round, and a mute control that disappears the moment the
-    round starts is a mute control for nobody. */
-export function RoundHud({
-  streak,
-  remaining,
-  total,
-  scoring,
-  music,
-  sound,
-  onMusic,
-  onSound,
-}: {
-  streak: number;
-  remaining: number;
-  total: number;
-  /** False during the warm up, which is unscored. */
-  scoring: boolean;
-  music: boolean;
-  sound: boolean;
-  onMusic: () => void;
-  onSound: () => void;
-}) {
-  const multiplier = comboMultiplier(streak);
-  const heat = (multiplier - 1) / (MAX_COMBO - 1);
-
-  const [bumped, setBumped] = useState(false);
-  const previous = useRef(multiplier);
-  useEffect(() => {
-    if (multiplier > previous.current) {
-      setBumped(true);
-      const t = setTimeout(() => setBumped(false), 460);
-      previous.current = multiplier;
-      return () => clearTimeout(t);
-    }
-    previous.current = multiplier;
-  }, [multiplier]);
-
-  return (
-    <div className="flex items-center justify-end gap-3">
-      {scoring && multiplier > 1 && (
-        <span
-          className={`combo mr-1 font-mono text-[1.0625rem] font-semibold leading-none text-accent ${
-            bumped ? "combo-bump" : ""
-          }`}
-          style={{ ["--heat" as string]: heat }}
-          aria-label={`${streak} correct in a row, scoring ${multiplier} times`}
-        >
-          &times;{multiplier}
-        </span>
-      )}
-      <MusicToggle on={music} onToggle={onMusic} />
-      <SoundToggle on={sound} onToggle={onSound} />
-      <TimerRing remaining={remaining} total={total} />
     </div>
   );
 }
@@ -247,7 +208,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
 
 function Tick() {
   return (
-    <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden className="shrink-0">
+    <svg width="26" height="26" viewBox="0 0 15 15" aria-hidden className="shrink-0">
       <rect width="15" height="15" rx="3" fill="var(--solid-mark)" />
       <path
         d="M3.8 7.7 6.2 10.1 11.1 4.9"
@@ -264,7 +225,7 @@ function Tick() {
 
 function Cross() {
   return (
-    <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden className="shrink-0">
+    <svg width="26" height="26" viewBox="0 0 15 15" aria-hidden className="shrink-0">
       <rect
         x="0.75"
         y="0.75"
@@ -315,14 +276,17 @@ export function Verdict({
     <div
       role="status"
       aria-live="assertive"
-      className={`deal-in flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-[3px] border-l-[3px] py-2.5 pl-4 pr-4 ${
+      className={`deal-in flex w-full shrink-0 flex-wrap items-center gap-x-4 gap-y-1 rounded-[6px] border-l-[6px] py-3 pl-5 pr-5 ${
         correct ? "border-solid-mark bg-solid-tint" : "border-broken-mark bg-broken-tint"
       }`}
     >
       {correct ? <Tick /> : <Cross />}
+      {/* The one word the room reads at a glance, so it is set like a
+          scoreboard rather than like a caption, and it arrives with a bounce
+          rather than simply being there. */}
       <span
         style={NARROW}
-        className={`font-sans text-[0.75rem] font-bold uppercase tracking-[0.14em] ${
+        className={`verdict-in font-sans text-[clamp(1rem,0.8rem+0.8vw,1.5rem)] font-bold uppercase tracking-[0.1em] ${
           correct ? "text-solid-ink" : "text-broken-ink"
         }`}
       >
@@ -330,39 +294,27 @@ export function Verdict({
       </span>
 
       {!correct && (
-        <span className="min-w-0 font-read text-[1rem] leading-tight text-ink">{answer}</span>
+        <span className="min-w-0 font-read text-[clamp(1.125rem,0.9rem+0.9vw,1.625rem)] leading-tight text-ink">
+          {answer}
+        </span>
       )}
 
-      {!correct && (
-        <button
-          onClick={onNext}
-          aria-label="Next question"
-          className="btn ml-auto shrink-0 rounded-[3px] border border-line-strong px-2.5 py-1 font-sans text-[0.875rem] text-ink-soft hover:border-ink-faint hover:text-ink"
-        >
-          <span aria-hidden className="arrow">
-            →
-          </span>
-        </button>
-      )}
+      {/* Always here, right and wrong alike, and it names the key.
+
+          A shortcut nobody is told about is a shortcut nobody has: this
+          control used to appear only on a miss, and only as a bare arrow with
+          nothing to suggest it had a keyboard equivalent at all. */}
+      <button
+        onClick={onNext}
+        aria-label="Next question"
+        className="btn ml-auto flex shrink-0 items-center gap-2 rounded-[4px] border-2 border-line-strong px-3 py-1.5 font-sans text-[0.875rem] font-semibold text-ink-soft hover:border-accent hover:text-ink"
+      >
+        <kbd className="rounded-[3px] bg-sunk px-2 py-0.5 font-mono text-[0.75rem]">Enter</kbd>
+        <span aria-hidden className="arrow">
+          →
+        </span>
+      </button>
     </div>
-  );
-}
-
-/* ── The warm up, framed ────────────────────────────────────────────────── */
-
-/** Two lines, and they are the whole framing.
-
-    "Guess." tells the student what to do with a question they have not studied
-    for. "Not scored." is what makes that instruction safe to follow. There is
-    nothing else to say, and the longer version that used to say it was on
-    screen during the one stage where being told to stop thinking and answer is
-    the entire instruction. */
-export function WarmUpLines() {
-  return (
-    <p className="deal-in flex flex-col gap-0.5 font-sans text-[0.8125rem] font-semibold leading-tight text-ink-faint">
-      <span>Guess.</span>
-      <span>Not scored.</span>
-    </p>
   );
 }
 
@@ -399,8 +351,14 @@ export function ChoiceGrid({
     return () => window.removeEventListener("keydown", onKey);
   }, [options.length, onPick, revealed]);
 
+  /* Fills the height it is given and stops growing before an option becomes an
+     empty panel, the same bargain the wire board strikes. Two options get one
+     column and go tall; four get two columns. Either way the words are set big
+     enough to be read by somebody who is not the person holding the device. */
   return (
-    <div className={`grid gap-2.5 ${options.length > 2 ? "sm:grid-cols-2" : ""}`}>
+    <div
+      className={`grid min-h-0 content-center gap-3 ${options.length > 2 ? "sm:grid-cols-2" : ""}`}
+    >
       {options.map((option, i) => {
         const isAnswer = i === question.answerIndex;
         const isChosen = i === chosen;
@@ -413,19 +371,19 @@ export function ChoiceGrid({
             disabled={revealed}
             onClick={() => onPick(i)}
             style={{ ["--i" as string]: i }}
-            className={`deal-in-stagger group relative flex items-center gap-3 overflow-hidden rounded-[3px] border-2 px-4 py-3.5 text-left transition-colors ${
+            className={`deal-in-stagger group relative flex min-h-[clamp(3.25rem,11vh,7rem)] items-center gap-4 overflow-hidden rounded-[6px] border-[3px] px-5 py-4 text-left transition-colors ${
               showRight
-                ? "right-flash border-solid-mark bg-solid-tint"
+                ? "right-flash right-pop right-sheen border-solid-mark bg-solid-tint"
                 : showWrong
                   ? "miss-mark miss-shake border-broken-mark bg-broken-tint"
                   : revealed
                     ? "border-line bg-page opacity-55"
-                    : "border-line bg-page hover:border-accent hover:bg-accent-wash/40"
+                    : "border-line-strong bg-page hover:border-accent hover:bg-accent-wash/40"
             }`}
           >
             <span
               aria-hidden
-              className={`grid h-6 w-6 shrink-0 place-items-center rounded-[3px] border font-mono text-[0.6875rem] font-semibold ${
+              className={`grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border-2 font-mono text-[0.9375rem] font-semibold ${
                 showRight
                   ? "border-solid-mark bg-solid-mark text-page"
                   : showWrong
@@ -436,7 +394,7 @@ export function ChoiceGrid({
               {showRight ? "✓" : showWrong ? "✕" : KEYS[i]}
             </span>
             <span
-              className={`font-read text-[1.0625rem] leading-[1.35] ${
+              className={`font-read text-[clamp(1.25rem,0.9rem+1.3vw,2.125rem)] leading-[1.2] ${
                 showRight ? "font-medium text-solid-ink" : showWrong ? "text-broken-ink" : "text-ink"
               }`}
             >
@@ -445,7 +403,7 @@ export function ChoiceGrid({
             {showRight && (
               <span
                 aria-hidden
-                className="right-ring pointer-events-none absolute inset-0 rounded-[3px] border-2 border-solid-mark"
+                className="right-ring pointer-events-none absolute inset-0 rounded-[6px] border-[3px] border-solid-mark"
               />
             )}
           </button>
@@ -489,9 +447,9 @@ export function BlankField({
         e.preventDefault();
         if (!revealed && value.trim()) onSubmit();
       }}
-      className="deal-in flex flex-wrap items-center gap-4"
+      className="deal-in flex min-h-0 flex-wrap content-center items-center gap-5"
     >
-      <p className="font-read text-[1.1875rem] leading-[1.9] text-ink">
+      <p className="font-read text-[clamp(1.375rem,1rem+1.4vw,2.25rem)] leading-[1.7] text-ink">
         {before}
         <input
           ref={ref}
@@ -505,7 +463,7 @@ export function BlankField({
           aria-invalid={revealed && !correct}
           placeholder="?"
           size={Math.max(8, value.length + 2)}
-          className={`mx-1 inline-block min-w-[7rem] border-b-2 bg-transparent px-2 pb-0.5 text-center font-read text-[1.1875rem] font-medium text-ink caret-accent outline-none placeholder:text-ink-faint ${
+          className={`mx-1 inline-block min-w-[9rem] border-b-[3px] bg-transparent px-2 pb-1 text-center font-read text-[clamp(1.375rem,1rem+1.4vw,2.25rem)] font-medium text-ink caret-accent outline-none placeholder:text-ink-faint ${
             revealed
               ? correct
                 ? "border-solid-mark text-solid-ink"
@@ -532,8 +490,7 @@ export function BlankField({
   );
 }
 
-/** Round 3, plainly. The sentence in pieces, out of order, with distractors
-    mixed in.
+/** Round 3, plainly. The sentence in pieces, out of order.
 
     The order they are laid out in comes from the server, on `question.tray`,
     for the same reason option order does: an order chosen in the browser is an
@@ -556,8 +513,8 @@ export function ChipBoard({
   onSubmit: () => void;
 }) {
   const tray = useMemo(
-    () => question.tray ?? [...(question.chips ?? []), ...(question.distractors ?? [])],
-    [question.tray, question.chips, question.distractors]
+    () => question.tray ?? question.chips ?? [],
+    [question.tray, question.chips]
   );
 
   /* Chips can repeat as text, so a spent chip is tracked by its position in
@@ -575,13 +532,34 @@ export function ChipBoard({
     });
   }, [built, tray]);
 
+  /* Enter commits the sentence. Round 3 used to be the one place with no
+     keyboard path at all: the only way to submit was to find and click a small
+     arrow, which broke a run that was otherwise entirely keyboard-driven.
+
+     The same key advances past the verdict, and the two cannot collide: this
+     listener bails while `revealed`, and the advance listener is only mounted
+     once there is a result. Space is deliberately not bound here — a chip that
+     has keyboard focus is a button, and the browser fires it on Space, so the
+     student would place a chip and submit in one press. */
+  useEffect(() => {
+    if (revealed) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Enter" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (built.length === 0) return;
+      e.preventDefault();
+      onSubmit();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [built.length, onSubmit, revealed]);
+
   return (
-    <div className="deal-in flex flex-col gap-5">
+    <div className="deal-in flex min-h-0 flex-col justify-center gap-5">
       {/* The sentence being built. Holds its height whether or not anything is
           in it, so the tray below never jumps as chips are placed. */}
       <div
         aria-label="Your sentence"
-        className={`flex min-h-[4.5rem] flex-wrap items-center gap-2 rounded-[3px] border-2 border-dashed p-3.5 transition-colors ${
+        className={`flex min-h-[6rem] flex-wrap items-center gap-2.5 rounded-[6px] border-[3px] border-dashed p-4 transition-colors ${
           revealed
             ? correct
               ? "border-solid-mark bg-solid-tint"
@@ -597,7 +575,7 @@ export function ChipBoard({
             disabled={revealed}
             onClick={() => onBuild(built.filter((_, j) => j !== i))}
             aria-label={`Remove "${chip}"`}
-            className="chip chip-snap rounded-[3px] border border-accent bg-page px-3 py-1.5 font-read text-[1rem] text-ink disabled:cursor-default"
+            className="chip chip-snap rounded-[4px] border-2 border-accent bg-page px-4 py-2 font-read text-[clamp(1.0625rem,0.9rem+0.6vw,1.4375rem)] text-ink disabled:cursor-default"
           >
             {chip}
           </button>
@@ -606,14 +584,14 @@ export function ChipBoard({
 
       {!revealed && (
         <>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2.5">
             {tray.map((chip, i) => (
               <button
                 key={`${chip}-${i}`}
                 disabled={spent[i]}
                 onClick={() => onBuild([...built, chip])}
                 style={{ ["--i" as string]: i }}
-                className={`chip deal-in-stagger rounded-[3px] border border-line-strong bg-page px-3 py-1.5 font-read text-[1rem] text-ink hover:border-accent hover:bg-accent-wash/40 ${
+                className={`chip deal-in-stagger rounded-[4px] border-2 border-line-strong bg-page px-4 py-2 font-read text-[clamp(1.0625rem,0.9rem+0.6vw,1.4375rem)] text-ink hover:border-accent hover:bg-accent-wash/40 ${
                   spent[i] ? "chip-spent" : ""
                 }`}
               >
@@ -724,7 +702,7 @@ function AudioToggle({
       aria-pressed={on}
       aria-label={`${label}: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
       title={`${label} ${on ? "on" : "off"}`}
-      className={`grid h-8 w-8 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[0.9375rem] leading-none transition-colors ${
+      className={`grid h-10 w-10 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[1.125rem] leading-none transition-colors ${
         on
           ? "border-solid-mark bg-solid-tint text-solid-ink hover:bg-solid-mark hover:text-page"
           : "border-broken-mark bg-broken-tint text-broken-ink hover:bg-broken-mark hover:text-page"

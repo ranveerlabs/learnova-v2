@@ -262,17 +262,19 @@ export function TeachBack({
           </div>
         </div>
 
-        {/* The first production was required. Any after it are offered, and
-            stopping is a real choice rather than a way of giving up: one
-            unscaffolded answer is all this round ever promised to demand. */}
+        {/* One way forward, and it is forward.
+
+            There used to be a "Stop here and see the results" beside this,
+            offered after every graded concept. It was the last thing standing
+            between a student and their results, which is exactly where the
+            temptation to bail is highest, and a rating that claims to measure
+            the whole session cannot mean much if the last third of it is
+            optional. The concepts are already capped at three. */}
         <div className="rise flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 4 }}>
           {more ? (
-            <>
-              <PrimaryButton onClick={onNext}>
-                Try another concept <Arrow />
-              </PrimaryButton>
-              <GhostButton onClick={onStop}>Stop here and see the results</GhostButton>
-            </>
+            <PrimaryButton onClick={onNext}>
+              Next concept <Arrow />
+            </PrimaryButton>
           ) : (
             <PrimaryButton onClick={onStop}>
               See where you landed <Arrow />
@@ -287,16 +289,13 @@ export function TeachBack({
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-7 py-6">
       <div className="rise flex flex-col gap-4">
+        {/* There was a "No timer" badge here. It stopped being true when the
+            run clock moved into the header and stayed on every screen: this
+            round has no per-question countdown, but there is very much a
+            clock, and it is running while you read this. A badge that says the
+            opposite of the thing next to it is worse than no badge. */}
         <div className="flex flex-wrap items-center gap-3">
-          <Label>
-            Round 4 {total > 1 ? `· ${index + 1} of ${total}` : ""}
-          </Label>
-          <span
-            style={{ fontVariationSettings: '"wdth" 88' }}
-            className="rounded-[3px] bg-accent-wash px-2 py-0.5 font-sans text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-accent"
-          >
-            No timer
-          </span>
+          <Label>Round 4 {total > 1 ? `· ${index + 1} of ${total}` : ""}</Label>
         </div>
 
         <Ask>Explain {concept} in your own words.</Ask>
@@ -307,15 +306,16 @@ export function TeachBack({
         </p>
       </div>
 
-      {/* An answer that could not be marked must not be a dead end.
+      {/* An answer that could not be MARKED must not be a dead end.
 
-          Everything the student typed is still in the box, so Submit is a
-          real retry. But this is the last screen before the results, and it
-          used to be the only one with no way past it: a student who has
-          played four rounds and cannot get an explanation marked was stuck
-          there, with the whole run behind them and nothing to do but keep
-          pressing a button that was going to fail again. Both ways out are
-          offered whatever went wrong, and neither costs them the session. */}
+          This is the one escape hatch left in Round 4, and it is deliberately
+          not the same thing as the voluntary skip that was just removed: it
+          only exists when the grader has actually failed, which is a fault at
+          our end rather than a choice at theirs. Without it a student whose
+          last explanation cannot be marked is stuck on the final screen of the
+          run with nothing to do but press a button that is going to fail
+          again. Everything they typed is still in the box, so Submit is a real
+          retry and this is the second way out rather than the first. */}
       {error && (
         <div className="flex flex-col gap-3.5">
           {wasBusy ? <Aside>{error}</Aside> : <Notice>{error}</Notice>}
@@ -408,12 +408,28 @@ export function TeachBack({
           autoFocus={!speech.supported}
           minRows={5}
           placeholder="In your own words…"
+          /* Enter sends, the same as it does everywhere else in a round.
+             Guarded here rather than in the leaf so the key can never do
+             something the button next to it would refuse to do. */
+          onSubmit={() => {
+            if (!loading && explanation.trim()) submit();
+          }}
         />
 
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton onClick={submit} disabled={loading || !explanation.trim()}>
             {loading ? "Marking…" : "Submit"} {!loading && <Arrow />}
           </PrimaryButton>
+          <span
+            style={{ fontVariationSettings: '"wdth" 88' }}
+            className="font-sans text-[0.75rem] text-ink-faint"
+          >
+            <kbd className="rounded-[3px] border border-line-strong bg-sunk px-1.5 py-0.5 font-mono text-[0.6875rem]">
+              Enter
+            </kbd>{" "}
+            to send, <kbd className="font-mono">Shift</kbd>+
+            <kbd className="font-mono">Enter</kbd> for a new line
+          </span>
           {!speech.supported && (
             <p className="font-sans text-[0.75rem] text-ink-faint">
               Speech input needs Chrome or Edge. Typing works everywhere.

@@ -120,18 +120,43 @@ Do not write easier or more general questions to get around this. Go the other w
    topic. So this prompt is kept deliberately short and asks for deliberately
    short output: the round prompts can afford to be thorough because they are
    generated while the student is busy, and this one cannot. Every clause here
-   has to earn the milliseconds it costs. */
-const OPEN_SYSTEM = `Open a rapid study session on the topic given. Reply with JSON only, and keep it short.
+   has to earn the milliseconds it costs.
+
+   ── Two fields this deliberately does not ask for ────────────────────────
+   The wait here is dominated by how many tokens have to come back, so a field
+   nobody reads is not free: it is the student watching the loading screen
+   while it is written.
+
+   "because" is the one line saying why an answer is right. The ROUNDS still
+   ask for it and still need it, so it is only removed here: in a topic-only
+   session Round 4 marks the student's explanation against the questions they
+   saw and those one-line reasons, and that is real. The warm up's copy goes
+   nowhere. Round 4 is handed `banks`, which is rounds 1 to 3; the warm up is
+   held separately and never reaches it, and no screen has shown a why line
+   since the disclosure came off the verdict. Five sentences were being
+   written, waited for, and dropped, on the one call where the waiting is the
+   whole problem.
+
+   "citation" is asked for only when there is something to cite. With no
+   pasted notes the rules already say to leave it empty, so it was five empty
+   strings and the sentence explaining them. A grounded session still asks for
+   it and still drops any question whose citation is not found verbatim in the
+   notes: that check is the guarantee of a grounded session and is untouched. */
+function openSystem(provenance: Provenance): string {
+  const cite = provenance === "grounded" ? ',"citation":"..."' : "";
+
+  return `Open a rapid study session on the topic given. Reply with JSON only, and keep it short.
 
 "concepts": 3 to 5 distinct ideas worth testing, foundational first, 1 to 4 words each.
 
 "questions": exactly ${WARM_UP_COUNT} snap questions, spread across those concepts. Each has exactly TWO options. The student answers on instinct, before studying, so these must be neither tricks nor giveaways.
 - prompt: at most 12 words, fitting one line. Each option: at most 5 words. These are hard limits.
-- because: one sentence, at most 20 words, shown only after they answer.
 - Every question must ask for something different. No two may have the same answer.
+- Write no explanation, reason or commentary anywhere. Only the fields shown below.
 - No em dashes. Address the student as "you".
 
-{"concepts":["..."],"questions":[{"concept":"...","prompt":"...","options":["...","..."],"answerIndex":1,"answer":"...","because":"...","citation":"..."}]}`;
+{"concepts":["..."],"questions":[{"concept":"...","prompt":"...","options":["...","..."],"answerIndex":1,"answer":"..."${cite}}]}`;
+}
 
 function roundSystem(round: Round, concepts: string[]): string {
   const format = ROUND_FORMAT[round];
@@ -173,13 +198,13 @@ Respond with JSON in exactly this shape:
 
 This is Round 3: the student assembles a sentence from chips. Nothing is written for them; they are given the pieces of the explanation out of order and must put them in order.
 - "chips" is the correct sentence, already split into 5 to 7 pieces, IN THE CORRECT ORDER. Each chip is a word or a short phrase, 1 to 4 words. Split at natural joints, so each chip is a meaningful unit rather than a fragment. They are shuffled before the student sees them, so give them in reading order and do not try to mix them yourself.
-- "distractors" are chips that do NOT belong in the sentence but look like they might: a plausible wrong verb, a wrong quantity, a related but incorrect term. Give 0 for easy, 1 for medium, 2 for hard.
+- Give ONLY the pieces of the correct sentence. Do not add extra, wrong or decoy pieces of any kind. Every chip you write must be used in the answer.
 - "answer" is the assembled correct sentence as plain text.
 - "accepted" may list one alternative full sentence that is equally correct with the same chips in a different valid order. Leave it empty if there is only one correct order, which is usually the case.
 - The sentence must be a real explanation of the concept, not a definition template. It should read like something a student would be pleased to be able to say.
 
 Respond with JSON in exactly this shape:
-{"questions": [{"concept": "...", "difficulty": "easy" | "medium" | "hard", "prompt": "...", "chips": ["...", "..."], "distractors": ["..."], "answer": "...", "accepted": [], "because": "...", "citation": "..."}]}
+{"questions": [{"concept": "...", "difficulty": "easy" | "medium" | "hard", "prompt": "...", "chips": ["...", "..."], "answer": "...", "accepted": [], "because": "...", "citation": "..."}]}
 
 "prompt" here is the instruction line, at most 10 words, for example "Build the sentence about what enzymes do to activation energy."`;
 }
@@ -194,7 +219,6 @@ type RawQuestion = {
   answerIndex?: unknown;
   accepted?: unknown;
   chips?: unknown;
-  distractors?: unknown;
   answer?: unknown;
   because?: unknown;
   citation?: unknown;
@@ -308,9 +332,6 @@ function shape(
     answerIndex: typeof raw.answerIndex === "number" ? raw.answerIndex : undefined,
     accepted: isStrings(raw.accepted) ? raw.accepted.filter(Boolean) : undefined,
     chips: isStrings(raw.chips) ? raw.chips.map((c) => c.trim()).filter(Boolean) : undefined,
-    distractors: isStrings(raw.distractors)
-      ? raw.distractors.map((c) => c.trim()).filter(Boolean)
-      : undefined,
     answer: String(raw.answer).trim(),
     because: typeof raw.because === "string" ? raw.because.trim() : undefined,
     citation: typeof raw.citation === "string" ? raw.citation.trim() : undefined,
@@ -402,7 +423,7 @@ export async function POST(req: Request) {
       }
 
       const payload = await chatJSON(
-        `${OPEN_SYSTEM}\n${rules}${alreadyAsked(asked)}`,
+        `${openSystem(provenance)}\n${rules}${alreadyAsked(asked)}`,
         material,
         isOpenPayload
       );

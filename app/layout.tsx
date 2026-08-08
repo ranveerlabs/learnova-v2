@@ -62,9 +62,19 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${newsreader.variable} ${archivo.variable} ${plexMono.variable} ${patrickHand.variable} ${silkscreen.variable} h-full antialiased`}
+      className={`${newsreader.variable} ${archivo.variable} ${plexMono.variable} ${patrickHand.variable} ${silkscreen.variable} h-dvh overflow-hidden antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      {/* The page is exactly the viewport and never scrolls.
+
+          This is a room game. Somebody is holding a phone or a laptop and four
+          other people are reading it over their shoulder, and not one of them
+          is going to scroll. Whatever the round needs to say has to be on
+          screen at the moment it needs saying, so the shell is pinned to the
+          viewport and the screens inside it are built to fit it rather than to
+          flow past it. The two screens that genuinely cannot promise that, the
+          front door with notes pasted into it and the results, scroll inside
+          their own panel so the frame around them still never moves. */}
+      <body className="flex h-full flex-col overflow-hidden">
         <div className="page-glow" aria-hidden />
         {children}
       </body>

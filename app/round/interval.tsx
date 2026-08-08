@@ -53,17 +53,12 @@ export function Interval({
   next,
   splitMs,
   runMs,
-  points,
   onContinue,
 }: {
   summary: RoundSummary;
   next: Round;
   splitMs: number;
   runMs: number;
-  /** The running total across the whole session, which no longer appears
-      anywhere during a round. This screen and the results screen are the only
-      two places it is shown. */
-  points: number;
   onContinue: () => void;
 }) {
   const cleared = summary.stage === 0 ? "Warm up" : `Round ${summary.stage}`;
@@ -88,15 +83,22 @@ export function Interval({
       </div>
 
       {/* The numbers, all of them real. The warm up deliberately shows no
-          score at all: it is a baseline taken before any studying, and putting
+          count at all: it is a baseline taken before any studying, and putting
           a mark on it would tell a student they had failed something they were
-          never meant to pass. */}
+          never meant to pass.
+
+          The line here used to say "Not scored, on purpose", which outlived
+          the scoring by a version: nothing in the session is scored any more,
+          so singling the warm up out as the unscored one implied a score
+          everywhere else. What it actually needs to say is why these questions
+          are coming back. */}
       {summary.stage === 0 ? (
         <p
           className="stage-in max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft"
           style={{ ["--i" as string]: 1 }}
         >
-          Not scored, on purpose. You will see those answers again at the end.
+          You had not studied yet, so that was a baseline. You will meet those
+          answers again at the end.
         </p>
       ) : (
         <div className="stage-in flex flex-wrap gap-x-10 gap-y-6" style={{ ["--i" as string]: 1 }}>
@@ -106,21 +108,9 @@ export function Interval({
             tone={summary.answered > 0 && summary.correct / summary.answered >= 0.7 ? "good" : "plain"}
           />
           <Stat label="Best run" value={`${summary.bestStreak}`} />
-          <Stat label="This round" value={summary.points.toLocaleString()} />
-          <Stat label="Points" value={points.toLocaleString()} />
           <Stat label="Split" value={formatClock(splitMs)} />
           <Stat label="Total" value={formatClock(runMs)} />
         </div>
-      )}
-
-      {summary.timedOut > 0 && (
-        <p
-          className="stage-in font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
-          style={{ ["--i" as string]: 2 }}
-          title="Unanswered is not the same as wrong, so these are not counted against you anywhere."
-        >
-          {summary.timedOut} ran out of time. Not counted as wrong.
-        </p>
       )}
 
       {/* Real movement, named. This is the single most motivating true thing

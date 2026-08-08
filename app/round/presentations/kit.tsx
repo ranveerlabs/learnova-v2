@@ -112,20 +112,6 @@ export function ink(mood: Mood): string {
   }
 }
 
-/** The one CSS colour for a mood, for SVG strokes and fills. */
-export function paint(mood: Mood): string {
-  switch (mood) {
-    case "right":
-      return "var(--solid-mark)";
-    case "wrong":
-      return "var(--broken-mark)";
-    case "dimmed":
-      return "var(--line-strong)";
-    case "idle":
-      return "var(--accent)";
-  }
-}
-
 /** The number key before an answer lands, the outcome as a glyph afterwards.
 
     This is the shape channel. It is not decoration and it is not optional:

@@ -8,7 +8,7 @@ import {
   isCorrect,
   nextDifficulty,
   pickQuestion,
-  pointsFor,
+
   beatsBest,
   rankForProduction,
 } from "./engine";
@@ -54,11 +54,16 @@ export type Phase =
 
     This is the whole of the "persistence" here, and it is not persistence: it
     lives in a React ref for as long as the tab is open and dies with it. No
-    storage, no account, nothing leaves the page. It exists because a score
+    storage, no account, nothing leaves the page. It exists because a rating
     with nothing to measure it against is just a number, and a student who
-    cannot see that they went faster this time has no reason to go again. */
+    cannot see that they did better this time has no reason to go again.
+
+    What is compared across runs is the rating, not the run time. Beating your
+    own clock rewards answering faster, which on a topic you have already seen
+    mostly means answering more carelessly; beating your own rating rewards
+    getting more of it right. */
 export type RunRecord = {
-  points: number;
+  rating: number;
   runTime: number;
   openCorrect: number;
   openAnswered: number;
@@ -67,8 +72,7 @@ export type RunRecord = {
 };
 
 export type Best = {
-  points: number;
-  runTime: number;
+  rating: number;
 } | null;
 
 /** A question as the repeat check needs it. Four fields, because the rest of a
@@ -209,22 +213,35 @@ export function useRoundSession() {
      negative split. */
   const questionShownAt = useRef<number>(0);
   const stageStartedAt = useRef<number>(0);
-  const runStartedAt = useRef<number | null>(null);
 
-  /* The warm up is outside the game entirely. It is taken before any studying,
-     it is explicitly not scored, and the screen says so in two words while the
-     student is answering it. Letting points or a streak accumulate there would
-     contradict that, and would also hand Round 1 a combo the student earned by
-     guessing. Scoring starts at Round 1. */
-  const scoring = answers.filter((a) => a.stage >= 1);
-  const streak = currentStreak(scoring);
-  const points = scoring.reduce((sum, a) => sum + (a.points ?? 0), 0);
+  /* The warm up is outside the game entirely: it is taken before any studying,
+     so a streak earned by guessing there would be carried into Round 1 as
+     though it had been earned by knowing something. The run starts counting at
+     Round 1. */
+  const streak = currentStreak(answers.filter((a) => a.stage >= 1));
 
-  /** Elapsed run time so far, for the ghost comparison between rounds. */
-  const runElapsed = useCallback(
-    () => (runStartedAt.current === null ? 0 : performance.now() - runStartedAt.current),
-    []
-  );
+  /** Elapsed run time so far: the stages that are finished, plus the one
+      being played right now.
+
+      Deliberately NOT wall clock since the run began. Wall clock counts the
+      time the student spent watching a loading screen while the model wrote
+      the next round, and it counts the between-rounds screen, and it counts
+      Round 4. None of that is in the run: `runTime` on the results is the sum
+      of the splits, and a split is one stage's own time. So a header clock
+      driven off wall clock ran ahead of the number the session would
+      eventually report, and jumped forward every time a round was generated.
+
+      Built from the same splits the results are, so the clock a student
+      watches during the run and the time they are given at the end of it are
+      the same measurement. */
+  const runElapsed = useCallback(() => {
+    const banked = splits.reduce((sum, s) => sum + s.ms, 0);
+    /* The two phases where the student is actually working. Round 4 counts:
+       its clock stopping dead on the last screen of the run read as a broken
+       timer rather than as a deliberate exemption. */
+    if (phase !== "playing" && phase !== "round4") return banked;
+    return banked + (performance.now() - stageStartedAt.current);
+  }, [phase, splits]);
 
   /* ── Generation ───────────────────────────────────────────────────────
      The warm up is the only call ever waited on. Every round bank is fetched
@@ -304,7 +321,6 @@ export function useRoundSession() {
         void fetchBank(1, nextTopic, nextNotes, payload.concepts);
 
         const now = performance.now();
-        runStartedAt.current = now;
         stageStartedAt.current = now;
         questionShownAt.current = now;
 
@@ -337,7 +353,6 @@ export function useRoundSession() {
       const counts = stage >= 1;
       const earlier = answers.filter((a) => a.stage >= 1);
       const newStreak = counts && right ? currentStreak(earlier) + 1 : 0;
-      const scored = counts && right ? pointsFor(newStreak) : 0;
       const record = counts && beatsBest(earlier, ms, right);
 
       const entry: Answer = {
@@ -350,11 +365,10 @@ export function useRoundSession() {
         ms,
         given: Array.isArray(given) ? given.join(" ") : String(given),
         timedOut: timedOut || undefined,
-        points: scored || undefined,
       };
 
       setAnswers((prev) => [...prev, entry]);
-      return { correct: right, points: scored, streak: newStreak, record, question };
+      return { correct: right, streak: newStreak, record, question };
     },
     [answers, current, stage]
   );
@@ -399,6 +413,10 @@ export function useRoundSession() {
   const openRound4 = useCallback(() => {
     setStage(4);
     setProductionIndex(0);
+    /* Round 4 is a timed leg like any other, so its clock starts when it
+       opens. Without this the stage would inherit Round 3's start time and
+       report a split covering both. */
+    stageStartedAt.current = performance.now();
     setPhase("round4");
   }, []);
 
@@ -495,7 +513,19 @@ export function useRoundSession() {
     setProductionIndex((i) => i + 1);
   }, []);
 
+  /** Close Round 4's split and go to the results.
+
+      Guarded against a second call, because this is reachable from three
+      controls on the Round 4 screens and a duplicate split would be counted
+      twice in the run total. Closing it here rather than in `advance` is
+      because Round 4 does not go through `advance`: it has no per-question
+      timer and ends when the student says it does. */
   const finish = useCallback(() => {
+    setSplits((prev) =>
+      prev.some((s) => s.stage === 4)
+        ? prev
+        : [...prev, { stage: 4, ms: performance.now() - stageStartedAt.current }]
+    );
     setPhase("reveal");
   }, []);
 
@@ -533,7 +563,7 @@ export function useRoundSession() {
     const data = buildReveal(answers, productions, splits);
     if (data.splits.length > 0) {
       const record: RunRecord = {
-        points: data.points,
+        rating: data.rating.earned,
         runTime: data.runTime,
         openCorrect: data.open?.correct ?? 0,
         openAnswered: data.open?.answered ?? 0,
@@ -541,15 +571,10 @@ export function useRoundSession() {
         productions: data.productions.length,
       };
       runs.current = [...runs.current, record];
-      setBest({
-        points: Math.max(...runs.current.map((r) => r.points)),
-        /* Only completed runs count toward a best time. A run abandoned in
-           Round 1 is not a fast run. */
-        runTime: Math.min(
-          ...runs.current.filter((r) => r.productions > 0).map((r) => r.runTime),
-          record.productions > 0 ? record.runTime : Infinity
-        ),
-      });
+      /* Every run counts toward the best rating, including one abandoned
+         early. There is no way to inflate a rating by stopping, because
+         stopping means the questions you never reached earned nothing. */
+      setBest({ rating: Math.max(...runs.current.map((r) => r.rating)) });
     }
 
     setPhase("entry");
@@ -575,7 +600,6 @@ export function useRoundSession() {
     /* A new seed for the next run, so going again does not draw the same
        presentations in the same order. */
     setSeed(newSeed());
-    runStartedAt.current = null;
   }, [answers, productions, splits]);
 
   return {
@@ -591,7 +615,7 @@ export function useRoundSession() {
     splits,
     difficulty,
     streak,
-    points,
+
     error,
     busyRounds,
     nextPlayable,

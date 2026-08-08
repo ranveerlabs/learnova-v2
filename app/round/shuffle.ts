@@ -101,10 +101,8 @@ export function placeQuestion(q: Question, rand: Rand): Question {
     case "assemble": {
       const chips = q.chips ?? [];
       if (chips.length === 0) return q;
-      /* Distractors go in with the real chips: a tray that keeps them in their
-         own group tells the student which pieces belong before they have
-         thought about the sentence at all. */
-      return { ...q, tray: shuffled([...chips, ...(q.distractors ?? [])], rand) };
+      /* The sentence's own pieces, and nothing else. */
+      return { ...q, tray: shuffled(chips, rand) };
     }
 
     case "blank":

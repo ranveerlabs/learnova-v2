@@ -86,13 +86,15 @@ export type Question = {
   accepted?: string[];
   /** "assemble": the correct sentence, already broken into chips in order. */
   chips?: string[];
-  /** "assemble": plausible chips that do not belong in the sentence. */
-  distractors?: string[];
-  /** "assemble": the chips and distractors together, in the order they are
-      laid out for the student. Decided on the server for the same reason
-      option order is: an order chosen in the browser is an order nobody can
-      measure. Absent only on questions that predate placement, where the
-      presentation falls back to laying the pieces out itself. */
+  /** "assemble": the chips, in the order they are laid out for the student.
+      Decided on the server for the same reason option order is: an order
+      chosen in the browser is an order nobody can measure. Absent only on
+      questions that predate placement, where the presentation falls back to
+      laying the pieces out itself.
+
+      Nothing but the real chips is ever in here. Round 3 used to salt the tray
+      with decoys, 0 to 2 by difficulty, and they made the round a hunt for the
+      wrong words rather than the assembly of a right sentence. */
   tray?: string[];
   /** The canonical correct answer, always shown in feedback. */
   answer: string;
@@ -124,13 +126,14 @@ export type Answer = {
   ms: number;
   /** What the student actually picked, typed or assembled. */
   given: string;
-  /** The per-question timer ran out. Never counted as a wrong answer in
-      anything the student is shown: an unanswered question is not a failed
-      one. It does still ease the difficulty ladder, which is a separate
-      judgement and explained where that happens. */
+  /** The per-question timer ran out.
+
+      Counted as wrong, the same as any other question the student did not
+      get. It used to be held apart from wrong answers everywhere they were
+      reported, on the argument that unanswered is not failed; the flag now
+      only decides which word the verdict shows, "Time" rather than "Not
+      quite", so you can still see what happened to it. */
   timedOut?: boolean;
-  /** Points this answer scored, after the combo multiplier. */
-  points?: number;
 };
 
 /** One open production in Round 4, with the grade it came back with. */
@@ -151,20 +154,24 @@ export type Bank = {
 
 /** A stage's elapsed time, in the speedrun sense: how long that leg took.
 
-    The clock runs across the warm up and Rounds 1 to 3 and stops there.
-    Round 4 is deliberately outside it. Speed on a four-option question is a
-    fair thing to chase; speed on the one moment a student has to produce an
-    explanation in their own words is not, and putting a running clock next to
-    that would push exactly the shallow, fast, half-formed answer the round
-    exists to catch. The results screen says so rather than leaving the gap
-    unexplained. */
+    Every stage has one, Round 4 included. It used to stop at Round 3, on the
+    argument that a running clock beside the one moment a student has to
+    produce an explanation would push exactly the shallow, fast, half-formed
+    answer that round exists to catch.
+
+    What that produced in practice was a clock that visibly stopped when you
+    reached the last round, which reads as broken rather than as principled,
+    and there was no longer anything on screen explaining the gap. A run is
+    now the whole run. Round 4 still has no per-question countdown and nothing
+    hurries you through it: the only thing counting is the same clock that has
+    been counting since the warm up, and it is the number the results report.
+
+    `TIMED_STAGES` used to live here to name the stages the clock covered. It
+    had no callers and is gone with the exception it described. */
 export type Split = {
   stage: 0 | Round;
   ms: number;
 };
-
-/** Stages the speedrun clock covers. */
-export const TIMED_STAGES: (0 | Round)[] = [0, 1, 2, 3];
 
 /* ── The numbers the session runs on ─────────────────────────────────────── */
 
@@ -190,25 +197,20 @@ export const PER_TIER = 5;
 export const TARGET_LOW = 0.7;
 export const TARGET_HIGH = 0.8;
 
-/* ── Scoring ──────────────────────────────────────────────────────────────
-   A game layer, and kept visibly separate from the diagnosis. Points and
-   combos run during the rounds; the results screen at the end does not use
-   them, because how it felt is not evidence of what was learned. */
+/* ── There is no scoring ──────────────────────────────────────────────────
+   There was: a hundred points a question, a combo multiplier climbing every
+   two correct answers and capping at five, a running total on three screens
+   and a personal best to beat.
 
-export const BASE_POINTS = 100;
+   All of it is gone, and what is left is the clock and whether you got it
+   right. The points were a number derived from those two facts and shown
+   beside them, so they never said anything the student could not already see,
+   and the multiplier was a number derived from the points. A student who
+   answers six in a row quickly knows they are doing well; being told they have
+   4,800 and a x4 is not more information, it is the same information wearing a
+   costume, and it was the loudest thing on a screen built to be uncluttered.
 
-/** The multiplier at a given run of consecutive correct answers.
-
-    It climbs every two, which is fast enough that a student feels it move
-    inside a single round, and caps at five so a good run stays worth
-    something without making the first miss of a long streak feel like a
-    catastrophe. */
-export const MAX_COMBO = 5;
-
-export function comboMultiplier(streak: number): number {
-  if (streak <= 1) return 1;
-  return Math.min(MAX_COMBO, 1 + Math.floor(streak / 2));
-}
+   Time and correctness are the whole scoreboard now. */
 
 /** How long feedback sits on screen before the next question.
 

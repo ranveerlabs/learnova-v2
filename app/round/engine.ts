@@ -8,8 +8,6 @@
 
 import {
   type Answer,
-  BASE_POINTS,
-  comboMultiplier,
   type Difficulty,
   type Format,
   type Production,
@@ -118,25 +116,88 @@ export function checkTyped(q: Question, given: string): boolean {
   });
 }
 
+/** The parts of a sentence that a list separator holds apart.
+
+    "water, carbon dioxide and light" becomes three pieces. Anything with no
+    separator in it comes back as a single piece, which is what keeps the
+    comparison below strict for ordinary sentences.
+
+    Splitting happens BEFORE normalising, and that order is the whole trick:
+    `normalizeAnswer` strips punctuation, so a comma-separated list run through
+    it first arrives here as one undifferentiated run of words with nothing
+    left to split on. Each piece is normalised individually afterwards. */
+function listParts(sentence: string): string[] {
+  return sentence
+    .split(/\s*,\s*|\s+and\s+|\s+or\s+|\s*;\s*/i)
+    .map(normalizeAnswer)
+    .filter(Boolean);
+}
+
+/** The same pieces in a different order, and nothing looser than that.
+
+    The shared beginning and end of the two sentences are removed first, so
+    that the sentence's stem does not travel with whichever list item happens
+    to follow it. Without that, "produces oxygen, ATP and NADPH" splits into
+    "produces oxygen" / "ATP" / "NADPH", and reordering the list changes which
+    item the stem is glued to, which looks like a different sentence.
+
+    What is left is compared as a multiset. It cannot match anything that is
+    not a reordering: the pieces must be identical and there must be the same
+    number of them. "sugar traps light" against "light traps sugar" shares no
+    beginning, no end, and has no separator in it, so it comes out as one piece
+    a side and is rejected. */
+function sameListDifferentOrder(builtRaw: string, targetRaw: string): boolean {
+  const a = builtRaw.toLowerCase().split(/\s+/).filter(Boolean);
+  const b = targetRaw.toLowerCase().split(/\s+/).filter(Boolean);
+
+  let head = 0;
+  while (head < a.length && head < b.length && a[head] === b[head]) head++;
+
+  let tail = 0;
+  while (
+    tail < a.length - head &&
+    tail < b.length - head &&
+    a[a.length - 1 - tail] === b[b.length - 1 - tail]
+  ) {
+    tail++;
+  }
+
+  const left = listParts(a.slice(head, a.length - tail).join(" "));
+  const right = listParts(b.slice(head, b.length - tail).join(" "));
+  if (left.length < 2 || left.length !== right.length) return false;
+
+  const sortedLeft = [...left].sort();
+  const sortedRight = [...right].sort();
+  return sortedLeft.every((part, i) => part === sortedRight[i]);
+}
+
 /** Whether an assembled row of chips says the right thing.
 
     Compared as a normalized sentence rather than chip by chip, so a student
     who built the sentence correctly is not marked wrong because the generator
     split "in order to" across two chips and they chose the other split.
-    Alternative phrasings the generator supplied are accepted whole. */
+    Alternative phrasings the generator supplied are accepted whole.
+
+    Order inside a list does not count against them. A student who assembles
+    "produces oxygen, ATP and NADPH" when the generator happened to write
+    "produces ATP, NADPH and oxygen" has said the identical true thing, and
+    marking that wrong teaches them to guess at the generator's word order
+    instead of at the material. The tolerance is deliberately narrow: it
+    forgives the order of complete list items and nothing else, so the round is
+    still an assembly rather than a pile of words in any arrangement. */
 export function checkAssembled(q: Question, selected: string[]): boolean {
-  const built = normalizeAnswer(selected.join(" "));
+  const builtRaw = selected.join(" ");
+  const built = normalizeAnswer(builtRaw);
   if (!built) return false;
 
-  const targets = [
-    (q.chips ?? []).join(" "),
-    q.answer,
-    ...(q.accepted ?? []),
-  ]
-    .map(normalizeAnswer)
-    .filter(Boolean);
+  /* Kept in both forms. The exact comparison needs them normalised; the
+     reordering comparison needs the punctuation that normalising removes. */
+  const rawTargets = [(q.chips ?? []).join(" "), q.answer, ...(q.accepted ?? [])].filter((t) =>
+    t.trim()
+  );
 
-  return targets.includes(built);
+  if (rawTargets.map(normalizeAnswer).includes(built)) return true;
+  return rawTargets.some((target) => sameListDifferentOrder(builtRaw, target));
 }
 
 /** Whether an answer is right, whichever way the question was asked.
@@ -159,23 +220,20 @@ export function isCorrect(q: Question, given: string | number | string[]): boole
    extra steps. So the ladder responds after every answer rather than at the
    end of a round, by which time the round is over. */
 
-/** Accuracy as the student is shown it: a question that ran out of time was
-    not answered, so it is not a wrong answer. */
+/** Accuracy: right answers over questions asked.
+
+    Running out of time counts as wrong, here and everywhere else. There used
+    to be two of these, deliberately disagreeing: one for the ladder where a
+    timeout counted against, and one for the student's record where it did
+    not, on the argument that fifteen seconds of silence is not a wrong answer
+    and calling it one would be a lie.
+
+    It is not a lie, it is a rule, and it is the same rule every game with a
+    clock in it has. A question you did not answer in time is a question you
+    did not get. Saying so is also simpler to play against than an accuracy
+    that quietly ignores some of the questions, and it means the streak, the
+    round summary and the results all count the same events. */
 export function accuracy(answers: Answer[]): number {
-  const counted = answers.filter((a) => !a.timedOut);
-  if (counted.length === 0) return 0;
-  return counted.filter((a) => a.correct).length / counted.length;
-}
-
-/** Accuracy as the ladder reads it, where running out of time counts against.
-
-    These two deliberately disagree. Fifteen seconds of silence on a
-    four-option question is not a wrong answer, and telling a student it was
-    would be a lie. But it is still evidence they are out of their depth, and
-    a ladder that ignores it leaves them stranded at a tier they cannot reach,
-    timing out over and over while the difficulty holds. Reporting protects
-    the student's record; the ladder protects the student. */
-export function ladderAccuracy(answers: Answer[]): number {
   if (answers.length === 0) return 0;
   return answers.filter((a) => a.correct).length / answers.length;
 }
@@ -217,7 +275,7 @@ export function nextDifficulty(
      the bottom tier. */
   if (roundAnswers.length < 2) return current;
 
-  const rate = ladderAccuracy(roundAnswers);
+  const rate = accuracy(roundAnswers);
   if (rate < TARGET_LOW) return step(current, -1, floor);
   if (rate > TARGET_HIGH) return step(current, 1, floor);
   return current;
@@ -279,14 +337,13 @@ export function pickQuestion(
    was learned, and putting a score next to the diagnosis would invite the
    student to read one as the other.
 
-   A question that timed out neither extends a streak nor breaks one. It was
-   not answered, so it is not a miss, and a student who steps away mid-round
-   should not come back to a broken run. */
+   A question that timed out breaks a streak, the same as any other question
+   the student did not get. It used to be skipped over, so a run could survive
+   any number of them; a run that survives not answering is not a run. */
 
 export function currentStreak(answers: Answer[]): number {
   let n = 0;
   for (let i = answers.length - 1; i >= 0; i--) {
-    if (answers[i].timedOut) continue;
     if (!answers[i].correct) break;
     n++;
   }
@@ -297,7 +354,6 @@ export function bestStreak(answers: Answer[]): number {
   let best = 0;
   let run = 0;
   for (const a of answers) {
-    if (a.timedOut) continue;
     if (a.correct) {
       run++;
       if (run > best) best = run;
@@ -306,18 +362,6 @@ export function bestStreak(answers: Answer[]): number {
     }
   }
   return best;
-}
-
-/** What a correct answer is worth, given the run it lands in.
-
-    `streakAfter` is the streak including this answer, so the second
-    consecutive correct answer is the one that first pays double. */
-export function pointsFor(streakAfter: number): number {
-  return BASE_POINTS * comboMultiplier(streakAfter);
-}
-
-export function totalPoints(answers: Answer[]): number {
-  return answers.reduce((sum, a) => sum + (a.points ?? 0), 0);
 }
 
 /* ── The speedrun clock ───────────────────────────────────────────────────
@@ -338,11 +382,108 @@ export function splitTotal(splits: Split[]): number {
   return splits.reduce((sum, s) => sum + s.ms, 0);
 }
 
+/* ── The rating ───────────────────────────────────────────────────────────
+   One number for the whole session, and the only one the results screen
+   leads with.
+
+   It exists because the run time was doing that job and could not. Time is
+   not a measure of how well you did: the fastest way through a round is to
+   answer everything wrong immediately, and a student who thinks carefully and
+   gets more right comes out looking worse. Time is still shown, as a fact
+   about the run, but it is no longer the headline.
+
+   What the rating counts is what you actually demonstrated, weighted by how
+   much the demonstration was worth:
+
+   - Later rounds are worth more than earlier ones, because the scaffolding
+     comes away as you climb. Recognising the answer among four is not the
+     same act as producing it from nothing, and the ladder is the whole point
+     of the mode.
+   - Harder questions are worth more than easier ones at the same rung.
+   - Round 4 is worth the most by a distance. It is the only stage with
+     nothing on screen to lean on, so it is the only stage whose result is
+     evidence rather than a signal.
+   - The warm up counts for very little. It is taken before any studying, so
+     it is mostly a baseline, but knowing something already is still knowing
+     it and scoring it at zero would be its own kind of lie.
+
+   Nothing here rewards speed and nothing punishes it. Two students who get
+   the same questions right get the same rating whether one took four minutes
+   or nine.
+
+   `possible` is what this exact session was worth if everything had gone
+   perfectly: the same weights over the questions actually served and the
+   concepts actually asked for. It is what makes the number mean something
+   without a leaderboard, and what the colour band is computed from, since a
+   raw total says nothing on its own when a short session and a long one are
+   scored on different denominators. */
+
+const STAGE_WEIGHT: Record<number, number> = {
+  0: 1, // warm up, before studying
+  1: 3, // pick it out
+  2: 5, // fill the gap
+  3: 6, // build it
+};
+
+const DIFFICULTY_WEIGHT: Record<Difficulty, number> = {
+  easy: 1,
+  medium: 1.5,
+  hard: 2,
+};
+
+/** What one graded explanation in Round 4 is worth, by how it was marked. */
+const PRODUCTION_VALUE: Record<Production["outcome"], number> = {
+  solid: 150,
+  shaky: 70,
+  "not-yet": 0,
+};
+
+const PRODUCTION_BEST = PRODUCTION_VALUE.solid;
+
+export type Rating = {
+  /** The number the student is shown. */
+  earned: number;
+  /** What this session was worth if nothing had been missed. */
+  possible: number;
+  /** `earned / possible`, 0 when there was nothing to earn. Drives the band. */
+  share: number;
+  /** Which of the three colour bands `share` falls in. */
+  band: "strong" | "fair" | "weak";
+};
+
+function questionValue(a: Answer): number {
+  return (STAGE_WEIGHT[a.stage] ?? 0) * DIFFICULTY_WEIGHT[a.difficulty] * 10;
+}
+
+export function rating(answers: Answer[], productions: Production[]): Rating {
+  let earned = 0;
+  let possible = 0;
+
+  for (const a of answers) {
+    const value = questionValue(a);
+    possible += value;
+    if (a.correct) earned += value;
+  }
+
+  for (const p of productions) {
+    possible += PRODUCTION_BEST;
+    earned += PRODUCTION_VALUE[p.outcome];
+  }
+
+  earned = Math.round(earned);
+  possible = Math.round(possible);
+
+  const share = possible > 0 ? earned / possible : 0;
+  const band = share >= 0.75 ? "strong" : share >= 0.45 ? "fair" : "weak";
+
+  return { earned, possible, share, band };
+}
+
 /** The quickest correct answer so far. Only correct ones count: the fastest
     way to answer a question is to get it wrong instantly, and a personal best
     that rewards that would be worse than having none. */
 export function fastestCorrect(answers: Answer[]): number | null {
-  const times = answers.filter((a) => a.correct && !a.timedOut).map((a) => a.ms);
+  const times = answers.filter((a) => a.correct).map((a) => a.ms);
   return times.length > 0 ? Math.min(...times) : null;
 }
 
@@ -365,41 +506,34 @@ export type RoundSummary = {
   stage: 0 | Round;
   correct: number;
   answered: number;
-  timedOut: number;
   /** Concepts answered correctly this round that the student had got wrong
       at every earlier stage. Real movement, not a projection. */
   turnedAround: string[];
   /** Concepts still not right at any stage. Named plainly, not hidden. */
   stillOpen: string[];
   bestStreak: number;
-  points: number;
 };
 
 export function summarizeRound(answers: Answer[], stage: 0 | Round): RoundSummary {
   const mine = answers.filter((a) => a.stage === stage);
-  const scored = mine.filter((a) => !a.timedOut);
-  const earlier = answers.filter((a) => a.stage < stage && !a.timedOut);
+  const earlier = answers.filter((a) => a.stage < stage);
 
-  const rightNow = new Set(scored.filter((a) => a.correct).map((a) => a.concept));
+  const rightNow = new Set(mine.filter((a) => a.correct).map((a) => a.concept));
   const rightBefore = new Set(earlier.filter((a) => a.correct).map((a) => a.concept));
   const seenBefore = new Set(earlier.map((a) => a.concept));
 
   const turnedAround = [...rightNow].filter((c) => seenBefore.has(c) && !rightBefore.has(c));
 
-  const everRight = new Set(
-    answers.filter((a) => !a.timedOut && a.correct).map((a) => a.concept)
-  );
+  const everRight = new Set(answers.filter((a) => a.correct).map((a) => a.concept));
   const stillOpen = [...new Set(answers.map((a) => a.concept))].filter((c) => !everRight.has(c));
 
   return {
     stage,
-    correct: scored.filter((a) => a.correct).length,
-    answered: scored.length,
-    timedOut: mine.filter((a) => a.timedOut).length,
+    correct: mine.filter((a) => a.correct).length,
+    answered: mine.length,
     turnedAround,
     stillOpen,
     bestStreak: bestStreak(mine),
-    points: mine.reduce((sum, a) => sum + (a.points ?? 0), 0),
   };
 }
 
@@ -439,7 +573,7 @@ function median(ns: number[]): number | null {
     are excluded outright: that stage is guessing by design, and a lucky coin
     flip is not evidence of anything. */
 export function rankForProduction(answers: Answer[]): ProductionRank[] {
-  const inRounds = answers.filter((a) => a.stage >= 1 && a.stage <= 3 && !a.timedOut);
+  const inRounds = answers.filter((a) => a.stage >= 1 && a.stage <= 3);
   if (inRounds.length === 0) return [];
 
   const scored = [...new Set(inRounds.map((a) => a.concept))].map((concept) => {
@@ -501,19 +635,16 @@ export type Reveal = {
   productions: Production[];
   concepts: ConceptLine[];
   bestStreak: number;
-  points: number;
-  /** Questions that ran out of time, reported on their own so they are never
-      folded into a wrong answer. */
-  timedOut: number;
-  /** Per-stage splits and the total run, covering the warm up and Rounds 1
-      to 3 only. Round 4 is untimed and outside the run. */
+  /** The one number the results screen leads with. See `rating`. */
+  rating: Rating;
+  /** Per-stage splits and the total run, every stage included. */
   splits: Split[];
   runTime: number;
   fastestAnswer: number | null;
 };
 
 function stageScore(answers: Answer[], stage: 0 | Round, format: Format): StageScore | null {
-  const mine = answers.filter((a) => a.stage === stage && !a.timedOut);
+  const mine = answers.filter((a) => a.stage === stage);
   if (mine.length === 0) return null;
   return {
     correct: mine.filter((a) => a.correct).length,
@@ -529,8 +660,8 @@ export function buildReveal(
   splits: Split[] = []
 ): Reveal {
   const concepts = [...new Set(answers.map((a) => a.concept))].map((concept) => {
-    const open = answers.filter((a) => a.concept === concept && a.stage === 0 && !a.timedOut);
-    const right = answers.filter((a) => a.concept === concept && a.correct && !a.timedOut);
+    const open = answers.filter((a) => a.concept === concept && a.stage === 0);
+    const right = answers.filter((a) => a.concept === concept && a.correct);
     return {
       concept,
       openCorrect: open.filter((a) => a.correct).length,
@@ -548,8 +679,7 @@ export function buildReveal(
     productions,
     concepts,
     bestStreak: bestStreak(answers),
-    points: totalPoints(answers),
-    timedOut: answers.filter((a) => a.timedOut).length,
+    rating: rating(answers, productions),
     splits,
     runTime: splitTotal(splits),
     fastestAnswer: fastestCorrect(answers),

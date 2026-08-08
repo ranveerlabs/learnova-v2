@@ -16,20 +16,12 @@ import {
   MusicToggle,
   PlainEscape,
   ProvenanceBadge,
-  RoundHud,
   RunClock,
   SoundToggle,
+  TimerRing,
   Verdict,
-  WarmUpLines,
 } from "./round/ui";
-import {
-  ADVANCE_MS,
-  comboMultiplier,
-  MAX_COMBO,
-  type Question,
-  QUESTION_SECONDS,
-  type Round,
-} from "./round/types";
+import { ADVANCE_MS, type Question, QUESTION_SECONDS, type Round } from "./round/types";
 import { play } from "./round/voice";
 import { Aside, Notice, Wordmark } from "./ui";
 
@@ -46,62 +38,134 @@ export default function Home() {
   const s = useRoundSession();
 
   const inPlay = s.phase === "playing";
-  const showRun = s.phase !== "entry" && s.phase !== "reveal";
+  /* Everything except the front door is a run in progress or a run just
+     finished, and both want the same strip. The results screen used to drop
+     the ladder, the badge and the clock, which is the one screen where a
+     filled-in ladder and a final time are the point. */
+  const showRun = s.phase !== "entry";
+  /* The clock runs while the student is doing something, and stops otherwise.
+
+     It stops on the results, because a finished run has a final time and a
+     final time that keeps counting is not one. It also stops on the two
+     loading screens: waiting for the model to write a round is not the
+     student being slow, and a clock ticking up while they can do nothing but
+     watch it is the app charging them for its own latency. */
+  const loading = s.phase === "opening" || s.phase === "waiting";
+  const clockLive = showRun && s.phase !== "reveal" && !loading;
+
+  /* The question clock is drawn in the header and counted in the question, so
+     it is held here, between the two. The countdown itself still belongs to
+     `QuestionScreen`, which is the thing that knows when a question is over
+     and has to agree with the clock to the millisecond. */
+  const [remaining, setRemaining] = useState(QUESTION_SECONDS * 1000);
+
+  /* Every screen starts at its own top.
+
+     The scrolling panel is one element that outlives the screens inside it, so
+     without this a student who scrolled the between-rounds screen arrived at
+     their results already scrolled past the headline. It looks exactly like a
+     screen that has been cut off, and from where they are sitting it is one. */
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    /* Twice: once now, and once after the browser has laid the new screen out.
+       The screens arrive with entrance animations and a focused control, and
+       either can scroll the panel a frame after the effect has already run. */
+    panel.current?.scrollTo({ top: 0 });
+    const frame = requestAnimationFrame(() => panel.current?.scrollTo({ top: 0 }));
+    return () => cancelAnimationFrame(frame);
+  }, [s.phase]);
+
+  /* A correct answer flashes through the header clock. Held here rather than
+     in the question because the clock is drawn here. */
+  const [cheering, setCheering] = useState(false);
+  const cheer = useCallback(() => {
+    setCheering(true);
+    setTimeout(() => setCheering(false), 420);
+  }, []);
 
   return (
     <div
-      className={`relative z-10 flex min-h-full flex-1 flex-col ${
+      className={`relative z-10 flex h-full min-h-0 flex-1 flex-col ${
         s.phase === "entry" ? "desk-grid" : ""
       }`}
     >
-      {/* During a question this holds nothing but the audio controls. The
-          wordmark, the rung, where the questions came from and the run clock
-          are all true and all worth showing, and none of them is worth showing
-          to somebody in the middle of trying to remember something. They come
-          back the moment the round does not have them.
+      {/* One strip, always on, showing everything at once.
 
-          The audio controls are the exception, and they are on every screen
-          for a reason worth writing down: they were briefly in the status
-          strip and nowhere else, which meant they existed only during a live
-          question. A control that only appears once you no longer have time to
-          look for it is not a control. It matters more now than it did then,
-          because audio is on by default: the entry screen is where somebody
-          who wants silence turns it off, before the start button has made a
-          sound. */}
-      <header
-        className={`sticky top-0 z-30 bg-ground/85 backdrop-blur-md ${
-          inPlay ? "" : "border-b border-line"
-        }`}
-      >
+          This used to empty itself the moment a round started: the wordmark,
+          the rung, where the questions came from and the run clock all
+          disappeared, on the theory that anything in the corner of the eye
+          competes with the retrieval. For one person alone with a screen that
+          may well be true. For a room watching one screen it is just an
+          interface that keeps hiding half of itself, and the half it hides is
+          the half that tells you what is going on.
+
+          So the timer and the combo moved up here too, out of the question
+          area. There is now exactly one band of chrome instead of two, it is
+          in the same place on every screen, and nothing in it ever appears or
+          vanishes on you mid-round. */}
+      <header className="z-30 shrink-0 border-b border-line bg-ground/85 backdrop-blur-md">
         <div
-          className={`${SHELL} flex flex-wrap items-center justify-between gap-x-6 gap-y-3 ${
-            inPlay ? "py-1" : "py-3.5"
-          }`}
+          className={`${SHELL} flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-2.5`}
         >
           <div className="flex items-center gap-5">
-            {!inPlay && <Wordmark />}
-            {showRun && !inPlay && <LadderRail stage={s.stage} />}
+            <Wordmark />
+            {showRun && <LadderRail stage={s.stage} finished={s.phase === "reveal"} />}
           </div>
 
           <div className="flex items-center gap-3">
-            {showRun && !inPlay && s.phase !== "opening" && (
-              <ProvenanceBadge provenance={s.provenance} />
-            )}
-            {showRun && !inPlay && <Ghost best={s.best} elapsed={s.runElapsed} live={false} />}
-            {/* During a question these are in the status strip instead, beside
-                the timer, so the round keeps its one uncluttered row. */}
-            {!inPlay && (
-              <>
-                <MusicToggle on={s.music} onToggle={s.toggleMusic} />
-                <SoundToggle on={s.sound} onToggle={s.toggleSound} />
-              </>
+            {showRun && s.phase !== "opening" && <ProvenanceBadge provenance={s.provenance} />}
+            {/* Just the clock. It used to be a speedrun ghost, racing your own
+                best time with a running +/- beside it, and that went with the
+                run time being the thing you were judged on. What you are
+                measured against now is the rating, which is not a number that
+                can be counted up to live. The clock stayed because how long a
+                run took is still worth knowing. */}
+            {showRun && <RunClock elapsed={s.runElapsed} live={clockLive} />}
+            <MusicToggle on={s.music} onToggle={s.toggleMusic} />
+            <SoundToggle on={s.sound} onToggle={s.toggleSound} />
+            {/* The question clock. Lives here rather than in the question so
+                that it is in the same place, at the same size, on every screen
+                a run passes through. */}
+            {inPlay && (
+              <TimerRing
+                remaining={remaining}
+                total={QUESTION_SECONDS * 1000}
+                cheering={cheering}
+              />
             )}
           </div>
         </div>
       </header>
 
-      <div className={`${SHELL} flex-1 py-8 lg:py-10`}>
-        <main className="min-w-0">
+      {/* Where the lock is actually enforced, once, for every screen.
+
+          A live question never scrolls and never can: `min-h-0` is what lets
+          the flex child shrink to the frame instead of pushing past it, and
+          the round is built to fit what is left.
+
+          Everything else is a reading screen. The results, the between-rounds
+          summary and the front door with notes pasted into it can all be
+          taller than a laptop, and hiding half of a score sheet would be a
+          worse answer than scrolling it. They scroll inside this panel, so the
+          header and the frame still never move.
+
+          `min-h-full` on the inner element rather than `h-full` is load
+          bearing. Centring content in a box that is exactly the container's
+          height puts the top of an over-tall panel above its own scroll
+          origin, where nothing can reach it; a box that is at least the
+          container's height and free to grow centres while it fits and scrolls
+          honestly once it does not. */}
+      <div
+        ref={panel}
+        className={`${SHELL} flex min-h-0 flex-1 flex-col ${
+          inPlay ? "overflow-hidden py-2" : "overflow-y-auto py-4 lg:py-6"
+        }`}
+      >
+        <main
+          className={`flex w-full min-w-0 flex-1 flex-col ${
+            inPlay ? "min-h-0" : "min-h-full justify-center"
+          }`}
+        >
           {/* A round the shared key was too busy to write. Said once, between
               rounds, where there is room to read it: never over a live
               question, which is the one screen this app keeps clear of
@@ -138,15 +202,13 @@ export default function Home() {
               question={s.current}
               stage={s.stage}
               sound={s.sound}
-              music={s.music}
-              onSound={s.toggleSound}
-              onMusic={s.toggleMusic}
-              streak={s.streak}
               seed={s.seed}
               plainOnly={s.plainOnly}
               onPlainOnly={() => s.setPlainOnly(true)}
               onAnswer={s.answer}
               onAdvance={s.advance}
+              onRemaining={setRemaining}
+              onCorrect={cheer}
             />
           )}
 
@@ -158,7 +220,7 @@ export default function Home() {
               next={s.nextPlayable}
               splitMs={s.splits[s.splits.length - 1]?.ms ?? 0}
               runMs={s.splits.reduce((sum, sp) => sum + sp.ms, 0)}
-              points={s.points}
+
               onContinue={s.continueOn}
             />
           )}
@@ -182,16 +244,19 @@ export default function Home() {
               <NothingToProduce onFinish={s.finish} />
             ))}
 
+          {/* `BeatIt`, the panel that used to sit under this comparing run
+              times against a personal best, is gone. The comparison it made is
+              now one line beside the rating, and it compares ratings, which is
+              the thing worth beating. */}
           {s.phase === "reveal" && (
-            <>
-              <Reveal
-                data={s.reveal()}
-                topic={s.topic}
-                provenance={s.provenance}
-                onRestart={s.restart}
-              />
-              {s.best && <BeatIt best={s.best} data={s.reveal()} runs={s.runCount} />}
-            </>
+            <Reveal
+              data={s.reveal()}
+              topic={s.topic}
+              provenance={s.provenance}
+              best={s.best}
+              runs={s.runCount}
+              onRestart={s.restart}
+            />
           )}
         </main>
       </div>
@@ -199,112 +264,6 @@ export default function Home() {
   );
 }
 
-/* ── The ghost ────────────────────────────────────────────────────────────
-   A speedrun ghost, in the literal sense: the run you are racing is your own
-   last one. It only appears once there is a real previous run in this tab to
-   race, because a ghost with nothing behind it is just a clock.
-
-   It no longer ticks during a question. A number counting up against a
-   personal best, in the corner of the eye, while trying to retrieve something,
-   is the exact shape of the chrome this round was cleared of. The run is still
-   timed to the millisecond and the comparison is still real; it is shown
-   between rounds and at the end. */
-
-function Ghost({
-  best,
-  elapsed,
-  live,
-}: {
-  best: { points: number; runTime: number } | null;
-  elapsed: () => number;
-  live: boolean;
-}) {
-  const [delta, setDelta] = useState(0);
-
-  useEffect(() => {
-    if (!best || !live || !Number.isFinite(best.runTime)) return;
-    let raf = 0;
-    const tick = () => {
-      setDelta(elapsed() - best.runTime);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [best, elapsed, live]);
-
-  if (!best || !Number.isFinite(best.runTime)) return <RunClock elapsed={elapsed} live={live} />;
-
-  const ahead = delta < 0;
-  return (
-    <div className="flex items-center gap-3">
-      <RunClock elapsed={elapsed} live={live} />
-      <span
-        title="Against your last completed run in this tab"
-        className={`run-clock rounded-[3px] px-1.5 py-0.5 font-mono text-[0.75rem] font-semibold tabular-nums ${
-          ahead ? "bg-solid-tint text-solid-ink" : "bg-sunk text-ink-faint"
-        }`}
-      >
-        {ahead ? "-" : "+"}
-        {formatClock(Math.abs(delta))}
-      </span>
-    </div>
-  );
-}
-
-/** How this run finished against the best one in this tab. Shown only when
-    there is a real previous run to compare with, and it never invents a
-    target: a first run has nothing to beat and is told so. */
-function BeatIt({
-  best,
-  data,
-  runs,
-}: {
-  best: { points: number; runTime: number };
-  data: { points: number; runTime: number };
-  runs: number;
-}) {
-  const beatPoints = data.points > best.points;
-  const beatTime = Number.isFinite(best.runTime) && data.runTime < best.runTime;
-
-  return (
-    <section className="mx-auto mt-2 flex w-full max-w-[58rem] flex-col gap-3 rounded-[3px] border border-line bg-page p-5">
-      <span
-        style={{ fontVariationSettings: '"wdth" 88' }}
-        className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-ink-faint"
-      >
-        Against your best this session
-      </span>
-      <div className="flex flex-wrap gap-x-10 gap-y-3">
-        <p className="font-read text-[1.0625rem] text-ink">
-          Points:{" "}
-          <span className={beatPoints ? "font-semibold text-solid-ink" : "text-ink-soft"}>
-            {data.points.toLocaleString()}
-          </span>{" "}
-          <span className="font-mono text-[0.8125rem] text-ink-faint">
-            best {best.points.toLocaleString()}
-          </span>
-        </p>
-        {Number.isFinite(best.runTime) && (
-          <p className="font-read text-[1.0625rem] text-ink">
-            Time:{" "}
-            <span className={beatTime ? "font-semibold text-solid-ink" : "text-ink-soft"}>
-              {formatClock(data.runTime)}
-            </span>{" "}
-            <span className="font-mono text-[0.8125rem] text-ink-faint">
-              best {formatClock(best.runTime)}
-            </span>
-          </p>
-        )}
-      </div>
-      <p
-        className="font-sans text-[0.75rem] leading-[1.5] text-ink-faint"
-        title="Run history lives in memory only, because there are no accounts yet to keep it in."
-      >
-        {runs} run{runs === 1 ? "" : "s"} this tab.
-      </p>
-    </section>
-  );
-}
 
 /** Which rounds were lost to the shared key being busy, and what that did and
     did not cost.
@@ -348,13 +307,12 @@ function NothingToProduce({ onFinish }: { onFinish: () => void }) {
 }
 
 /* ── A question ───────────────────────────────────────────────────────────
-   The question, the options, the timer, and the combo multiplier when it is
-   above one. Nothing else is on this screen, and everything that used to be is
-   accounted for in the note at the top of ui.tsx. */
+   The question and the options. That is now the whole of it: the timer, the
+   combo and the audio controls have gone up into the header, where they are on
+   screen the whole time rather than only while a question is live. */
 
 type Result = {
   correct: boolean;
-  points: number;
   streak: number;
   record: boolean;
   question: Question;
@@ -364,35 +322,32 @@ function QuestionScreen({
   question,
   stage,
   sound,
-  music,
-  onSound,
-  onMusic,
-  streak,
   seed,
   plainOnly,
   onPlainOnly,
   onAnswer,
   onAdvance,
+  onRemaining,
+  onCorrect,
 }: {
   question: Question;
   stage: 0 | Round;
   sound: boolean;
-  music: boolean;
-  onSound: () => void;
-  onMusic: () => void;
-  streak: number;
   seed: number;
   plainOnly: boolean;
   onPlainOnly: () => void;
   onAnswer: (given: string | number | string[], timedOut?: boolean) => Result | null;
   onAdvance: () => void;
+  /** Reports the countdown up to the header, which draws it. */
+  onRemaining: (ms: number) => void;
+  /** Fired the instant an answer lands correctly, so the header can react. */
+  onCorrect: () => void;
 }) {
   const [chosen, setChosen] = useState<number | null>(null);
   const [typed, setTyped] = useState("");
   const [built, setBuilt] = useState<string[]>([]);
   const [result, setResult] = useState<Result | null>(null);
   const [ranOut, setRanOut] = useState(false);
-  const [remaining, setRemaining] = useState(QUESTION_SECONDS * 1000);
 
   const startedAt = useRef(performance.now());
   const settled = useRef(false);
@@ -409,9 +364,15 @@ function QuestionScreen({
       if (!outcome) return;
       setRanOut(timedOut);
       setResult(outcome);
+      if (outcome.correct) onCorrect();
 
+      /* The tone still climbs with a run of correct answers. That was the one
+         part of the combo worth keeping: it is felt rather than read, it costs
+         no room on screen, and it is the difference between a run that sounds
+         like a run and eight identical beeps. The multiplier it used to be
+         derived from is gone, so the heat comes straight off the streak. */
       if (sound) {
-        const heat = (comboMultiplier(outcome.streak) - 1) / (MAX_COMBO - 1);
+        const heat = Math.min(1, Math.max(0, (outcome.streak - 1) / 8));
         play(outcome.correct ? (outcome.streak >= 2 ? "combo" : "right") : "wrong", heat);
       }
 
@@ -422,7 +383,7 @@ function QuestionScreen({
           : ADVANCE_MS.wrong;
       advanceTimer.current = setTimeout(onAdvance, wait);
     },
-    [onAdvance, onAnswer, sound]
+    [onAdvance, onAnswer, onCorrect, sound]
   );
 
   /* The countdown. Driven from a monotonic start rather than by decrementing,
@@ -430,11 +391,11 @@ function QuestionScreen({
   useEffect(() => {
     const id = setInterval(() => {
       const left = total - (performance.now() - startedAt.current);
-      setRemaining(Math.max(0, left));
+      onRemaining(Math.max(0, left));
       if (left <= 0) settle("", true);
     }, 100);
     return () => clearInterval(id);
-  }, [settle, total]);
+  }, [onRemaining, settle, total]);
 
   useEffect(() => {
     return () => {
@@ -442,16 +403,23 @@ function QuestionScreen({
     };
   }, []);
 
-  /* Enter or space advances once an answer is showing, which is what makes a
-     fast run possible without reaching for the mouse. */
+  /* Enter advances once an answer is showing, which is what makes a fast run
+     possible without reaching for the mouse.
+
+     Enter does double duty: it commits an answer in Rounds 2 and 3, and it
+     moves on from the verdict here. That reads as a conflict and is not one,
+     because the two never exist at the same moment. This listener is only
+     mounted once `result` is set, and every commit handler bails the instant
+     the question is revealed, so at any given moment exactly one of them is
+     listening. One key for "I am done with this screen" turned out to be
+     worth more than the tidiness of giving each job its own. */
   useEffect(() => {
     if (!result) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        if (advanceTimer.current) clearTimeout(advanceTimer.current);
-        onAdvance();
-      }
+      if (e.key !== "Enter" || e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault();
+      if (advanceTimer.current) clearTimeout(advanceTimer.current);
+      onAdvance();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -489,54 +457,72 @@ function QuestionScreen({
     },
   };
 
+  /* Fills the frame rather than sitting in a 70vh puddle inside it. A question
+     that occupies a third of the screen is a question nobody across the room
+     can read, so this one is given the whole height and its type is sized off
+     the viewport. */
   return (
-    <section className="relative mx-auto flex min-h-[70vh] w-full max-w-[46rem] flex-col justify-center gap-6 py-4">
+    <section className="relative mx-auto flex h-full min-h-0 w-full max-w-[64rem] flex-col gap-[2vh]">
       {/* First in the tab order, invisible until focused. See PlainEscape. */}
       {!plainOnly && <PlainEscape onChoose={onPlainOnly} />}
 
-      <div className="flex items-start justify-between gap-6">
-        {stage === 0 ? <WarmUpLines /> : <span />}
-        <RoundHud
-          streak={streak}
-          remaining={remaining}
-          total={total}
-          scoring={stage !== 0}
-          music={music}
-          sound={sound}
-          onMusic={onMusic}
-          onSound={onSound}
-        />
+      {/* The question and the answers, as one block, centred in whatever the
+          header left behind.
+
+          They used to be separate children of a `justify-center` column, which
+          sounds the same and is not: the answer area took the slack, so the
+          question sat alone at the top of the screen with a hand's width of
+          empty page between it and the things that answer it. Two people
+          looking at that from across a room are reading two unrelated objects.
+          Grouped, they are one board. */}
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[3vh]">
+        {/* Given the full column rather than a 34-character measure: the
+            generation prompt caps questions at 12 words, and the point of
+            capping the words was so the question could fit a line without the
+            type being shrunk to make it.
+
+            Sized for the back of the room. The old ceiling was thirty pixels,
+            which is a comfortable reading size for one person at arm's length
+            and illegible to the three people behind them, and three people
+            behind them is the situation this is built for. */}
+        {question.format !== "blank" && (
+          <h2 className="deal-in shrink-0 text-balance font-read text-[clamp(1.625rem,1.1rem+2.3vw,3rem)] font-medium leading-[1.12] tracking-[-0.02em] text-ink">
+            {question.prompt}
+          </h2>
+        )}
+
+        {/* The one place the presentation layer touches the round. Everything
+            below this point is the same whichever one is drawn: the answer
+            comes back in the shape checking already understands, and a
+            presentation has no way to reach the ladder, the timer or the
+            grade. */}
+        <PresentationBoundary {...props} resetKey={question.id}>
+          <Drawn {...props} />
+        </PresentationBoundary>
       </div>
 
-      {/* Given the full column rather than a 34-character measure: the
-          generation prompt caps questions at 12 words, and the point of
-          capping the words was so the question could fit a line without the
-          type being shrunk to make it. */}
-      {question.format !== "blank" && (
-        <h2 className="deal-in text-balance font-read text-[clamp(1.375rem,1.1rem+1.3vw,1.875rem)] font-normal leading-[1.2] tracking-[-0.015em] text-ink">
-          {question.prompt}
-        </h2>
-      )}
+      {/* The verdict has a slot whether or not there is a verdict in it.
 
-      {/* The one place the presentation layer touches the round. Everything
-          below this point is the same whichever one is drawn: the answer comes
-          back in the shape checking already understands, and a presentation
-          has no way to reach the ladder, the timer or the grade. */}
-      <PresentationBoundary {...props} resetKey={question.id}>
-        <Drawn {...props} />
-      </PresentationBoundary>
-
-      {result && (
-        <Verdict
-          correct={result.correct}
-          timedOut={ranOut}
-          answer={question.answer}
-          onNext={() => {
-            if (advanceTimer.current) clearTimeout(advanceTimer.current);
-            onAdvance();
-          }}
-        />
-      )}
+          It used to be added to the column at the moment it appeared, which
+          did two bad things at once on a screen that is now pinned to the
+          viewport: the whole board jumped up as the answer landed, and on a
+          short window the verdict itself was pushed off the bottom edge and
+          clipped, so the one line telling you what the answer was is the line
+          you could not read. An empty row costs about an inch and buys a board
+          that does not move all round. */}
+      <div className="flex min-h-[4.5rem] shrink-0 items-center">
+        {result && (
+          <Verdict
+            correct={result.correct}
+            timedOut={ranOut}
+            answer={question.answer}
+            onNext={() => {
+              if (advanceTimer.current) clearTimeout(advanceTimer.current);
+              onAdvance();
+            }}
+          />
+        )}
+      </div>
     </section>
   );
 }
