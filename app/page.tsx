@@ -249,7 +249,7 @@ export default function Home() {
               next={s.nextPlayable}
               splitMs={s.splits[s.splits.length - 1]?.ms ?? 0}
               runMs={s.splits.reduce((sum, sp) => sum + sp.ms, 0)}
-
+              returning={Object.keys(s.previously).length > 0}
               onContinue={s.continueOn}
             />
           )}
@@ -283,6 +283,7 @@ export default function Home() {
               topic={s.topic}
               provenance={s.provenance}
               best={s.best}
+              previously={s.previously}
               runs={s.runCount}
               onRestart={s.restart}
             />

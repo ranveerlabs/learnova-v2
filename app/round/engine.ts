@@ -571,10 +571,24 @@ function median(ns: number[]): number | null {
     is how far up the escalation a concept survived and how quickly the
     correct answers came, and that pair decides the order. Warm up answers
     are excluded outright: that stage is guessing by design, and a lucky coin
-    flip is not evidence of anything. */
-export function rankForProduction(answers: Answer[]): ProductionRank[] {
+    flip is not evidence of anything.
+
+    ── Unless they have been here before ────────────────────────────────────
+    All of the above is the reasoning for a student's FIRST unscaffolded
+    attempt, and it is spent the moment they have had one. On a return visit
+    the question is no longer "how do we make this go well", it is "which
+    three concepts is this round worth spending on", and the answer is the
+    ones they could not say last time. Round 4 is capped at three, so a
+    concept not hoisted here is one the return visit will never reach.
+
+    `openFirst` only reorders. A concept still has to have been met in this
+    session's rounds to be offered at all, and the ranking inside each group
+    is exactly the ranking described above. */
+export function rankForProduction(answers: Answer[], openFirst: string[] = []): ProductionRank[] {
   const inRounds = answers.filter((a) => a.stage >= 1 && a.stage <= 3);
   if (inRounds.length === 0) return [];
+
+  const open = new Set(openFirst);
 
   const scored = [...new Set(inRounds.map((a) => a.concept))].map((concept) => {
     const mine = inRounds.filter((a) => a.concept === concept);
@@ -590,6 +604,10 @@ export function rankForProduction(answers: Answer[]): ProductionRank[] {
   });
 
   return scored.sort((a, b) => {
+    /* Still open beats everything below it, and nothing below it changes. */
+    const aOpen = open.has(a.concept);
+    const bOpen = open.has(b.concept);
+    if (aOpen !== bOpen) return aOpen ? -1 : 1;
     if (a.correct > 0 !== b.correct > 0) return a.correct > 0 ? -1 : 1;
     if (a.highestRound !== b.highestRound) return b.highestRound - a.highestRound;
     const am = a.medianMs ?? Infinity;
@@ -628,6 +646,46 @@ export type ConceptLine = {
   /** The Round 4 grade, when they produced this one. */
   outcome: Production["outcome"] | null;
 };
+
+/** Where a concept stands, in the strongest evidence the session collected.
+
+    One vocabulary, used by three things that must agree: the results screen
+    draws it, the record keeps it between runs, and the next run reads it back
+    to decide what to lead with. It used to be spelled out on the results
+    screen alone, where it was a local detail; the moment anything outlives the
+    tab it becomes a shared contract and belongs here with the rest of them. */
+export type Standing =
+  /** Produced it, unscaffolded, and the grader agreed. */
+  | "explained"
+  /** Produced it and the grader called it nearly there. */
+  | "almost"
+  /** Produced it and the grader did not accept it. */
+  | "not-yet"
+  /** Never produced, but got it right somewhere on the ladder. */
+  | "recognised"
+  /** Met it and never got it right. */
+  | "missed";
+
+/** Where a concept finished, from its line on the results.
+
+    A Round 4 grade wins when there is one, because producing an explanation
+    with nothing on screen is the strongest evidence the session collects.
+    Otherwise it comes down to whether they ever got it right at all, which is
+    the only other thing the rounds actually establish. */
+export function conceptStanding(line: ConceptLine): Standing {
+  if (line.outcome === "solid") return "explained";
+  if (line.outcome === "shaky") return "almost";
+  if (line.outcome === "not-yet") return "not-yet";
+  return line.reached > 0 ? "recognised" : "missed";
+}
+
+/** Whether a concept is finished with, in the only sense this app claims: the
+    student said it in their own words and it held up. Everything else is still
+    open, including "got it right", which is recognition and is exactly the
+    thing this mode exists to stop people mistaking for understanding. */
+export function isOpen(standing: Standing): boolean {
+  return standing !== "explained";
+}
 
 export type Reveal = {
   open: StageScore | null;

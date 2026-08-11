@@ -1,7 +1,9 @@
 "use client";
 
-import { formatClock, type Reveal as RevealData } from "./engine";
+import { useState } from "react";
+import { conceptStanding, formatClock, type Reveal as RevealData, type Standing } from "./engine";
 import { Arrow, GhostButton, Label, PrimaryButton } from "../ui";
+import { conceptKey, forget } from "./record";
 import type { Provenance } from "./types";
 
 /* Where the session lands.
@@ -31,29 +33,17 @@ const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
    what happened instead, and each carries a colour and a shape so the state
    is never colour alone. */
 
-type Standing = {
-  word: string;
-  ink: string;
-  mark: string;
+/** How each standing is drawn. The classification itself is `conceptStanding`
+    in engine.ts, because the record keeps the same vocabulary between runs and
+    two copies of that judgement would eventually disagree about what a student
+    had achieved. This table is only the words and the colours. */
+const SHOWN: Record<Standing, { word: string; ink: string; mark: string }> = {
+  explained: { word: "Explained it", ink: "text-solid-ink", mark: "bg-solid-mark" },
+  almost: { word: "Almost", ink: "text-shaky-ink", mark: "bg-shaky-mark" },
+  "not-yet": { word: "Not yet", ink: "text-broken-ink", mark: "bg-broken-mark" },
+  recognised: { word: "Got it right", ink: "text-solid-ink", mark: "bg-solid-mark" },
+  missed: { word: "Not yet", ink: "text-broken-ink", mark: "bg-broken-mark" },
 };
-
-const EXPLAINED: Standing = { word: "Explained it", ink: "text-solid-ink", mark: "bg-solid-mark" };
-const ALMOST: Standing = { word: "Almost", ink: "text-shaky-ink", mark: "bg-shaky-mark" };
-const NOT_YET: Standing = { word: "Not yet", ink: "text-broken-ink", mark: "bg-broken-mark" };
-const KNEW_IT: Standing = { word: "Got it right", ink: "text-solid-ink", mark: "bg-solid-mark" };
-
-/** Where a concept finished.
-
-    A Round 4 grade wins when there is one, because producing an explanation
-    with nothing on screen is the strongest evidence the session collects.
-    Otherwise it comes down to whether they ever got it right at all, which is
-    the only other thing the rounds actually establish. */
-function standing(line: RevealData["concepts"][number]): Standing {
-  if (line.outcome === "solid") return EXPLAINED;
-  if (line.outcome === "shaky") return ALMOST;
-  if (line.outcome === "not-yet") return NOT_YET;
-  return line.reached > 0 ? KNEW_IT : NOT_YET;
-}
 
 /** One small labelled fact, inside the disclosure. */
 function Figure({ value, label }: { value: string; label: string }) {
@@ -85,14 +75,18 @@ export function Reveal({
   topic,
   provenance,
   best,
+  previously,
   runs,
   onRestart,
 }: {
   data: RevealData;
   topic: string;
   provenance: Provenance;
-  /** The best rating in this tab so far, when there is a previous run. */
+  /** The best rating on THIS topic, from the record, when there is one. */
   best: { rating: number } | null;
+  /** Where each concept stood before this run, keyed as the record keys them.
+      Empty on a first visit, which is what makes "moved" sayable at all. */
+  previously: Record<string, Standing>;
   runs: number;
   onRestart: () => void;
 }) {
@@ -101,6 +95,21 @@ export function Reveal({
   const { earned, possible } = data.rating;
   const band = BAND[data.rating.band];
   const beatBest = best !== null && earned > best.rating;
+
+  /* What this run changed, against where the last one left off.
+
+     Only in one direction and only over the line that matters: a concept the
+     student could not say before and just said. Recognition improving is not
+     in here, and neither is anything sliding backwards. This is the sentence
+     the whole record exists to make sayable, and it is worth exactly as much
+     as it is rare, so it is not padded out with movement that did not happen. */
+  const nowExplained = data.concepts.filter((line) => {
+    if (conceptStanding(line) !== "explained") return false;
+    const before = previously[conceptKey(line.concept)];
+    return before !== undefined && before !== "explained";
+  });
+
+  const [forgotten, setForgotten] = useState(false);
 
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2">
@@ -143,6 +152,38 @@ export function Reveal({
         </p>
       </div>
 
+      {/* The one thing a returning student came back to find out.
+
+          It sits above the buttons rather than inside the disclosure, because
+          it is the only claim on this screen that could not be made at all
+          before a run left anything behind, and because "you could not say
+          this last week and you just did" is worth more to somebody than any
+          number on the page. It appears when it is true and not otherwise. */}
+      {nowExplained.length > 0 && (
+        <div
+          className="stage-in flex flex-col gap-2 rounded-[3px] border-l-[3px] border-solid-mark bg-solid-tint py-3 pl-4 pr-4"
+          style={{ ["--i" as string]: 2 }}
+        >
+          <span
+            style={NARROW}
+            className="font-sans text-[0.625rem] font-bold uppercase tracking-[0.14em] text-solid-ink"
+          >
+            Could not explain this before
+          </span>
+          <ul className="flex flex-wrap gap-2">
+            {nowExplained.map((line, i) => (
+              <li
+                key={line.concept}
+                style={{ ["--i" as string]: i }}
+                className="split-land rounded-[3px] bg-page px-2.5 py-1 font-read text-[0.9375rem] text-solid-ink"
+              >
+                {line.concept}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="stage-in flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 2 }}>
         <PrimaryButton onClick={onRestart}>
           Run it again <Arrow />
@@ -181,7 +222,7 @@ export function Reveal({
 
           <ol className="max-h-[27vh] divide-y divide-line overflow-y-auto rounded-[3px] border border-line bg-page">
             {data.concepts.map((line) => {
-              const s = standing(line);
+              const s = SHOWN[conceptStanding(line)];
               return (
                 <li key={line.concept} className="flex items-center gap-3 px-4 py-3">
                   <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${s.mark}`} />
@@ -209,9 +250,28 @@ export function Reveal({
                 Written by an AI model from your topic, not your own material.{" "}
               </span>
             )}
-            <span title="There are no accounts yet, so there is nowhere honest to keep it.">
-              Nothing is saved.
-            </span>
+            {/* This used to read "Nothing is saved", and it was true until a
+                run started leaving something behind. What replaced it says
+                exactly what is kept and exactly where, because the difference
+                between "on this device" and "in your account" is the whole of
+                what a student needs to know to predict whether their progress
+                will be there tomorrow, and there is still no account. */}
+            <span title="A concept name and how it went, in this browser's local storage. Your answers and anything you wrote are not kept and never leave the page.">
+              {forgotten
+                ? "Forgotten. This topic starts fresh next time."
+                : "Which concepts you have explained is kept in this browser, so the next run on this topic can open on the ones you have not. Nothing you wrote is kept, and none of it leaves this device."}
+            </span>{" "}
+            {!forgotten && (
+              <button
+                onClick={() => {
+                  forget(topic);
+                  setForgotten(true);
+                }}
+                className="underline decoration-ink-faint/40 underline-offset-4 hover:text-ink-soft hover:decoration-ink-soft"
+              >
+                Forget {topic}
+              </button>
+            )}
           </p>
         </div>
       </details>

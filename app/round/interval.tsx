@@ -53,12 +53,17 @@ export function Interval({
   next,
   splitMs,
   runMs,
+  returning,
   onContinue,
 }: {
   summary: RoundSummary;
   next: Round;
   splitMs: number;
   runMs: number;
+  /** Whether this browser has a record of studying this topic before. Changes
+      only what the warm up is called, which is the one thing on this screen
+      that stops being true the second time somebody plays. */
+  returning: boolean;
   onContinue: () => void;
 }) {
   const cleared = summary.stage === 0 ? "Warm up" : `Round ${summary.stage}`;
@@ -75,7 +80,9 @@ export function Interval({
         </span>
         <h2 className="font-read text-[clamp(1.75rem,1.3rem+1.8vw,2.5rem)] leading-[1.1] tracking-[-0.015em] text-ink">
           {summary.stage === 0
-            ? "That was you guessing. Now it starts."
+            ? returning
+              ? "That was what stuck. Now it starts."
+              : "That was you guessing. Now it starts."
             : summary.turnedAround.length > 0
               ? "Something just moved."
               : "Round done."}
@@ -97,8 +104,15 @@ export function Interval({
           className="stage-in max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft"
           style={{ ["--i" as string]: 1 }}
         >
-          You had not studied yet, so that was a baseline. You will meet those
-          answers again at the end.
+          {returning
+            ? /* The same five questions mean something different the second
+                 time. Answering on sight, days after last studying, is the
+                 only measurement in the session that is about retention
+                 rather than about the last ten minutes, and calling it a
+                 baseline once there is a record to compare it against would
+                 be describing the wrong thing. */
+              "You have met this before, so that was what stuck. You will see those answers again at the end."
+            : "You had not studied yet, so that was a baseline. You will meet those answers again at the end."}
         </p>
       ) : (
         <div
