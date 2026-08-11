@@ -65,7 +65,7 @@ export function Interval({
   const upNext = NEXT[next];
 
   return (
-    <section className="mx-auto flex w-full max-w-[46rem] flex-col gap-8 py-8">
+    <section className="mx-auto flex w-full max-w-[46rem] flex-col gap-5 py-4 sm:gap-8 sm:py-8">
       <div className="stage-in flex flex-col gap-2">
         <span
           style={NARROW}
@@ -101,7 +101,10 @@ export function Interval({
           answers again at the end.
         </p>
       ) : (
-        <div className="stage-in flex flex-wrap gap-x-10 gap-y-6" style={{ ["--i" as string]: 1 }}>
+        <div
+          className="stage-in flex flex-wrap gap-x-8 gap-y-5 sm:gap-x-10 sm:gap-y-6"
+          style={{ ["--i" as string]: 1 }}
+        >
           <Stat
             label="Correct"
             value={`${summary.correct}/${summary.answered}`}

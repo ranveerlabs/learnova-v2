@@ -213,12 +213,30 @@ export function Looseleaf({
       <Tape className="right-10 top-[-0.15rem] rotate-[5deg]" />
 
       {/* The pencil lies across the corner of the sheet and gets to work when
-          you do. It is the one thing on this screen that reacts to writing. */}
+          you do. It is the one thing on this screen that reacts to writing.
+
+          How far it hangs off the sheet depends on there being anything to
+          hang off into. On a desk there is a margin either side of the paper
+          and the pencil lies half on and half off it, which is where a pencil
+          would be. On a phone the sheet is the full width of the screen, there
+          is no desk beside it, and seven units of overhang put half the pencil
+          past the edge of the viewport, where it was cut down its length.
+
+          The overhang comes back at `lg` rather than at `sm`, because `sm` is
+          not where the desk appears. The sheet stops growing at 52rem, and
+          until the window is wider than that plus its gutters the sheet is
+          still the full width of the screen with nothing either side of it: a
+          phone held sideways is 844 wide, comfortably past `sm`, and had the
+          pencil hanging four pixels off the edge. */}
       <PixelSprite
         name="pencil"
         scale={6}
         title="A pencil, resting on the page"
-        className={`pointer-events-none absolute -right-7 top-8 drop-shadow-[3px_4px_0_rgb(12_16_24/0.3)] ${
+        /* `right-1` and not `right-0`: the pencil is tilted seventeen degrees,
+           so the box it actually occupies is about fourteen pixels wider than
+           the box it is laid out in, and the browser clips against the first
+           of those. */
+        className={`pointer-events-none absolute right-1 top-8 drop-shadow-[3px_4px_0_rgb(12_16_24/0.3)] lg:-right-7 ${
           scribbling ? "scribbling" : "bob"
         }`}
         style={{ ["--tilt" as string]: "17deg" }}
@@ -235,7 +253,7 @@ export function Looseleaf({
       <PixelSprite
         name="star"
         scale={3}
-        className="press-on pointer-events-none absolute -left-4 bottom-8"
+        className="press-on pointer-events-none absolute -left-1 bottom-8 lg:-left-4"
         style={{ ["--tilt" as string]: "-14deg", ["--i" as string]: 3 }}
       />
     </div>

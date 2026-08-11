@@ -16,11 +16,19 @@ const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
 export function Wordmark() {
   return (
-    <span className="font-read text-[1.3rem] font-medium tracking-[-0.01em] text-ink">
+    <span className="shrink-0 whitespace-nowrap font-read text-[1.15rem] font-medium tracking-[-0.01em] text-ink sm:text-[1.3rem]">
       Learnova
       {/* Teach-Back is a round now, not the product, so the wordmark names
-          the mode the student is actually in. */}
-      <span className="ml-2 align-[0.15em] font-sans text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+          the mode the student is actually in.
+
+          Not on a phone. This tag and the ladder's rung label are the same
+          kind of thing, a second line of small caps beside the name, and the
+          two of them together are what pushed the header onto a third row on a
+          narrow screen. The rung label wins that fight without a contest: it
+          says which round you are in, which changes and matters, where this
+          says which mode you are in, which never changes and is the only mode
+          there is. */}
+      <span className="ml-2 hidden align-[0.15em] font-sans text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-ink-faint sm:inline">
         Round Mode
       </span>
     </span>

@@ -69,7 +69,7 @@ export function Entry({
      that is not a live question a panel to scroll inside. This one just says
      how wide it is and gets out of the way. */
   return (
-    <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-8 py-2">
+    <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2 sm:gap-8">
       <div className="rise flex flex-col gap-5">
         <div className="flex items-center gap-2">
           <PixelTag className="press-on -rotate-2">10 seconds to your first question</PixelTag>
@@ -137,7 +137,11 @@ export function Entry({
                 setTopic(starter);
                 field.current?.focus();
               }}
-              className="chip rounded-[3px] border border-line px-2.5 py-1 font-sans text-[0.75rem] text-ink-soft hover:border-accent hover:text-ink"
+              /* A starting point has to be tappable by a thumb, not only
+                 clickable by a cursor. At the old height these were a
+                 twenty-six pixel target, which on a phone is a coin toss
+                 between filling the field and hitting the one next to it. */
+              className="chip min-h-[2.25rem] rounded-[3px] border border-line px-3 py-1.5 font-sans text-[0.8125rem] text-ink-soft hover:border-accent hover:text-ink"
             >
               {starter}
             </button>

@@ -48,8 +48,8 @@ export function LadderRail({ stage, finished = false }: { stage: 0 | Round; fini
   const here = RUNGS.find((r) => r.key === stage);
 
   return (
-    <nav aria-label="Session stages" className="flex items-center gap-2.5">
-      <span className="flex items-center gap-1.5">
+    <nav aria-label="Session stages" className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+      <span className="flex shrink-0 items-center gap-1 sm:gap-1.5">
         {RUNGS.map((rung) => {
           const done = finished || rung.key < stage;
           const current = !finished && rung.key === stage;
@@ -75,9 +75,12 @@ export function LadderRail({ stage, finished = false }: { stage: 0 | Round; fini
         })}
       </span>
       {(finished || here) && (
+        /* One line, always. Left to wrap, "Say it yourself" and "Fill the gap"
+           broke in half on a narrow screen and made the whole strip taller for
+           two rounds out of five. */
         <span
           style={NARROW}
-          className={`font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
+          className={`truncate font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
             finished ? "text-solid-ink" : "text-ink-soft"
           }`}
         >
@@ -116,7 +119,7 @@ export function RunClock({ elapsed, live }: { elapsed: () => number; live: boole
   }, [elapsed, live]);
 
   return (
-    <span className="run-clock font-mono text-[0.9375rem] font-medium text-ink-soft">
+    <span className="run-clock shrink-0 font-mono text-[0.8125rem] font-medium text-ink-soft sm:text-[0.9375rem]">
       {formatClock(ms)}
     </span>
   );
@@ -148,22 +151,40 @@ export function TimerRing({
   /* Sized to be watched by a room rather than glanced at by one person. The
      count is the thing everybody shouts along with in the last five seconds,
      so it is set large, in the ink the interface reserves for text people are
-     meant to read, and it goes amber and bold when the ring does. */
+     meant to read, and it goes amber and bold when the ring does.
+
+     Its size is read off the height of the frame, and `shrink-0` makes it the
+     last thing in the strip to give way rather than the first. It used to be a
+     fixed four rem at the end of a row that could not fit four rem, and what a
+     browser does with that is push it past the right edge and clip it: on a
+     360pt screen the countdown everybody is meant to be shouting along with
+     was a crescent of ring with no number in it.
+
+     Height rather than width, because this is the single tallest thing in the
+     header and the header is charged against the same budget as the answers. A
+     phone held sideways has 390pt of height to spend on a header, a question,
+     four answers and a verdict, and four rem of ring is a fourteenth of it. */
+  const size = "clamp(2.75rem,9vh,4rem)";
+
   return (
     <div
       role="timer"
       aria-label={`${seconds} seconds left`}
-      className={`ring grid h-16 w-16 place-items-center ${urgent ? "urgent" : ""} ${
+      className={`ring grid shrink-0 place-items-center ${urgent ? "urgent" : ""} ${
         cheering ? "clock-cheer" : ""
       }`}
       style={{
+        height: size,
+        width: size,
         ["--t" as string]: t,
         ...(cheering ? { ["--ring-ink" as string]: "var(--solid-mark)" } : {}),
       }}
     >
-      <span className="grid h-[3.4rem] w-[3.4rem] place-items-center rounded-full bg-ground">
+      {/* The face, as a share of the ring rather than a second measurement, so
+          the band of colour stays the same weight at every size. */}
+      <span className="grid h-[86%] w-[86%] place-items-center rounded-full bg-ground">
         <span
-          className={`font-mono text-[1.375rem] font-semibold tabular-nums ${
+          className={`font-mono text-[clamp(1rem,3.1vh,1.375rem)] font-semibold tabular-nums ${
             cheering ? "text-solid-ink" : urgent ? "text-shaky-ink" : "text-ink-soft"
           }`}
         >
@@ -192,7 +213,10 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
           : "You gave a topic, not material, so these questions were written by an AI model. They are not from your own notes."
       }
       style={NARROW}
-      className={`inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.12em] ${
+      /* One line. Two words of small caps wrapping inside a bordered chip is
+         how "AI-generated" became a two storey badge on a phone, taking the
+         height of the whole strip with it. */
+      className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[3px] border px-1.5 py-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.08em] sm:gap-1.5 sm:px-2 sm:tracking-[0.12em] ${
         grounded
           ? "border-solid-mark/40 bg-solid-tint text-solid-ink"
           : "border-line-strong bg-sunk text-ink-soft"
@@ -276,7 +300,7 @@ export function Verdict({
     <div
       role="status"
       aria-live="assertive"
-      className={`deal-in flex w-full shrink-0 flex-wrap items-center gap-x-4 gap-y-1 rounded-[6px] border-l-[6px] py-3 pl-5 pr-5 ${
+      className={`deal-in flex w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-[6px] border-l-[5px] py-2 pl-3 pr-3 sm:gap-x-4 sm:border-l-[6px] sm:py-3 sm:pl-5 sm:pr-5 ${
         correct ? "border-solid-mark bg-solid-tint" : "border-broken-mark bg-broken-tint"
       }`}
     >
@@ -303,13 +327,39 @@ export function Verdict({
 
           A shortcut nobody is told about is a shortcut nobody has: this
           control used to appear only on a miss, and only as a bare arrow with
-          nothing to suggest it had a keyboard equivalent at all. */}
+          nothing to suggest it had a keyboard equivalent at all.
+
+          It names the gesture, and which gesture that is depends on what the
+          student is holding. On a phone this said "Enter" to somebody with no
+          Enter to press, which is not a shortcut being advertised, it is a
+          label being wrong. So a touch screen is told to tap and a keyboard is
+          told to press Enter, and both are true where they appear.
+
+          The switch is `pointer`, not a width. A narrow window on a laptop is
+          still a laptop and its owner still has the key; a phone is a phone at
+          any width it is held. Width would have got both of those wrong, and
+          this is the one line on the screen whose whole job is to be right
+          about what the person in front of it can actually do.
+
+          "Enter" is the side that shows when neither query matches, so a
+          browser that cannot answer the question falls back to what this said
+          before rather than to a bare arrow. */}
       <button
         onClick={onNext}
         aria-label="Next question"
-        className="btn ml-auto flex shrink-0 items-center gap-2 rounded-[4px] border-2 border-line-strong px-3 py-1.5 font-sans text-[0.875rem] font-semibold text-ink-soft hover:border-accent hover:text-ink"
+        className="btn ml-auto flex min-h-[2.5rem] min-w-[3rem] shrink-0 items-center justify-center gap-2 rounded-[4px] border-2 border-line-strong px-3 py-1.5 font-sans text-[0.875rem] font-semibold text-ink-soft hover:border-accent hover:text-ink"
       >
-        <kbd className="rounded-[3px] bg-sunk px-2 py-0.5 font-mono text-[0.75rem]">Enter</kbd>
+        <kbd className="rounded-[3px] bg-sunk px-2 py-0.5 font-mono text-[0.75rem] pointer-coarse:hidden">
+          Enter
+        </kbd>
+        {/* Not a `kbd`. Tapping is a gesture rather than a key, so it is set as
+            a word on the button instead of as a keycap on it. */}
+        <span
+          style={NARROW}
+          className="hidden font-sans text-[0.8125rem] font-semibold uppercase tracking-[0.08em] pointer-coarse:inline"
+        >
+          Tap
+        </span>
         <span aria-hidden className="arrow">
           →
         </span>
@@ -354,10 +404,30 @@ export function ChoiceGrid({
   /* Fills the height it is given and stops growing before an option becomes an
      empty panel, the same bargain the wire board strikes. Two options get one
      column and go tall; four get two columns. Either way the words are set big
-     enough to be read by somebody who is not the person holding the device. */
+     enough to be read by somebody who is not the person holding the device.
+
+     ── Why the rows are shares rather than sizes ────────────────────────────
+     Each option used to carry `min-h-[clamp(...)]`, and a minimum is a floor a
+     flex or grid track cannot be squeezed below. On a laptop there was always
+     enough height for four of them and it never came up. On a phone held
+     sideways there is not: the four floors added up to more than the frame had
+     left, the grid was told to centre what it could not fit, and content that
+     overflows a centred track overflows it at BOTH ends. The answers came out
+     over the top of the question, which was still there underneath them, and
+     under the verdict at the bottom.
+
+     So the rows are `1fr` now: a share of whatever is actually there. They
+     grow into a tall frame up to the cap below, and on a short one they give
+     way in step until they are as small as they need to be, which is a board
+     that gets tight rather than a board that comes apart. The cap is what
+     keeps four answers on a monitor from becoming four empty panels. */
+  const many = options.length > 2;
+
   return (
     <div
-      className={`grid min-h-0 content-center gap-3 ${options.length > 2 ? "sm:grid-cols-2" : ""}`}
+      className={`grid min-h-0 flex-1 content-center gap-2.5 sm:gap-3 [grid-auto-rows:minmax(0,1fr)] ${
+        many ? "max-h-[30rem] sm:max-h-[15.5rem] sm:grid-cols-2" : "max-h-[16rem]"
+      }`}
     >
       {options.map((option, i) => {
         const isAnswer = i === question.answerIndex;
@@ -371,7 +441,7 @@ export function ChoiceGrid({
             disabled={revealed}
             onClick={() => onPick(i)}
             style={{ ["--i" as string]: i }}
-            className={`deal-in-stagger group relative flex min-h-[clamp(3.25rem,11vh,7rem)] items-center gap-4 overflow-hidden rounded-[6px] border-[3px] px-5 py-4 text-left transition-colors ${
+            className={`deal-in-stagger group relative flex min-h-0 items-center gap-3 overflow-hidden rounded-[6px] border-[3px] px-3.5 py-2 text-left transition-colors sm:gap-4 sm:px-5 sm:py-4 ${
               showRight
                 ? "right-flash right-pop right-sheen border-solid-mark bg-solid-tint"
                 : showWrong
@@ -383,7 +453,7 @@ export function ChoiceGrid({
           >
             <span
               aria-hidden
-              className={`grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border-2 font-mono text-[0.9375rem] font-semibold ${
+              className={`grid h-[clamp(1.75rem,4.2vh,2.25rem)] w-[clamp(1.75rem,4.2vh,2.25rem)] shrink-0 place-items-center rounded-[4px] border-2 font-mono text-[0.8125rem] font-semibold sm:text-[0.9375rem] ${
                 showRight
                   ? "border-solid-mark bg-solid-mark text-page"
                   : showWrong
@@ -394,7 +464,7 @@ export function ChoiceGrid({
               {showRight ? "✓" : showWrong ? "✕" : KEYS[i]}
             </span>
             <span
-              className={`font-read text-[clamp(1.25rem,0.9rem+1.3vw,2.125rem)] leading-[1.2] ${
+              className={`min-w-0 font-read text-[clamp(1rem,0.7rem+1.1vw+0.7vh,2.125rem)] leading-[1.2] ${
                 showRight ? "font-medium text-solid-ink" : showWrong ? "text-broken-ink" : "text-ink"
               }`}
             >
@@ -447,9 +517,9 @@ export function BlankField({
         e.preventDefault();
         if (!revealed && value.trim()) onSubmit();
       }}
-      className="deal-in flex min-h-0 flex-wrap content-center items-center gap-5"
+      className="deal-in flex min-h-0 flex-wrap content-center items-center gap-3 sm:gap-5"
     >
-      <p className="font-read text-[clamp(1.375rem,1rem+1.4vw,2.25rem)] leading-[1.7] text-ink">
+      <p className="font-read text-[clamp(1.125rem,0.8rem+1.1vw+0.8vh,2.25rem)] leading-[1.6] text-ink sm:leading-[1.7]">
         {before}
         <input
           ref={ref}
@@ -463,7 +533,10 @@ export function BlankField({
           aria-invalid={revealed && !correct}
           placeholder="?"
           size={Math.max(8, value.length + 2)}
-          className={`mx-1 inline-block min-w-[9rem] border-b-[3px] bg-transparent px-2 pb-1 text-center font-read text-[clamp(1.375rem,1rem+1.4vw,2.25rem)] font-medium text-ink caret-accent outline-none placeholder:text-ink-faint ${
+          /* The gap is set in the sentence's own type and grows with what is
+             typed into it, so its floor has to be a width the sentence can
+             still wrap around. Nine rem is a third of a phone's line. */
+          className={`mx-1 inline-block min-w-[6rem] max-w-full border-b-[3px] bg-transparent px-2 pb-1 text-center font-read text-[clamp(1.125rem,0.8rem+1.1vw+0.8vh,2.25rem)] font-medium text-ink caret-accent outline-none placeholder:text-ink-faint sm:min-w-[9rem] ${
             revealed
               ? correct
                 ? "border-solid-mark text-solid-ink"
@@ -554,12 +627,19 @@ export function ChipBoard({
   }, [built.length, onSubmit, revealed]);
 
   return (
-    <div className="deal-in flex min-h-0 flex-col justify-center gap-5">
+    /* Content sized, and free to be squeezed. Told to fill the frame instead,
+       it took every pixel the question above it was not using and centred the
+       tray in the middle of them, which put the sentence being built a long
+       way from the instruction to build it. The two belong together, and the
+       column above centres them as one thing. */
+    <div className="deal-in flex min-h-0 flex-col justify-center gap-3 sm:gap-5">
       {/* The sentence being built. Holds its height whether or not anything is
-          in it, so the tray below never jumps as chips are placed. */}
+          in it, so the tray below never jumps as chips are placed. The height
+          it holds is a share of the frame: six rem of reserved empty space is
+          a fair trade on a laptop and a sixth of a phone held sideways. */}
       <div
         aria-label="Your sentence"
-        className={`flex min-h-[6rem] flex-wrap items-center gap-2.5 rounded-[6px] border-[3px] border-dashed p-4 transition-colors ${
+        className={`flex min-h-[clamp(3.25rem,12vh,6rem)] shrink-0 flex-wrap items-center gap-2 rounded-[6px] border-[3px] border-dashed p-2.5 transition-colors sm:gap-2.5 sm:p-4 ${
           revealed
             ? correct
               ? "border-solid-mark bg-solid-tint"
@@ -575,7 +655,7 @@ export function ChipBoard({
             disabled={revealed}
             onClick={() => onBuild(built.filter((_, j) => j !== i))}
             aria-label={`Remove "${chip}"`}
-            className="chip chip-snap rounded-[4px] border-2 border-accent bg-page px-4 py-2 font-read text-[clamp(1.0625rem,0.9rem+0.6vw,1.4375rem)] text-ink disabled:cursor-default"
+            className="chip chip-snap rounded-[4px] border-2 border-accent bg-page px-3 py-1.5 font-read sm:px-4 sm:py-2 text-[clamp(0.9375rem,0.75rem+0.5vw+0.4vh,1.4375rem)] text-ink disabled:cursor-default"
           >
             {chip}
           </button>
@@ -584,14 +664,20 @@ export function ChipBoard({
 
       {!revealed && (
         <>
-          <div className="flex flex-wrap gap-2.5">
+          {/* The tray. It is the one thing on this board whose height is not
+              ours to decide: a nine chip sentence on a narrow screen is four
+              rows of chips whatever anybody intended. So it is the piece that
+              gives, and if it genuinely cannot fit it scrolls inside its own
+              bounds rather than pushing the button that submits the sentence
+              off the bottom of a screen that does not scroll. */}
+          <div className="flex min-h-0 shrink flex-wrap gap-2 overflow-y-auto sm:gap-2.5">
             {tray.map((chip, i) => (
               <button
                 key={`${chip}-${i}`}
                 disabled={spent[i]}
                 onClick={() => onBuild([...built, chip])}
                 style={{ ["--i" as string]: i }}
-                className={`chip deal-in-stagger rounded-[4px] border-2 border-line-strong bg-page px-4 py-2 font-read text-[clamp(1.0625rem,0.9rem+0.6vw,1.4375rem)] text-ink hover:border-accent hover:bg-accent-wash/40 ${
+                className={`chip deal-in-stagger rounded-[4px] border-2 border-line-strong bg-page px-3 py-1.5 font-read text-[clamp(0.9375rem,0.75rem+0.5vw+0.4vh,1.4375rem)] text-ink hover:border-accent hover:bg-accent-wash/40 sm:px-4 sm:py-2 ${
                   spent[i] ? "chip-spent" : ""
                 }`}
               >
@@ -600,7 +686,7 @@ export function ChipBoard({
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <button
               onClick={onSubmit}
               disabled={built.length === 0}
@@ -702,7 +788,7 @@ function AudioToggle({
       aria-pressed={on}
       aria-label={`${label}: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
       title={`${label} ${on ? "on" : "off"}`}
-      className={`grid h-10 w-10 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[1.125rem] leading-none transition-colors ${
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[1.125rem] leading-none transition-colors sm:h-10 sm:w-10 ${
         on
           ? "border-solid-mark bg-solid-tint text-solid-ink hover:bg-solid-mark hover:text-page"
           : "border-broken-mark bg-broken-tint text-broken-ink hover:bg-broken-mark hover:text-page"

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Mono, Newsreader, Patrick_Hand, Silkscreen } from "next/font/google";
 import "./globals.css";
 
@@ -47,6 +47,24 @@ const silkscreen = Silkscreen({
   weight: ["400", "700"],
   display: "swap",
 });
+
+/* The on-screen keyboard must not resize the game.
+
+   Next already emits `width=device-width, initial-scale=1`, which is the whole
+   of what most pages need. The one field worth setting here is the last one:
+   by default a phone keyboard shrinks the LAYOUT viewport, so `100dvh`
+   collapses to the strip above the keyboard and every screen re-lays itself
+   out around it. On a page pinned to the viewport that is not a small
+   adjustment: opening the keyboard in Round 2 or Round 4 re-flowed the whole
+   board under the student's thumb, mid-answer.
+
+   `resizes-visual` leaves the layout alone and moves only what is visible, so
+   the frame stays exactly the size it was and the browser pans to whatever has
+   focus. The board a student was looking at before the keyboard opened is the
+   same board afterwards. */
+export const viewport: Viewport = {
+  interactiveWidget: "resizes-visual",
+};
 
 export const metadata: Metadata = {
   title: "Learnova, Round Mode",

@@ -187,12 +187,22 @@ function WireSurface(props: PresentationProps) {
 
   const live = pointer !== null;
   /* How far the loose end reaches: most of the way to the options, never past
-     them. Falls back to nothing until the first measurement lands. */
+     them. Falls back to nothing until the first measurement lands.
+
+     The bar it has to clear used to be forty pixels, which is a sensible floor
+     for the gap on a monitor and was silently fatal on a phone. The board used
+     to stack into one column below the `sm` breakpoint, which put the plug
+     ABOVE the options rather than beside them, so this distance was zero or
+     negative and the hint simply never drew. The whole point of the stub is
+     that somebody who has never seen a wire board can tell what to do, and the
+     device where somebody has never seen one is the phone being passed around
+     the room. The board no longer stacks, and the bar is now the smallest gap
+     that can still carry a dash and an arrowhead. */
   const gap = ends[0] && start ? ends[0].x - start.x : 0;
-  const showHint = !revealed && !held && !live && start !== null && gap > 40;
+  const showHint = !revealed && !held && !live && start !== null && gap > 18;
 
   return (
-    <Stage revealed={revealed} className="flex min-h-0 flex-col gap-[2vh]">
+    <Stage revealed={revealed} className="flex min-h-0 flex-1 flex-col gap-[2vh]">
       {/* The gesture, in one line, above the board.
 
           It is chrome during a retrieval and it stays anyway. A student who
@@ -201,7 +211,7 @@ function WireSurface(props: PresentationProps) {
       {!revealed && (
         <p
           style={{ fontVariationSettings: '"wdth" 88' }}
-          className="font-sans text-[clamp(0.875rem,0.6rem+0.7vw,1.125rem)] font-bold uppercase tracking-[0.1em] text-accent"
+          className="shrink-0 font-sans text-[clamp(0.75rem,0.55rem+0.55vw+0.35vh,1.125rem)] font-bold uppercase tracking-[0.1em] text-accent"
         >
           Drag the wire to the answer
         </p>
@@ -211,10 +221,32 @@ function WireSurface(props: PresentationProps) {
           which left about forty pixels for a cable to hang in, and a forty
           pixel cable does not look like a cable. It is now the widest single
           measurement on the board, on purpose: the distance is the part of
-          this that says "these two things are not connected yet". */}
+          this that says "these two things are not connected yet".
+
+          ── Two columns at every width ────────────────────────────────────
+          Below `sm` this used to collapse into one, plug on top and options
+          underneath, and that quietly took the presentation apart. Every
+          coordinate here runs left to right: the wire leaves the right edge of
+          the plug and lands on the left edge of a row. Stacked, those two
+          points are nearly the same point, so the resting hint never drew at
+          all and the answer wire came out as a loop that left the board on one
+          side and re-entered on the other, with its endpoint hanging off the
+          edge of the screen. What was left on a phone was a labelled dot above
+          four boxes and no wire in sight, which is the exact thing the label,
+          the stub and the instruction were added to prevent.
+
+          So the columns stay, and what gives way is the distance between them.
+          The wire gets shorter on a narrow screen; it does not stop being a
+          wire. */}
       <div
         ref={board}
-        className="relative grid min-h-0 select-none grid-cols-[minmax(0,1fr)] items-stretch gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-24"
+        /* One row, and it is the whole board. Left as `auto` the row would be
+           sized by its own contents, and its contents are a column of options
+           that are themselves shares of the row: each would have asked the
+           other how tall it was and the board would have collapsed to the
+           height of its gaps. `1fr` breaks that by handing the row the height
+           the board already has. */
+        className="relative grid min-h-0 flex-1 select-none grid-cols-[auto_minmax(0,1fr)] [grid-template-rows:minmax(0,1fr)] items-stretch gap-x-5 sm:gap-x-24"
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={() => {
@@ -259,11 +291,11 @@ function WireSurface(props: PresentationProps) {
             const box = board.current?.getBoundingClientRect();
             if (box) setPointer({ x: e.clientX - box.left, y: e.clientY - box.top });
           }}
-          /* `justify-self-center` keeps it from stretching. On a phone the two
-             columns become one, and without this the plug spreads into a
-             full-width bar with a dot lost in the middle of it, spending
-             height the options need. */
-          className={`flex touch-none select-none flex-col items-center justify-center gap-2 self-center justify-self-center rounded-[6px] border-[3px] px-5 py-5 ${
+          /* `justify-self-center` keeps it from stretching, and `self-center`
+             hangs it level with the middle of the options rather than
+             stretching down the whole column. Narrow on a phone, where the
+             width it takes comes straight out of the words in the answers. */
+          className={`flex touch-none select-none flex-col items-center justify-center gap-1.5 self-center justify-self-center rounded-[6px] border-[3px] px-2.5 py-3 sm:gap-2 sm:px-5 sm:py-5 ${
             revealed
               ? "border-line bg-page"
               : "cursor-grab border-accent bg-accent-wash/50 active:cursor-grabbing"
@@ -272,24 +304,26 @@ function WireSurface(props: PresentationProps) {
           {!revealed && (
             <span
               style={{ fontVariationSettings: '"wdth" 88' }}
-              className="font-sans text-[0.6875rem] font-bold uppercase leading-none tracking-[0.14em] text-accent"
+              className="font-sans text-[0.5625rem] font-bold uppercase leading-none tracking-[0.1em] text-accent sm:text-[0.6875rem] sm:tracking-[0.14em]"
             >
               Drag
             </span>
           )}
-          <span aria-hidden className="relative grid h-6 w-6 place-items-center">
+          <span aria-hidden className="relative grid h-5 w-5 place-items-center sm:h-6 sm:w-6">
             {!revealed && !live && (
               <span className="plug-ready absolute inset-0 rounded-full bg-accent" />
             )}
             <span
-              className={`relative block h-5 w-5 rounded-full ${
+              className={`relative block h-4 w-4 rounded-full sm:h-5 sm:w-5 ${
                 revealed ? "bg-line-strong" : "bg-accent"
               }`}
             />
           </span>
         </div>
 
-        <div className="flex min-h-0 flex-col justify-center gap-[1.5vh]">
+        {/* The candidates, filling the row and centred in it once they stop
+            growing. */}
+        <div className="flex min-h-0 w-full flex-col justify-center gap-[1.5vh]">
           {options.map((option, i) => {
             const mood = moodOf(i);
             const targeted = !revealed && over === i;
@@ -300,12 +334,22 @@ function WireSurface(props: PresentationProps) {
                 ref={(el) => {
                   rows.current[i] = el;
                 }}
-                /* Sized off the viewport rather than off the leftover space.
-                   Taking the slack made four options on a tall screen into
-                   four empty panels with two words floating in the middle of
-                   each; a clamped share of the height keeps them fat on a
-                   monitor and still lets four of them fit a laptop. */
-                className="flex h-[clamp(3.25rem,10vh,6.5rem)] shrink-0"
+                /* An equal share of whatever height the board actually has,
+                   with the ceiling set on the column above rather than here.
+
+                   This used to be a clamp against the viewport with `shrink-0`
+                   on it, which is a height a row will not go below no matter
+                   what is asking. Four of those plus a question, an
+                   instruction and a verdict do not fit a phone turned on its
+                   side, and a column told to centre what it cannot fit spills
+                   at both ends: the answers were drawn straight over the
+                   question they belonged to. Shares cannot do that. They get
+                   tight, and tight is a board you can still read.
+
+                   The ceiling stays, because the reason it was put there
+                   stands: four options given a tall monitor and no cap are
+                   four empty panels with two words adrift in each. */
+                className="flex max-h-[6.5rem] min-h-0 flex-1 basis-0"
               >
                 <Pick
                   index={i}
@@ -313,14 +357,14 @@ function WireSurface(props: PresentationProps) {
                   mood={mood}
                   revealed={revealed}
                   onPick={pick}
-                  className={`rise-in relative flex w-full items-center gap-4 rounded-[6px] border-[3px] px-5 py-4 ${
+                  className={`rise-in relative flex w-full items-center gap-2.5 overflow-hidden rounded-[6px] border-[3px] px-3 py-2 sm:gap-4 sm:px-5 sm:py-4 ${
                     mood === "right" ? "right-pop right-sheen" : ""
                   } ${targeted ? "border-accent bg-accent-wash" : tone(mood)}`}
                 >
                   {/* The socket the wire lands in. */}
                   <span
                     aria-hidden
-                    className={`block h-4 w-4 shrink-0 rounded-full border-[3px] ${
+                    className={`block h-3.5 w-3.5 shrink-0 rounded-full border-[3px] sm:h-4 sm:w-4 ${
                       mood === "right"
                         ? "border-solid-mark bg-solid-mark"
                         : mood === "wrong"
@@ -333,9 +377,12 @@ function WireSurface(props: PresentationProps) {
                   <Mark
                     index={i}
                     mood={mood}
-                    className="h-9 w-9 rounded-[4px] border-2 text-[0.9375rem]"
+                    className="h-[clamp(1.75rem,4.2vh,2.25rem)] w-[clamp(1.75rem,4.2vh,2.25rem)] rounded-[4px] border-2 text-[0.8125rem] sm:text-[0.9375rem]"
                   />
-                  <Say mood={mood} className="text-[clamp(1.25rem,0.9rem+1.3vw,2.125rem)]">
+                  <Say
+                    mood={mood}
+                    className="min-w-0 text-[clamp(1rem,0.7rem+1.1vw+0.7vh,2.125rem)]"
+                  >
                     {option}
                   </Say>
                 </Pick>

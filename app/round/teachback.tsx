@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Annotation, Grade, Outcome } from "../api/grade/route";
 import { isBusy, postJSON } from "../client";
 import { MarginNotes, MarkedUpText, useDissection } from "../dissection";
@@ -40,6 +40,23 @@ function materialFrom(concept: string, questions: Question[]): string {
     "",
     lines.join("\n\n"),
   ].join("\n");
+}
+
+/** The scrolling box this element actually sits in.
+
+    Which one that is belongs to the shell rather than to this file: `page.tsx`
+    owns the viewport lock and hands every screen that is not a live question a
+    panel to scroll inside. Walking up to find it keeps that arrangement in one
+    place, instead of reaching for a panel by name from down here and breaking
+    quietly the day the shell moves it. */
+function closestScroller(from: HTMLElement | null): HTMLElement | null {
+  for (let el = from?.parentElement ?? null; el; el = el.parentElement) {
+    const overflow = getComputedStyle(el).overflowY;
+    if ((overflow === "auto" || overflow === "scroll") && el.scrollHeight > el.clientHeight) {
+      return el;
+    }
+  }
+  return null;
 }
 
 /* ── The marking apparatus, kept from the Teach-Back session ───────────── */
@@ -137,6 +154,39 @@ export function TeachBack({
   const [wasBusy, setWasBusy] = useState(false);
   const [active, setActive] = useState<number | null>(null);
 
+  /* The marked-up explanation, and the reason it has a handle.
+
+     Producing and being marked are two screens inside one phase, so the shell
+     never resets the scrolling panel between them: it only does that when the
+     phase itself changes. On a laptop the produce screen fits and there is no
+     scroll position to inherit, so nothing was ever wrong. On a phone that
+     screen is taller than the frame, a student who scrolled down to reach the
+     Submit button is a student who scrolled, and their grade then arrived
+     already scrolled past its own heading, its verdict and the outcome word.
+     The one screen in the run that says how they actually did opened halfway
+     down itself. */
+  const marked = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!grade) return;
+
+    /* The panel is put back to its top, rather than the section being asked to
+       scroll itself into view. `scrollIntoView` aligns against whatever the
+       browser decides the scrollport is and lands a little differently
+       depending on what else moved that frame; this names the thing to scroll
+       and the place to put it, and there is nothing left to be approximate
+       about.
+
+       Twice, for the same reason the shell does it twice: this screen arrives
+       with entrance animations on it and a block of marked-up prose that
+       settles a frame late, and either can move the scroll after an effect has
+       already run. */
+    const scroller = closestScroller(marked.current);
+    const top = () => scroller?.scrollTo({ top: 0 });
+    top();
+    const frame = requestAnimationFrame(top);
+    return () => cancelAnimationFrame(frame);
+  }, [grade]);
+
   const speech = useSpeech();
   /* Whether there is any real material behind this session. It decides both
      what is sent as the source and how the grader is told to treat it, so it
@@ -200,7 +250,10 @@ export function TeachBack({
   if (grade) {
     const more = index + 1 < total;
     return (
-      <section className="mx-auto flex w-full max-w-[74rem] flex-col gap-8 py-6">
+      <section
+        ref={marked}
+        className="mx-auto flex w-full max-w-[74rem] flex-col gap-6 py-4 sm:gap-8 sm:py-6"
+      >
         <div className="rise flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <Label>{concept}</Label>
@@ -269,7 +322,7 @@ export function TeachBack({
 
   /* ── Producing ───────────────────────────────────────────────────────── */
   return (
-    <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-7 py-6">
+    <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-5 py-4 sm:gap-7 sm:py-6">
       <div className="rise flex flex-col gap-4">
         {/* There was a "No timer" badge here. It stopped being true when the
             run clock moved into the header and stayed on every screen: this
@@ -402,9 +455,19 @@ export function TeachBack({
           <PrimaryButton onClick={submit} disabled={loading || !explanation.trim()}>
             {loading ? "Marking…" : "Submit"} {!loading && <Arrow />}
           </PrimaryButton>
+          {/* Keyboard instructions, for people with a keyboard. On a phone
+              this was three key names and a plus sign describing a device the
+              student is not holding.
+
+              There is no "tap" wording to put in its place here, the way the
+              verdict has one: what a touch screen does instead is press the
+              Submit button immediately to its left, and a line of text telling
+              you to press the button next to it is not an instruction, it is
+              furniture. Off by pointer rather than by width, so a laptop in a
+              narrow window keeps a hint it can still act on. */}
           <span
             style={{ fontVariationSettings: '"wdth" 88' }}
-            className="font-sans text-[0.75rem] text-ink-faint"
+            className="font-sans text-[0.75rem] text-ink-faint pointer-coarse:hidden"
           >
             <kbd className="rounded-[3px] border border-line-strong bg-sunk px-1.5 py-0.5 font-mono text-[0.6875rem]">
               Enter
