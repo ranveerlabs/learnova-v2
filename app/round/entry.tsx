@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { sourceProblem } from "@/lib/source";
 import { Looseleaf, PixelSprite, PixelTag } from "../paper";
 import { Notice } from "../ui";
+import { openConcepts, studied, type TopicRecord } from "./record";
 import { STARTERS } from "./starters";
 
 /* The front door.
@@ -37,6 +38,17 @@ export function Entry({
   const [showNotes, setShowNotes] = useState(false);
   const [notesProblem, setNotesProblem] = useState<string | null>(null);
   const field = useRef<HTMLInputElement>(null);
+
+  /* What this browser has studied before, read after mount rather than during
+     render. The record lives in local storage, which does not exist on the
+     server, so reading it while rendering would make the first client render
+     disagree with the HTML that arrived and React would throw the whole tree
+     away. An empty list on the first frame is also the honest default: a
+     student with no history sees exactly the front door they saw before. */
+  const [history, setHistory] = useState<TopicRecord[]>([]);
+  useEffect(() => {
+    setHistory(studied());
+  }, []);
 
   useEffect(() => {
     field.current?.focus();
@@ -128,6 +140,33 @@ export function Entry({
           </button>
         </form>
 
+        {/* Where the last run got to.
+
+            This is the whole reason the record exists, and it is the first
+            thing a returning student should be able to act on, so it sits
+            directly under the field rather than at the foot of the screen.
+            What each row leads with is not how well they did, it is what is
+            still unsaid: the point of coming back is the three concepts they
+            could recognise and could not explain, and a row that showed a
+            score would be inviting them to admire a number instead. */}
+        {history.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p
+              style={{ fontVariationSettings: '"wdth" 88' }}
+              className="font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-ink-faint"
+            >
+              Pick up where you left off
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {history.slice(0, 3).map((record) => (
+                <li key={record.key}>
+                  <Resume record={record} onStart={(t) => onStart(t, "")} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-sans text-[0.75rem] text-ink-faint">or try</span>
           {STARTERS.map((starter) => (
@@ -205,6 +244,61 @@ export function Entry({
 
       <Credits />
     </section>
+  );
+}
+
+/** Roughly how long ago, in the words somebody would actually use.
+
+    Rough on purpose. The record keeps a timestamp because ordering needs one,
+    but "today" and "3 days ago" is the entire resolution this screen has any
+    use for, and a precise date would read as a log entry rather than as a
+    memory of having studied. */
+function ago(when: number): string {
+  const days = Math.floor((Date.now() - when) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return "last week";
+  if (days < 60) return `${Math.floor(days / 7)} weeks ago`;
+  return `${Math.floor(days / 30)} months ago`;
+}
+
+/** One topic this browser has studied, and what is still unsaid on it.
+
+    Starting is one tap rather than filling the field, which is the difference
+    between this and the starter chips beside it. A starter is a suggestion
+    about what to study and wants the cursor left in the box; this is a topic
+    the student already chose and already worked on, and asking them to choose
+    it a second time is a step with nothing in it.
+
+    It does not carry their notes back. Nothing they wrote is kept, so a run
+    resumed here is written from the topic and the provenance badge will say
+    so on every screen, the same as any other topic-only session. */
+function Resume({ record, onStart }: { record: TopicRecord; onStart: (topic: string) => void }) {
+  const open = openConcepts(record);
+  const said =
+    open.length === 0
+      ? "all explained"
+      : `${open.length} still to explain`;
+
+  return (
+    <button
+      onClick={() => onStart(record.topic)}
+      className="lift group flex w-full items-center gap-3 rounded-[3px] border border-line bg-page px-3.5 py-2.5 text-left hover:border-accent"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-read text-[1.0625rem] text-ink">{record.topic}</span>
+        <span className="mt-0.5 block font-sans text-[0.75rem] text-ink-faint">
+          {said} · {ago(record.lastRun)}
+        </span>
+      </span>
+      <span
+        aria-hidden
+        className="arrow shrink-0 font-sans text-[1rem] text-ink-faint group-hover:text-accent"
+      >
+        →
+      </span>
+    </button>
   );
 }
 

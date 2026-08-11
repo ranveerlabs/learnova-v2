@@ -14,6 +14,8 @@ import {
 } from "./engine";
 import { setMusic, stopMusic } from "./music";
 import { newSeed } from "./presentations/registry";
+import { bestFor, openConcepts, recordFor, rememberRun, standingsFor } from "./record";
+import type { Standing } from "./engine";
 import {
   type Answer,
   type Difficulty,
@@ -35,9 +37,13 @@ import {
    is the part that is hard to test and easy to read, and the decisions are
    the part that is the opposite.
 
-   Nothing is written to disk, to storage, or to a server. Closing the tab
-   ends the session, which is the honest state of a product with no accounts
-   in it yet. */
+   One thing now outlives the tab, and only one: when a run reaches the
+   results it folds a standing per concept into `record.ts`, in this browser's
+   local storage. That is what lets the next run open on the things the last
+   one could not explain rather than starting the student over. Nothing else
+   is kept and nothing is sent anywhere: no answers, no explanations, no text
+   the student wrote. The rest of what is below still lives and dies with the
+   tab. */
 
 export type Phase =
   | "entry"
@@ -184,6 +190,24 @@ export function useRoundSession() {
   const runs = useRef<RunRecord[]>([]);
   const [best, setBest] = useState<Best>(null);
 
+  /** Where every concept on this topic stood BEFORE this run started.
+
+      Held from the moment the topic is named, because by the time the results
+      are drawn the record has already been written and the comparison would be
+      against itself. This is what lets the last screen say "you could not
+      explain this last time and you just did", which is the one thing a
+      returning student most wants to hear and the app could not say at all
+      while every run began from nothing. */
+  const [previously, setPreviously] = useState<Record<string, Standing>>({});
+  /** Concepts this topic has never been explained on, read at the start of the
+      run and used to steer Round 4. */
+  const stillOpen = useRef<string[]>([]);
+
+  /* A run is folded into the record exactly once, on arrival at the results.
+     Guarded rather than keyed on the phase alone, because the answers and
+     splits it depends on can settle a render after the phase changes. */
+  const recorded = useRef(false);
+
   /* Every question this tab has generated, by topic, so a second run on the
      same topic is not the first one again. In memory, like everything else
      here: it dies with the tab and is never written anywhere. */
@@ -298,6 +322,19 @@ export function useRoundSession() {
       setError(null);
       setTopic(nextTopic);
       setNotes(nextNotes);
+
+      /* Everything the record knows about this topic, read once, here, before
+         a single question exists. Three things downstream depend on it: the
+         target to beat, what Round 4 will lead with, and what the results are
+         allowed to claim moved. */
+      stillOpen.current = openConcepts(recordFor(nextTopic));
+      setPreviously(standingsFor(nextTopic));
+      /* Topic scoped, so the bar is this topic's best rather than whatever the
+         student last happened to play. It also now survives a refresh, which
+         is the difference between a target and a fact about this tab. */
+      const target = bestFor(nextTopic);
+      setBest(target === null ? null : { rating: target });
+      recorded.current = false;
 
       try {
         const payload = await postJSON<{
@@ -496,9 +533,14 @@ export function useRoundSession() {
 
   /* ── Round 4 ──────────────────────────────────────────────────────────── */
 
-  /** The concepts to offer, strongest first, capped so the finish line stays
-      a finish line rather than an essay exam. */
-  const productionOrder = rankForProduction(answers)
+  /** The concepts to offer, capped so the finish line stays a finish line
+      rather than an essay exam.
+
+      Strongest first on a first visit, and whatever they could not explain
+      last time first on a return one. `rankForProduction` holds the reasoning
+      for both; all that happens here is handing it the list of concepts this
+      topic still has open, which was read before the run began. */
+  const productionOrder = rankForProduction(answers, stillOpen.current)
     .map((r) => r.concept)
     .slice(0, MAX_PRODUCTIONS);
 
@@ -556,6 +598,19 @@ export function useRoundSession() {
     [answers, productions, splits]
   );
 
+  /* The run, folded into the record for its topic.
+
+     On arrival at the results rather than on `restart`, because the results
+     are where most runs end: a student who reads their rating and closes the
+     tab has finished a session, and losing it because they did not press "Run
+     it again" would mean the record only ever remembered the runs of people
+     who went round twice. */
+  useEffect(() => {
+    if (phase !== "reveal" || recorded.current || !topic) return;
+    recorded.current = true;
+    rememberRun(topic, buildReveal(answers, productions, splits));
+  }, [answers, phase, productions, splits, topic]);
+
   /** Bank this run and reset for another, keeping the run history so the next
       one has a target, and keeping every question already asked so the next
       run on the same topic is a different set of questions. */
@@ -571,11 +626,12 @@ export function useRoundSession() {
         productions: data.productions.length,
       };
       runs.current = [...runs.current, record];
-      /* Every run counts toward the best rating, including one abandoned
-         early. There is no way to inflate a rating by stopping, because
-         stopping means the questions you never reached earned nothing. */
-      setBest({ rating: Math.max(...runs.current.map((r) => r.rating)) });
     }
+    /* The best to beat is no longer computed here. It is read from the record
+       for whichever topic the next run is on, in `start`, because a best is
+       only meaningful against the same questions: this used to take the
+       highest rating in the tab whatever it was earned on, so a strong run on
+       one topic set the bar for the next run on a different one. */
 
     setPhase("entry");
     setTopic("");
@@ -597,6 +653,10 @@ export function useRoundSession() {
     setPendingRound(null);
     setError(null);
     setBusyRounds([]);
+    setBest(null);
+    setPreviously({});
+    stillOpen.current = [];
+    recorded.current = false;
     /* A new seed for the next run, so going again does not draw the same
        presentations in the same order. */
     setSeed(newSeed());
@@ -622,6 +682,7 @@ export function useRoundSession() {
     sound,
     music,
     best,
+    previously,
     runCount: runs.current.length,
     banks,
     servedThisStage,
