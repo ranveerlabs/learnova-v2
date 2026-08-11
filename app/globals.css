@@ -172,6 +172,22 @@ body {
   font-family: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+
+  /* Two rules that only matter on a touch screen, and matter a lot there.
+
+     `overscroll-behavior` stops the rubber-band bounce and the pull-to-refresh
+     gesture. On a page that is exactly the viewport, dragging on it is not a
+     scroll and should not look like one; the drag that starts on the wire plug
+     especially must not be read as the beginning of a page pull.
+
+     `touch-action: manipulation` drops double-tap-to-zoom, and with it the
+     ~300ms the browser spends waiting to find out whether a tap was the first
+     half of one. In a round where a correct answer advances in 620ms, a third
+     of a second of nothing after every tap is the difference between a game
+     that feels immediate and one that feels like it is thinking. Pinch zoom is
+     untouched, so nothing here takes magnification away from anybody. */
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 ::selection {

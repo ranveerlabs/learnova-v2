@@ -32,7 +32,10 @@ import { Aside, Notice, Wordmark } from "./ui";
    traffic: what is on screen, and when it changes. The decisions are in
    engine.ts and the orchestration is in session.ts. */
 
-const SHELL = "mx-auto w-full max-w-[96rem] px-6 lg:px-10 xl:px-14";
+/* The gutter starts narrow. Six units either side of a 390pt phone spends a
+   twelfth of the width on nothing, and the width is what the options are set
+   in; it widens back out the moment there is width to spare. */
+const SHELL = "mx-auto w-full max-w-[96rem] px-4 sm:px-6 lg:px-10 xl:px-14";
 
 export default function Home() {
   const s = useRoundSession();
@@ -102,17 +105,27 @@ export default function Home() {
           So the timer and the combo moved up here too, out of the question
           area. There is now exactly one band of chrome instead of two, it is
           in the same place on every screen, and nothing in it ever appears or
-          vanishes on you mid-round. */}
+          vanishes on you mid-round.
+
+          On a phone it is two rows rather than one, and that is the shape it
+          is built to: identity and the ladder above, the run's instruments
+          below. What it must never do is spill, and it used to do both. Six
+          units of gap on one wrapping line pushed the question timer clean off
+          the right edge of a 360pt screen, and the number of rows moved with
+          the length of the rung label: "Pick it out" fitted on two and "Say it
+          yourself" tipped it onto three, so the top of every screen sat half
+          an inch lower in some rounds than in others. The pieces in it shrink
+          now instead of wrapping, and the strip is the same height all run. */}
       <header className="z-30 shrink-0 border-b border-line bg-ground/85 backdrop-blur-md">
         <div
-          className={`${SHELL} flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-2.5`}
+          className={`${SHELL} flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 sm:gap-x-6 sm:gap-y-2 sm:py-2.5`}
         >
-          <div className="flex items-center gap-5">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-5">
             <Wordmark />
             {showRun && <LadderRail stage={s.stage} finished={s.phase === "reveal"} />}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             {showRun && s.phase !== "opening" && <ProvenanceBadge provenance={s.provenance} />}
             {/* Just the clock. It used to be a speedrun ghost, racing your own
                 best time with a running +/- beside it, and that went with the
@@ -154,7 +167,23 @@ export default function Home() {
           height puts the top of an over-tall panel above its own scroll
           origin, where nothing can reach it; a box that is at least the
           container's height and free to grow centres while it fits and scrolls
-          honestly once it does not. */}
+          honestly once it does not.
+
+          And `shrink-0` beside it, which is the other half of that same
+          sentence and was missing. A minimum height stops a box being squashed
+          by its own contents; it does nothing about the box being squashed by
+          the flex line it sits in, and this one was: `flex-1` carries a shrink
+          factor, so a reading screen taller than the panel was compressed back
+          to exactly the panel's height with its content hanging out of both
+          ends of a centred column. The overflow at the bottom scrolled. The
+          overflow at the top did not, because the panel could not see it, and
+          what was above the fold was above it for good.
+
+          On a laptop that needed the front door with a wall of notes pasted
+          into it before anything went missing. On a phone it was every reading
+          screen in the run: the front door opened halfway down its own
+          headline, and a graded explanation opened below the word saying how
+          it went. */}
       <div
         ref={panel}
         className={`${SHELL} flex min-h-0 flex-1 flex-col ${
@@ -162,8 +191,8 @@ export default function Home() {
         }`}
       >
         <main
-          className={`flex w-full min-w-0 flex-1 flex-col ${
-            inPlay ? "min-h-0" : "min-h-full justify-center"
+          className={`flex w-full min-w-0 flex-col ${
+            inPlay ? "min-h-0 flex-1" : "min-h-full shrink-0 grow justify-center"
           }`}
         >
           {/* A round the shared key was too busy to write. Said once, between
@@ -484,9 +513,16 @@ function QuestionScreen({
             Sized for the back of the room. The old ceiling was thirty pixels,
             which is a comfortable reading size for one person at arm's length
             and illegible to the three people behind them, and three people
-            behind them is the situation this is built for. */}
+            behind them is the situation this is built for.
+
+            The size is read off both axes rather than off the width alone. A
+            phone turned on its side is a wide viewport and a very short one,
+            and sizing a headline off width only gave that case thirty-seven
+            pixel type with about a hundred and thirty pixels left underneath
+            it for four answers. The height term costs a desktop nothing,
+            because the ceiling is what binds there either way. */}
         {question.format !== "blank" && (
-          <h2 className="deal-in shrink-0 text-balance font-read text-[clamp(1.625rem,1.1rem+2.3vw,3rem)] font-medium leading-[1.12] tracking-[-0.02em] text-ink">
+          <h2 className="deal-in shrink-0 text-balance font-read text-[clamp(1.375rem,0.9rem+2.1vw+0.9vh,3rem)] font-medium leading-[1.12] tracking-[-0.02em] text-ink">
             {question.prompt}
           </h2>
         )}
@@ -509,8 +545,13 @@ function QuestionScreen({
           short window the verdict itself was pushed off the bottom edge and
           clipped, so the one line telling you what the answer was is the line
           you could not read. An empty row costs about an inch and buys a board
-          that does not move all round. */}
-      <div className="flex min-h-[4.5rem] shrink-0 items-center">
+          that does not move all round.
+
+          The inch it costs is scaled to the frame. Four and a half rem is a
+          reasonable reservation out of a laptop and a sixth of a phone held
+          sideways, where every pixel it holds empty is one the four answers
+          above it needed. */}
+      <div className="flex min-h-[clamp(3.25rem,9vh,4.5rem)] shrink-0 items-center">
         {result && (
           <Verdict
             correct={result.correct}
