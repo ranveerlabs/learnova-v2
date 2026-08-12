@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { sourceProblem } from "@/lib/source";
 import { Looseleaf, PixelSprite, PixelTag } from "../paper";
 import { Notice } from "../ui";
@@ -240,6 +241,25 @@ export function Entry({
             {notesProblem && <Notice>{notesProblem}</Notice>}
           </div>
         )}
+      </div>
+
+      {/* The other mode.
+
+          A link rather than a tab, and down here rather than at the top,
+          because the front door has one job and it is the field above. Somebody
+          who came to study should not have to decline a second product before
+          they can name a topic. Somebody who came to debate will find it. */}
+      <div className="rise flex flex-col gap-1" style={{ ["--i" as string]: 3 }}>
+        <Link
+          href="/debate"
+          className="self-start font-sans text-[0.875rem] font-medium text-accent underline decoration-accent/30 decoration-1 underline-offset-4 transition-colors hover:decoration-accent"
+        >
+          Or argue it against someone
+        </Link>
+        <p className="max-w-[52ch] font-sans text-[0.75rem] leading-[1.6] text-ink-faint">
+          Debate mode. Pick a side, argue it for four speeches against an opponent trying to win,
+          and get a judged ballot. Tournament formats included.
+        </p>
       </div>
 
       <Credits />
