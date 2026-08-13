@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { sourceProblem } from "@/lib/source";
 import { Looseleaf, PixelSprite, PixelTag } from "../paper";
 import { Notice } from "../ui";
@@ -191,6 +190,11 @@ export function Entry({
         {error && <Notice>{error}</Notice>}
       </div>
 
+      {/* Debate mode used to be advertised here, first as a footnote and then
+          as a card. It is a door on the landing page now, chosen before this
+          screen is ever reached, which is where a choice between two modes
+          belongs. This screen is back to having one job. */}
+
       {/* Notes are the better session and are offered as such, not demanded.
           Folded away by default so the front door stays one field. */}
       <div className="rise flex flex-col gap-3" style={{ ["--i" as string]: 2 }}>
@@ -243,26 +247,6 @@ export function Entry({
         )}
       </div>
 
-      {/* The other mode.
-
-          A link rather than a tab, and down here rather than at the top,
-          because the front door has one job and it is the field above. Somebody
-          who came to study should not have to decline a second product before
-          they can name a topic. Somebody who came to debate will find it. */}
-      <div className="rise flex flex-col gap-1" style={{ ["--i" as string]: 3 }}>
-        <Link
-          href="/debate"
-          className="self-start font-sans text-[0.875rem] font-medium text-accent underline decoration-accent/30 decoration-1 underline-offset-4 transition-colors hover:decoration-accent"
-        >
-          Or argue it against someone
-        </Link>
-        <p className="max-w-[52ch] font-sans text-[0.75rem] leading-[1.6] text-ink-faint">
-          Debate mode. Pick a side, argue it for four speeches against an opponent trying to win,
-          and get a judged ballot. Tournament formats included.
-        </p>
-      </div>
-
-      <Credits />
     </section>
   );
 }
@@ -322,47 +306,6 @@ function Resume({ record, onStart }: { record: TopicRecord; onStart: (topic: str
   );
 }
 
-/* ── Credit where it is required ──────────────────────────────────────────
-   The background track is used under Creative Commons BY 4.0, and attribution
-   is a condition of that licence rather than a courtesy. It is also in
-   CREDITS.md and in README.md, but neither of those is reachable by a student
-   who is only ever going to see the app, so it is here too.
-
-   Closed by default and one click from open, at the foot of the screen every
-   session begins on. That is as far from buried as a credit can be without
-   taking space from the one field this screen exists for. The text is
-   reproduced exactly as the licence requires: it is not reworded, wrapped in
-   friendlier language, or abbreviated. */
-
-function Credits() {
-  return (
-    <details className="rise group self-start" style={{ ["--i" as string]: 3 }}>
-      <summary
-        style={{ fontVariationSettings: '"wdth" 88' }}
-        className="inline-flex cursor-pointer list-none items-center gap-1.5 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
-      >
-        <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
-          ›
-        </span>
-        Credits
-      </summary>
-
-      <div className="mt-3 border-l-2 border-line-strong pl-3.5">
-        <p className="font-sans text-[0.8125rem] leading-[1.7] text-ink-soft">
-          &ldquo;8bit Dungeon Level&rdquo; Kevin MacLeod (incompetech.com)
-          <br />
-          Licensed under Creative Commons: By Attribution 4.0
-          <br />
-          <a
-            href="http://creativecommons.org/licenses/by/4.0/"
-            target="_blank"
-            rel="noreferrer"
-            className="text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent"
-          >
-            http://creativecommons.org/licenses/by/4.0/
-          </a>
-        </p>
-      </div>
-    </details>
-  );
-}
+/* The credit for the background track is in app/ui.tsx now: debate mode plays
+   the same track and owes the same attribution, and one copy of a licence
+   notice is the only number of copies that cannot drift out of agreement. */

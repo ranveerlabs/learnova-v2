@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import type { Annotation, Grade, Outcome } from "../api/grade/route";
 import { isBusy, postJSON } from "../client";
 import { MarginNotes, MarkedUpText, useDissection } from "../dissection";
-import { Arrow, Aside, Ask, GhostButton, Label, Leaf, Notice, PrimaryButton } from "../ui";
+import { Arrow, Aside, Ask, GhostButton, Label, Leaf, Notice, PrimaryButton, Working } from "../ui";
 import type { Production, Provenance, Question } from "./types";
-import { play, useSpeech } from "./voice";
+import { play } from "../tone";
+import { useSpeech } from "./voice";
 
 /* Round 4. The whole point of the other four stages.
 
@@ -122,7 +123,6 @@ export function TeachBack({
   provenance,
   index,
   total,
-  sound,
   onDone,
   onNext,
   onStop,
@@ -135,7 +135,6 @@ export function TeachBack({
   provenance: Provenance;
   index: number;
   total: number;
-  sound: boolean;
   /** Records the graded production the moment it comes back, so a student who
       walks away after reading their result still has it counted. */
   onDone: (production: Production) => void;
@@ -231,7 +230,7 @@ export function TeachBack({
         grounded: usesNotes,
       });
       setGrade(result);
-      if (sound) play(result.outcome === "not-yet" ? "wrong" : "right", result.outcome === "solid" ? 1 : 0.4);
+      play(result.outcome === "not-yet" ? "wrong" : "right", result.outcome === "solid" ? 1 : 0.4);
       onDone({
         concept,
         explanation: said,
@@ -455,6 +454,22 @@ export function TeachBack({
           <PrimaryButton onClick={submit} disabled={loading || !explanation.trim()}>
             {loading ? "Marking…" : "Submit"} {!loading && <Arrow />}
           </PrimaryButton>
+
+          {/* The longest wait in a round, and it used to be announced by a
+              disabled button whose label had changed. A button that does not
+              move is a caption.
+
+              Nothing takes the screen here on purpose. What is being marked
+              is the student's own explanation, sitting in the box directly
+              above, and covering it would take away the one thing worth
+              looking at while a rubric is applied to it. So the signal goes
+              beside the button and the words stay put.
+
+              No label on it. The button an inch to the left already says
+              "Marking…", and a meter captioned "Marking what you wrote" next
+              to it was the same word twice. The meter supplies the movement,
+              which is the half the button cannot do. */}
+          {loading && <Working />}
           {/* Keyboard instructions, for people with a keyboard. On a phone
               this was three key names and a plus sign describing a device the
               student is not holding.
@@ -464,17 +479,24 @@ export function TeachBack({
               Submit button immediately to its left, and a line of text telling
               you to press the button next to it is not an instruction, it is
               furniture. Off by pointer rather than by width, so a laptop in a
-              narrow window keeps a hint it can still act on. */}
-          <span
-            style={{ fontVariationSettings: '"wdth" 88' }}
-            className="font-sans text-[0.75rem] text-ink-faint pointer-coarse:hidden"
-          >
-            <kbd className="rounded-[3px] border border-line-strong bg-sunk px-1.5 py-0.5 font-mono text-[0.6875rem]">
-              Enter
-            </kbd>{" "}
-            to send, <kbd className="font-mono">Shift</kbd>+
-            <kbd className="font-mono">Enter</kbd> for a new line
-          </span>
+              narrow window keeps a hint it can still act on.
+
+              Also off while the answer is being marked. It tells you how to
+              send something you have already sent, and leaving it there put
+              two lines of small grey text either side of the one thing on
+              that row worth reading. */}
+          {!loading && (
+            <span
+              style={{ fontVariationSettings: '"wdth" 88' }}
+              className="font-sans text-[0.75rem] text-ink-faint pointer-coarse:hidden"
+            >
+              <kbd className="rounded-[3px] border border-line-strong bg-sunk px-1.5 py-0.5 font-mono text-[0.6875rem]">
+                Enter
+              </kbd>{" "}
+              to send, <kbd className="font-mono">Shift</kbd>+
+              <kbd className="font-mono">Enter</kbd> for a new line
+            </span>
+          )}
           {!speech.supported && (
             <p className="font-sans text-[0.75rem] text-ink-faint">
               Speech input needs Chrome or Edge. Typing works everywhere.

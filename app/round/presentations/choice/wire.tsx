@@ -9,14 +9,30 @@ import type { Presentation, PresentationProps } from "../types";
    The question sits on the left as a plug, the candidates on the right, and
    the student drags a wire between them.
 
-   Three ways to connect, all equal, none faster than the others:
-   - press 1 to 4
-   - click the candidate
-   - drag from the plug to anywhere in the candidate's row
+   One way to connect: drag from the plug to the candidate's row.
 
-   The drag is deliberately forgiving. The drop target is the whole row, the
-   wire snaps to whichever row the pointer is over, and releasing anywhere else
-   simply cancels. Nothing here can be failed by an unsteady hand.
+   ── Why only one ─────────────────────────────────────────────────────────
+   There used to be three, all equal: press 1 to 4, click the candidate, or
+   drag. That was the safe answer and it made the board mean nothing. A wire
+   board where tapping the option works is a list of buttons with a picture of
+   a cable beside it, and every player finds the tap within one question and
+   never touches the wire again. The presentation exists to make the connection
+   a physical act; leaving a faster way past it deleted the presentation while
+   keeping the artwork.
+
+   So the plug is the only way in. The drag itself stays as forgiving as it
+   ever was: the drop target is the whole row, the wire snaps to whichever row
+   the pointer is over, and releasing anywhere else simply cancels. Nothing
+   here can be failed by an unsteady hand, only by not reaching for it.
+
+   ── What that costs, and what pays for it ────────────────────────────────
+   A drag cannot be performed with a keyboard, and this board is now unusable
+   without a pointer. That is a real loss and it is not absorbed here, it is
+   absorbed by the skip link: `PlainEscape` is the first thing in the tab order
+   of the question area on every round, it is one keystroke from the top, and
+   it switches the rest of the session to the plain rendering where every
+   option is an ordinary button. Presentations are how rounds look; the plain
+   view is the round. Anybody who cannot drag gets the round.
 
    ── On saying what to do ─────────────────────────────────────────────────
    This used to say nothing at all. The plug was an unlabelled dot, no wire was
@@ -33,7 +49,11 @@ import type { Presentation, PresentationProps } from "../types";
    - the plug is labelled, and it is shaped like something you grab
    - a stub of wire hangs off it with its dashes marching towards the options,
      which is what a loose end does
-   - one short line above the board names the gesture and the number keys
+   - one short line above the board names the gesture
+
+   That matters more now than it did when it was written, because the gesture
+   is no longer one way in among three. If somebody cannot work out what to do
+   here there is nothing else for them to fall back on.
 
    The stub points at the options in general and at no option in particular:
    an instruction that leans towards one of the four answers would be a hint,
@@ -110,15 +130,17 @@ function HintWire({ from, reach }: { from: Point; reach: number }) {
 }
 
 function WireSurface(props: PresentationProps) {
-  const { options, pick, moodOf, revealed, chosen, answer } = useOptions(props);
+  /* No number keys. They are the fastest way to answer a board whose whole
+     point is the gesture, which makes them the way it gets answered. */
+  const { options, pick, moodOf, revealed, chosen, answer } = useOptions(props, { keys: false });
   const questionId = props.question.id;
 
   const board = useRef<HTMLDivElement>(null);
   const stem = useRef<HTMLDivElement>(null);
-  /* The rows are measured, so they need a handle. `Pick` renders the button
-     and does not forward a ref, so each one is wrapped in a plain element that
-     wraps exactly its bounds: the wrapper is what gets hit tested, and it is
-     the same rectangle as the button inside it. */
+  /* The rows are measured, so they need a handle. `Pick` does not forward a
+     ref, so each one is wrapped in a plain element that wraps exactly its
+     bounds: the wrapper is what gets hit tested, and it is the same rectangle
+     as the socket inside it. */
   const rows = useRef<(HTMLDivElement | null)[]>([]);
 
   const [start, setStart] = useState<Point | null>(null);
@@ -351,15 +373,16 @@ function WireSurface(props: PresentationProps) {
                    four empty panels with two words adrift in each. */
                 className="flex max-h-[6.5rem] min-h-0 flex-1 basis-0"
               >
+                {/* No `onPick`, so this is a socket rather than a button: the
+                    only thing that answers this board is a wire arriving. */}
                 <Pick
                   index={i}
                   option={option}
                   mood={mood}
                   revealed={revealed}
-                  onPick={pick}
                   className={`rise-in relative flex w-full items-center gap-2.5 overflow-hidden rounded-[6px] border-[3px] px-3 py-2 sm:gap-4 sm:px-5 sm:py-4 ${
                     mood === "right" ? "right-pop right-sheen" : ""
-                  } ${targeted ? "border-accent bg-accent-wash" : tone(mood)}`}
+                  } ${targeted ? "border-accent bg-accent-wash" : tone(mood, { hover: false })}`}
                 >
                   {/* The socket the wire lands in. */}
                   <span

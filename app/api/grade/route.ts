@@ -133,29 +133,73 @@ function deflate(s: string): string {
     quote goes. The prompt already says so; this is the part that holds when
     the model does it anyway, and it is the reason a quiz question can no
     longer be printed under the heading "Source". */
-function verifyCitations(grade: Grade, source: string, grounded: boolean): Grade {
-  if (!grounded) {
-    return {
-      ...grade,
-      annotations: grade.annotations.map((a) => (a.sourceQuote ? { ...a, sourceQuote: "" } : a)),
-    };
+/** Is this quote actually present in that text, allowing for the punctuation
+    and spacing a model tidies up on the way past? */
+function present(quote: string, haystack: string, tight: string): boolean {
+  return haystack.includes(flatten(quote)) || tight.includes(deflate(quote));
+}
+
+/** Every quotation on a grade, checked against the thing it claims to quote.
+
+    ── The student's own words ──────────────────────────────────────────────
+    `quote` is documented as a verbatim span of the explanation, and the
+    interface treats it as one: an annotation whose span cannot be located in
+    the text is still shown, as a note, with the quote printed inside actual
+    quotation marks. So a model that paraphrases instead of quoting, or that
+    invents the sentence it wishes had been written, produces a card that
+    attributes words to the student that the student never wrote.
+
+    That is the worst failure this file can produce. It is not a wrong mark on
+    a real sentence, which a student can look at and disagree with; it is a
+    sentence that does not exist, and the only thing they can conclude is that
+    they wrote it and forgot. Blanking the quote leaves the comment, which is
+    often still worth reading, and leaves nothing to be misread as theirs.
+
+    Checked here rather than trusted from the prompt for the same reason the
+    source citations are: this one is decidable without a model, so it should
+    not depend on one. */
+export function verifyCitations(
+  grade: Grade,
+  source: string,
+  explanation: string,
+  grounded: boolean
+): Grade {
+  const said = flatten(explanation);
+  const saidTight = deflate(explanation);
+  const inSource = flatten(source);
+  const sourceTight = deflate(source);
+
+  let lostQuotes = 0;
+  let lostCitations = 0;
+
+  const annotations = grade.annotations.map((a) => {
+    let out = a;
+
+    if (out.quote && !present(out.quote, said, saidTight)) {
+      lostQuotes++;
+      out = { ...out, quote: "" };
+    }
+
+    /* In a topic-only session there is no source to be present in, so every
+       citation goes whatever it says. */
+    if (out.sourceQuote && (!grounded || !present(out.sourceQuote, inSource, sourceTight))) {
+      if (grounded) lostCitations++;
+      out = { ...out, sourceQuote: "" };
+    }
+
+    return out;
+  });
+
+  if (lostQuotes > 0) {
+    console.warn(`Dropped ${lostQuotes} quote(s) not found in the student's explanation.`);
+  }
+  if (lostCitations > 0) {
+    console.warn(`Dropped ${lostCitations} sourceQuote(s) not found verbatim in the source.`);
   }
 
-  const haystack = flatten(source);
-  const tight = deflate(source);
-  let dropped = 0;
-  const annotations = grade.annotations.map((a) => {
-    if (a.sourceQuote && !haystack.includes(flatten(a.sourceQuote)) &&
-        !tight.includes(deflate(a.sourceQuote))) {
-      dropped++;
-      return { ...a, sourceQuote: "" };
-    }
-    return a;
-  });
-  if (dropped > 0) {
-    console.warn(`Dropped ${dropped} sourceQuote(s) not found verbatim in the source.`);
-  }
-  return { ...grade, annotations };
+  /* An annotation with nothing left to point at and nothing to say is not a
+     note, it is a blank card. The ones that keep a comment survive. */
+  return { ...grade, annotations: annotations.filter((a) => a.quote || a.comment.trim()) };
 }
 
 function isGrade(v: unknown): v is Grade {
@@ -236,7 +280,7 @@ export async function POST(req: Request) {
       `${material}\n\n---\n\nConcept being explained: ${concept}\n\nStudent's explanation:\n\n${explanation}${conditions}`,
       isGrade
     );
-    return NextResponse.json(verifyCitations(grade, source, grounded));
+    return NextResponse.json(verifyCitations(grade, source, explanation, grounded));
   } catch (err) {
     if (err instanceof AIError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

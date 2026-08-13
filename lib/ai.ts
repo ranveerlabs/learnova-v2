@@ -49,7 +49,7 @@ async function request(
   token: string,
   system: string,
   user: string,
-  opts: { json: boolean; temperature?: number }
+  opts: { json: boolean; temperature?: number; stream?: boolean }
 ): Promise<Response> {
   return fetch(ENDPOINT, {
     method: "POST",
@@ -64,17 +64,15 @@ async function request(
         { role: "user", content: user },
       ],
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+      ...(opts.stream ? { stream: true } : {}),
       temperature: opts.temperature ?? 0.3,
       reasoning: REASONING,
     }),
   });
 }
 
-async function callModel(
-  system: string,
-  user: string,
-  opts: { json: boolean; temperature?: number }
-): Promise<string> {
+/** Read the token key out of the environment, or say why we cannot. */
+function key(): string {
   const token = process.env.HACKCLUB_AI_KEY;
   if (!token || token === "PLACEHOLDER") {
     throw new AIError(
@@ -82,6 +80,15 @@ async function callModel(
       500
     );
   }
+  return token;
+}
+
+async function callModel(
+  system: string,
+  user: string,
+  opts: { json: boolean; temperature?: number }
+): Promise<string> {
+  const token = key();
 
   /* Two attempts, and only ever for one reason: a reply that arrived fine and
      had nothing in it. That happens occasionally and is not a state anything
@@ -210,10 +217,87 @@ export async function chatJSON<T>(
   return parsed;
 }
 
-/** Plain-text completion, for prose answers that aren't structured data. */
-export async function chatText(system: string, user: string): Promise<string> {
-  const content = await callModel(system, user, { json: false, temperature: 0.4 });
-  return content.trim();
+/* There was a `chatText` here, a plain-text completion for prose that is not
+   structured data. Its one caller was the debate opponent, which streams now,
+   and everything else in the app asks for JSON. It is gone rather than kept
+   warm for a hypothetical second caller: `callModel` is right there and the
+   wrapper was four lines. */
+
+/* ── Streaming ────────────────────────────────────────────────────────────
+   For prose the reader watches arrive rather than waits for.
+
+   Only debate mode uses this, and it is the difference between an opponent
+   who speaks and a form that submits. A study question does not want it: a
+   question is a thing you read once it exists, and revealing it a word at a
+   time would only make the student wait to find out what they are being
+   asked.
+
+   The transport is Server-Sent Events, which is what the OpenAI-compatible
+   endpoint speaks when `stream: true` is set. Deliberately hand-parsed rather
+   than pulled from a library: it is twenty lines, and this file's whole
+   premise is that the thing behind the proxy is one line away from being a
+   different model with different manners.
+
+   One retry is deliberately NOT offered here, unlike `callModel`. A stream
+   that dies has usually already put words on somebody's screen, and starting
+   it again would rewrite a speech they were reading. */
+
+/** The text deltas of a completion, in order, as they arrive.
+
+    Throws before yielding anything if the request itself failed, so a caller
+    can still answer with a real status code. Once the first chunk is yielded
+    the status is already sent and a later failure can only end the stream. */
+export async function* chatStream(
+  system: string,
+  user: string,
+  temperature = 0.4
+): AsyncGenerator<string> {
+  const res = await request(key(), system, user, { json: false, temperature, stream: true });
+
+  if (!res.ok || !res.body) {
+    const detail = await res.text().catch(() => "");
+    console.error(`Hack Club AI API stream error ${res.status} (model ${MODEL}):`, detail);
+    if (res.status === 429) throw new AIError(BUSY, 429);
+    throw new AIError(`The AI service returned an error (HTTP ${res.status}). Try again.`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  /* SSE frames are separated by a blank line and can be split across reads,
+     so whatever is left over stays here until the rest of it turns up. */
+  let buffer = "";
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let cut: number;
+      while ((cut = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, cut).trim();
+        buffer = buffer.slice(cut + 1);
+
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (payload === "[DONE]") return;
+
+        try {
+          const parsed = JSON.parse(payload);
+          const delta: unknown = parsed?.choices?.[0]?.delta?.content;
+          if (typeof delta === "string" && delta) yield delta;
+        } catch {
+          /* A frame that is not JSON is a frame this does not need. */
+        }
+      }
+    }
+  } finally {
+    /* Whoever stops reading stops the generation. The caller cuts the stream
+       off the moment a speech has run its length, and without this the model
+       would go on producing tokens nobody will ever see, billed to a key
+       everybody shares. */
+    await reader.cancel().catch(() => {});
+  }
 }
 
 export function isStringArray(v: unknown): v is string[] {

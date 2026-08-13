@@ -2,6 +2,10 @@
 
 /* Background music.
 
+   One track, shared by both modes, which is why this sits at the app root
+   rather than inside app/round where it started. A debate gets the same music
+   a run does: the track is the app's atmosphere, not Round Mode's.
+
    One track, played from a file. What was here before was a synthesised pad:
    three oscillators through a low pass filter, drifting between chord centres
    on a four second timer. It was clever and it sounded like fan noise, so it
@@ -40,9 +44,9 @@
     present without being the loudest thing in the room.
 
     One constant, so adjusting it after listening is a one line change rather
-    than an archaeology exercise. If it now sits on top of the answer tones,
-    those have their own levels in voice.ts, at 0.05 for correct and 0.035 for
-    wrong, and they are what should win. */
+    than an archaeology exercise. If it now sits on top of the event tones,
+    those have their own levels in tone.ts, set against a measurement of this
+    track at this volume, and they are what should win. */
 export const MUSIC_VOLUME = 0.6;
 
 const TRACK = "/audio/8bit-dungeon-level.mp3";
@@ -143,23 +147,23 @@ export function setMusic(on: boolean): void {
   }
 }
 
-/** Stop and release the element. Called when the session unmounts, so a track
-    cannot outlive the page that started it. */
-export function stopMusic(): void {
-  wanted = false;
-  if (!element) return;
-  try {
-    element.pause();
-    element.src = "";
-  } catch {
-    /* Nothing to do. */
-  }
-  element = null;
-}
+/* There was a `stopMusic` here, called when a mode unmounted, on the reasoning
+   that a track must not outlive the page that started it. Both halves of that
+   turned out to be wrong once there were two modes and a landing page between
+   them.
 
-/** Whether music is currently wanted. The toggle renders from the session's
-    own state rather than from this; it exists for anything that needs to ask
-    without owning the setting. */
-export function musicWanted(): boolean {
-  return wanted;
-}
+   A mode unmounting is not the page going away. It is a client-side
+   navigation inside the same document, so tearing the track down on it meant
+   the music stopped dead every time somebody moved between the landing and a
+   mode, and started again from the first bar a moment later. The track now
+   simply keeps playing across a navigation, which is what anybody would
+   expect of background music in an app. When the document really does go
+   away, the element goes with it, which was the only part the old function
+   was actually needed for.
+
+   It also carried a real bug worth recording. It released the element with
+   `element.src = ""`, and an empty src does not mean "no source": it resolves
+   against the document, so the element went off and tried to decode the
+   current HTML page as audio. Every unmount left a failed media load and a
+   console error behind it. If anything ever does need to stop the track, use
+   `removeAttribute("src")` followed by `load()`. */

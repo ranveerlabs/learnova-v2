@@ -449,6 +449,11 @@ export type Rating = {
   share: number;
   /** Which of the three colour bands `share` falls in. */
   band: "strong" | "fair" | "weak";
+  /** How many things were scored: questions served plus explanations graded.
+      Not shown anywhere. It is here because the elo rates the run against the
+      material, and `possible` alone cannot tell a long easy session from a
+      short hard one. See `materialStrength` in lib/elo.ts. */
+  items: number;
 };
 
 function questionValue(a: Answer): number {
@@ -476,7 +481,7 @@ export function rating(answers: Answer[], productions: Production[]): Rating {
   const share = possible > 0 ? earned / possible : 0;
   const band = share >= 0.75 ? "strong" : share >= 0.45 ? "fair" : "weak";
 
-  return { earned, possible, share, band };
+  return { earned, possible, share, band, items: answers.length + productions.length };
 }
 
 /** The quickest correct answer so far. Only correct ones count: the fastest
