@@ -32,7 +32,15 @@ export type Mood = "idle" | "right" | "wrong" | "dimmed";
     The keyboard handler is bound here and nowhere else, so "1 to n always
     selects" is a property of the kit rather than a promise each presentation
     makes separately. */
-export function useOptions(props: PresentationProps) {
+/** Shared plumbing for a presentation whose answer is one of the options.
+
+    `keys` is the one thing a presentation may switch off. The number-key
+    shortcut is right for every board where the options are things you press,
+    and wrong for the one where the answer is a gesture: a wire board that also
+    answers to the 2 key is not a wire board, it is a list of buttons with a
+    picture of a cable next to it. See wire.tsx for what that costs and what
+    pays for it. */
+export function useOptions(props: PresentationProps, { keys = true } = {}) {
   const { question, revealed, chosen, onAnswer } = props;
   const options = useMemo(() => question.options ?? [], [question.options]);
   const answer = question.answerIndex ?? -1;
@@ -55,7 +63,7 @@ export function useOptions(props: PresentationProps) {
   );
 
   useEffect(() => {
-    if (revealed) return;
+    if (revealed || !keys) return;
     function onKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const i = KEYS.indexOf(e.key);
@@ -66,7 +74,7 @@ export function useOptions(props: PresentationProps) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [options.length, pick, revealed]);
+  }, [keys, options.length, pick, revealed]);
 
   const moodOf = useCallback(
     (i: number): Mood => {
@@ -87,7 +95,7 @@ export function useOptions(props: PresentationProps) {
     different shape still want the same colours: a student should not have to
     relearn what right looks like because the round is drawn as doors this
     time. */
-export function tone(mood: Mood): string {
+export function tone(mood: Mood, { hover = true } = {}): string {
   switch (mood) {
     case "right":
       return "border-solid-mark bg-solid-tint";
@@ -96,7 +104,11 @@ export function tone(mood: Mood): string {
     case "dimmed":
       return "border-line bg-page opacity-55";
     case "idle":
-      return "border-line-strong bg-page hover:border-accent hover:bg-accent-wash/40";
+      /* The hover lift is an offer to press, so a board where pressing does
+         nothing must not make it. Only the wire board switches it off. */
+      return hover
+        ? "border-line-strong bg-page hover:border-accent hover:bg-accent-wash/40"
+        : "border-line-strong bg-page";
   }
 }
 
@@ -198,11 +210,30 @@ export function Pick({
   option: string;
   mood: Mood;
   revealed: boolean;
-  onPick: (i: number) => void;
+  /** Omitted where the option is not pressable.
+
+      Only the wire board does this, where the answer is a gesture rather than
+      a press. It renders the same rectangle with the same classes and the same
+      label, as a plain element instead of a button: a button that ignores its
+      own click is worse than no button, because it invites the one action that
+      does nothing. */
+  onPick?: (i: number) => void;
   className?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
+  if (!onPick) {
+    return (
+      <div
+        aria-label={label(index, option, mood)}
+        style={{ ["--i" as string]: index, ...style }}
+        className={`pick text-left ${className}`}
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"

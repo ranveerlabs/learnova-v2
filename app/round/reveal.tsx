@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import type { RatingChange } from "@/lib/elo";
 import { conceptStanding, formatClock, type Reveal as RevealData, type Standing } from "./engine";
-import { Arrow, GhostButton, Label, PrimaryButton } from "../ui";
+import { Elo } from "../elo";
+import { Arrow, GhostButton, PrimaryButton } from "../ui";
 import { conceptKey, forget } from "./record";
 import type { Provenance } from "./types";
 
@@ -62,12 +64,37 @@ function Figure({ value, label }: { value: string; label: string }) {
   );
 }
 
-/* The rating's three bands. Colour is the fast channel and the word beside it
-   is the one that survives not being able to see the colour. */
-const BAND: Record<RevealData["rating"]["band"], { ink: string; note: string }> = {
-  strong: { ink: "text-solid-ink", note: "Strong run" },
-  fair: { ink: "text-shaky-ink", note: "Some of it landed" },
-  weak: { ink: "text-broken-ink", note: "Worth another run" },
+/* The rating's three bands.
+
+   Colour is the fast channel and the word beside it is the one that survives
+   not being able to see the colour. The wash and the rule are new: the number
+   used to be coloured type on the page background, which is a lot of weight
+   to hang on the hue of a glyph, and it left the two numbers on this screen,
+   the run and the elo, looking like one stack of figures. The run sits in a
+   card of its own now, in its own colour; the elo sits plainly underneath.
+   Same treatment as the verdict on the debate ballot, on purpose. */
+const BAND: Record<
+  RevealData["rating"]["band"],
+  { ink: string; rule: string; wash: string; note: string }
+> = {
+  strong: {
+    ink: "text-solid-ink",
+    rule: "border-solid-mark",
+    wash: "bg-solid-tint",
+    note: "Strong run",
+  },
+  fair: {
+    ink: "text-shaky-ink",
+    rule: "border-shaky-mark",
+    wash: "bg-shaky-tint",
+    note: "Some of it landed",
+  },
+  weak: {
+    ink: "text-broken-ink",
+    rule: "border-broken-mark",
+    wash: "bg-broken-tint",
+    note: "Worth another run",
+  },
 };
 
 export function Reveal({
@@ -75,8 +102,10 @@ export function Reveal({
   topic,
   provenance,
   best,
+  elo,
   previously,
   runs,
+  onAgain,
   onRestart,
 }: {
   data: RevealData;
@@ -84,10 +113,15 @@ export function Reveal({
   provenance: Provenance;
   /** The best rating on THIS topic, from the record, when there is one. */
   best: { rating: number } | null;
+  /** What this run did to the app-wide elo. Null if storage refused it. */
+  elo: RatingChange | null;
   /** Where each concept stood before this run, keyed as the record keys them.
       Empty on a first visit, which is what makes "moved" sayable at all. */
   previously: Record<string, Standing>;
   runs: number;
+  /** Same topic, new questions. */
+  onAgain: () => void;
+  /** Back to the entry screen for something else. */
   onRestart: () => void;
 }) {
   const produced = data.productions.length > 0;
@@ -113,8 +147,24 @@ export function Reveal({
 
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2">
-      <div className="stage-in flex flex-col gap-2">
-        <Label>{topic}</Label>
+      {/* The topic, on the note it was written on.
+
+          It was an uppercase grey label, which is how you tag a section and
+          not how you name the thing a person just spent ten minutes on. Same
+          argument as the motion on the debate ballot, and deliberately the
+          same object: the topic is what the student brought and typed
+          themselves, it is neither a judgement nor a number, and it is the
+          one piece of colour on this screen that does not mean anything. That
+          is what keeps it clear of the marks below, where colour is the whole
+          vocabulary. */}
+      <div className="stage-in flex flex-col gap-4">
+        <div
+          className="sticky flex min-h-[6.5rem] w-fit min-w-[10rem] max-w-[18rem] items-start self-start rounded-[2px] pb-5 pl-4 pr-6 pt-4"
+          style={{ ["--tilt" as string]: "-1.6deg", ["--sticky-paper" as string]: "var(--supply-mint)" }}
+        >
+          <p className="font-hand text-[1.375rem] leading-[1.15]">{topic}</p>
+        </div>
+
         <h2 className="max-w-[24ch] text-balance font-read text-[clamp(1.5rem,1.2rem+1.5vw,2.125rem)] leading-[1.1] tracking-[-0.02em] text-ink">
           {produced
             ? "You started by recognising. You finished by explaining."
@@ -125,7 +175,10 @@ export function Reveal({
       {/* The rating, and what it is out of. The denominator is not decoration:
           a bare "+740" says nothing when a short session and a long one are
           scored on different totals. */}
-      <div className="stage-in flex flex-col gap-2" style={{ ["--i" as string]: 1 }}>
+      <div
+        className={`stage-in flex w-fit min-w-[16rem] max-w-full flex-col gap-2 rounded-[3px] border-l-[5px] py-4 pl-4 pr-8 ${band.rule} ${band.wash}`}
+        style={{ ["--i" as string]: 1 }}
+      >
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span
             className={`font-mono text-[clamp(3rem,2rem+4vw,5rem)] font-bold leading-none tabular-nums ${band.ink}`}
@@ -152,6 +205,28 @@ export function Reveal({
         </p>
       </div>
 
+      {/* The app-wide elo, and what this run did to it.
+
+          Two numbers on one screen is a risk, and they are kept apart on
+          purpose: the big one above is what this session was worth out of
+          what it could have been, and it resets every run. This one carries
+          across every run and every debate, and it is the only figure in the
+          app that answers "am I getting better at this" rather than "how did
+          that go". The rung and the rail are what keep them from being read
+          as two versions of the same thing.
+
+          Absent rather than zeroed when storage refused the write, because a
+          rating that silently reports 0 is worse than one that is not there. */}
+      {elo && (
+        <div className="stage-in" style={{ ["--i" as string]: 2 }}>
+          <Elo
+            rating={elo.after}
+            delta={elo.delta}
+            title="One elo across Round Mode and Debate, kept in this browser. A run is rated against how hard the material it served you was, so a long easy session moves it very little. Studying can carry it to the top of Sharp; the rungs above that are earned in a debate."
+          />
+        </div>
+      )}
+
       {/* The one thing a returning student came back to find out.
 
           It sits above the buttons rather than inside the disclosure, because
@@ -162,7 +237,7 @@ export function Reveal({
       {nowExplained.length > 0 && (
         <div
           className="stage-in flex flex-col gap-2 rounded-[3px] border-l-[3px] border-solid-mark bg-solid-tint py-3 pl-4 pr-4"
-          style={{ ["--i" as string]: 2 }}
+          style={{ ["--i" as string]: 3 }}
         >
           <span
             style={NARROW}
@@ -184,15 +259,22 @@ export function Reveal({
         </div>
       )}
 
-      <div className="stage-in flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 2 }}>
-        <PrimaryButton onClick={onRestart}>
+      {/* Two ways out, and now they do two different things.
+
+          They were both wired to the one reset, which banked the run and
+          dropped the student on the entry screen with an empty field, so the
+          button that said it would repeat the topic was the button that threw
+          it away. `again` in session.ts is the behaviour that label always
+          claimed: same topic, new questions, straight into the warm up. */}
+      <div className="stage-in flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 4 }}>
+        <PrimaryButton onClick={onAgain}>
           Run it again <Arrow />
         </PrimaryButton>
         <GhostButton onClick={onRestart}>Study something else</GhostButton>
       </div>
 
       {/* The door. Closed on arrival, and it names what is behind it. */}
-      <details className="stage-in group" style={{ ["--i" as string]: 3 }}>
+      <details className="stage-in group" style={{ ["--i" as string]: 5 }}>
         <summary
           style={NARROW}
           className="inline-flex cursor-pointer list-none items-center gap-2 rounded-[3px] font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:text-ink"

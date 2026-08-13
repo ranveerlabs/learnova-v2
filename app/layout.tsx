@@ -66,10 +66,13 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-visual",
 };
 
+/* The root names the app, and each mode names itself over the top of it. The
+   title used to be "Learnova, Round Mode" for every page in the app including
+   the debate ones, which was true when there was one mode. */
 export const metadata: Metadata = {
-  title: "Learnova, Round Mode",
+  title: "Learnova",
   description:
-    "Name a topic and start guessing. Five rounds take the help away one step at a time, until you are explaining it in your own words with nothing on screen. The gap between recognising and explaining is the whole point.",
+    "Two ways to know something. Learn it until you can explain it with nothing on screen, then defend it against an opponent trying to take it off you.",
 };
 
 export default function RootLayout({

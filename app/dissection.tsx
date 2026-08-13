@@ -329,9 +329,20 @@ export function MarginNotes({
                   </span>
                 </div>
 
-                <p className="mt-1.5 font-read text-[0.9375rem] leading-[1.55] text-ink">
-                  <span className={MARK_CLASS[card.type]}>“{card.quote}”</span>
-                </p>
+                {/* Only when there is something to quote.
+
+                    The grader's quote is checked against the explanation
+                    server-side and blanked when it is not actually in there,
+                    so this can arrive empty. Printed anyway it became a pair
+                    of quotation marks around nothing, which reads as the app
+                    having lost the student's words rather than as the model
+                    having never had them. The comment below carries the note
+                    on its own. */}
+                {card.quote && (
+                  <p className="mt-1.5 font-read text-[0.9375rem] leading-[1.55] text-ink">
+                    <span className={MARK_CLASS[card.type]}>“{card.quote}”</span>
+                  </p>
+                )}
 
                 {card.sourceQuote && (
                   <p className="mt-2.5 font-read text-[0.9375rem] leading-[1.55] text-ink-soft">

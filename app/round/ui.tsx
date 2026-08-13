@@ -719,95 +719,18 @@ export function ChipBoard({
   );
 }
 
-/* ── Waiting ────────────────────────────────────────────────────────────── */
+/* The waiting screen used to live here, as `Generating`: five accent bars on
+   a scaling pulse, defined in this file and used only by the round shell.
+   Debate mode then grew indicators of its own and the app had three different
+   marks for one idea, so the mark moved to app/ui.tsx as `Waiting` and both
+   modes draw it. This file kept an `export { Waiting as Generating }` line
+   through that move, which was one alias standing between a reader and the
+   thing itself; the two call sites import `Waiting` directly now.
 
-/** Every AI call gets one of these. Silence reads as broken, and this mode
-    is fast enough everywhere else that two seconds of nothing would feel
-    like a crash. */
-export function Generating({ title, sub }: { title: string; sub: string }) {
-  return (
-    <div role="status" className="settle flex flex-col items-center gap-6 py-16">
-      <div className="flex items-end gap-1.5" aria-hidden>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <span
-            key={i}
-            className="block w-2 rounded-[1px] bg-accent"
-            style={{
-              height: "2rem",
-              animation: "listening 1.1s ease-in-out infinite",
-              animationDelay: `${i * 110}ms`,
-              opacity: 0.35 + i * 0.14,
-            }}
-          />
-        ))}
-      </div>
-      <div className="text-center">
-        <p className="font-sans text-[1rem] font-semibold text-ink">{title}</p>
-        <p className="mt-1 font-sans text-[0.875rem] text-ink-soft">{sub}</p>
-      </div>
-    </div>
-  );
-}
-
-/* ── Audio ──────────────────────────────────────────────────────────────────
-   These sit in the status strip and stay visible during a round, which is the
-   one exception to the rule at the top of this file about what may be on
-   screen. They earn it: audio nobody can stop is not a feature, it is a
-   reason to close the tab, and a mute control that can only be reached
-   between rounds is no use to somebody whose lecture just started. They pay
-   for the exception by being glyphs, so there is no text to read.
-
-   There are two rather than one because the two halves start differently.
-   Music is off until asked for; the answer tones are on, because they are
-   feedback rather than atmosphere. One control cannot express that.
-------------------------------------------------------------------------- */
-
-/** On is green, off is the same red the app marks a wrong answer in.
-
-    The colours are doing real work here and are also not doing it alone. Red
-    against green is the one pairing that collapses for the eight or so percent
-    of men with deuteranopia, so each state carries a different glyph as well:
-    a slashed note is off whether or not the colour arrives. That is the same
-    discipline the marking screens use, and the palette is the same validated
-    pair, --solid-mark against --broken-mark. */
-function AudioToggle({
-  on,
-  onToggle,
-  label,
-  glyph,
-}: {
-  on: boolean;
-  onToggle: () => void;
-  label: string;
-  /** [on, off]. The two must differ in shape, not only in colour. */
-  glyph: [string, string];
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      aria-pressed={on}
-      aria-label={`${label}: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
-      title={`${label} ${on ? "on" : "off"}`}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[1.125rem] leading-none transition-colors sm:h-10 sm:w-10 ${
-        on
-          ? "border-solid-mark bg-solid-tint text-solid-ink hover:bg-solid-mark hover:text-page"
-          : "border-broken-mark bg-broken-tint text-broken-ink hover:bg-broken-mark hover:text-page"
-      }`}
-    >
-      <span aria-hidden>{on ? glyph[0] : glyph[1]}</span>
-    </button>
-  );
-}
-
-/** The background track. Off until a student asks for it. */
-export function MusicToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return <AudioToggle on={on} onToggle={onToggle} label="Music" glyph={["♫", "♫̸"]} />;
-}
-
-/** The correct and incorrect tones. On by default. */
-export function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return <AudioToggle on={on} onToggle={onToggle} label="Answer sounds" glyph={["♪", "♪̸"]} />;
-}
+   The audio toggles used to live here too. They are in app/ui.tsx now, because
+   debate mode plays the same track and needs the same controls, and a mute
+   button that only exists inside Round Mode is a mute button that does not
+   work on half the app. */
 
 /* ── The way out to the plain rendering ─────────────────────────────────── */
 

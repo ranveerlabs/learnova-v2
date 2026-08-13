@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 
 /* Interface primitives shared across the app.
 
@@ -14,24 +15,35 @@ import { useEffect, useRef } from "react";
    word still fits a compact row without shrinking below a readable size. */
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
-export function Wordmark() {
+/** The app's name, and the mode you are in, and the way back to the door.
+
+    A link because there are two modes now and the name in the corner is where
+    everybody already reaches to leave one. It goes to the landing rather than
+    to the other mode: choosing between them is that screen's whole job, and
+    guessing which one somebody wanted next would be wrong half the time. */
+export function Wordmark({ mode = "Round Mode" }: { mode?: string }) {
   return (
-    <span className="shrink-0 whitespace-nowrap font-read text-[1.15rem] font-medium tracking-[-0.01em] text-ink sm:text-[1.3rem]">
+    <Link
+      href="/"
+      title="Both modes"
+      className="shrink-0 whitespace-nowrap font-read text-[1.15rem] font-medium tracking-[-0.01em] text-ink transition-colors hover:text-accent sm:text-[1.3rem]"
+    >
       Learnova
       {/* Teach-Back is a round now, not the product, so the wordmark names
-          the mode the student is actually in.
+          the mode the student is actually in. There are two of them now, and
+          which one you are in is a thing you can leave and come back to, so
+          the tag has stopped being decoration and started carrying an answer.
 
           Not on a phone. This tag and the ladder's rung label are the same
           kind of thing, a second line of small caps beside the name, and the
           two of them together are what pushed the header onto a third row on a
-          narrow screen. The rung label wins that fight without a contest: it
-          says which round you are in, which changes and matters, where this
-          says which mode you are in, which never changes and is the only mode
-          there is. */}
+          narrow screen. The rung label wins that fight: it says which round
+          you are in, which changes minute to minute, where this changes once
+          per visit. */}
       <span className="ml-2 hidden align-[0.15em] font-sans text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-ink-faint sm:inline">
-        Round Mode
+        {mode}
       </span>
-    </span>
+    </Link>
   );
 }
 
@@ -211,25 +223,188 @@ export function Leaf({
   );
 }
 
-/** Reading in progress: a rule travelling down the ruling, the way a finger
-    moves down a page. Deliberately not a spinner: the app is reading. */
-export function Reading({ title, sub }: { title: string; sub: string }) {
+/* ── Audio ──────────────────────────────────────────────────────────────────
+   These sit in the status strip and stay visible during a round and during a
+   debate speech, which is the one exception to Round Mode's rule about what
+   may be on screen mid-question. They earn it: audio nobody can stop is not a
+   feature, it is a reason to close the tab, and a mute control that can only
+   be reached between rounds is no use to somebody whose lecture just started.
+   They pay for the exception by being glyphs, so there is no text to read.
+
+   There are two rather than one because the two halves start differently.
+   Music is off until asked for; the event tones are on, because they are
+   feedback rather than atmosphere. One control cannot express that.
+
+   Shared by both modes, which is why they are here rather than in
+   app/round/ui.tsx where they began.
+------------------------------------------------------------------------- */
+
+/** On is green, off is the same red the app marks a wrong answer in.
+
+    The colours are doing real work here and are also not doing it alone. Red
+    against green is the one pairing that collapses for the eight or so percent
+    of men with deuteranopia, so each state carries a different glyph as well:
+    a slashed note is off whether or not the colour arrives. That is the same
+    discipline the marking screens use, and the palette is the same validated
+    pair, --solid-mark against --broken-mark. */
+function AudioToggle({
+  on,
+  onToggle,
+  label,
+  glyph,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  label: string;
+  /** [on, off]. The two must differ in shape, not only in colour. */
+  glyph: [string, string];
+}) {
   return (
-    <div className="settle flex flex-col gap-6" role="status">
-      <div
-        className="leaf relative h-32 max-w-[30rem] overflow-hidden rounded-[3px] border border-line bg-page"
-        /* No writing in this one, so it wants ruling edge to edge rather than
-           the leaf's usual margin. */
-        style={{ padding: 0 }}
-        aria-hidden
+    <button
+      onClick={onToggle}
+      aria-pressed={on}
+      aria-label={`${label}: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
+      title={`${label} ${on ? "on" : "off"}`}
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[1.125rem] leading-none transition-colors sm:h-10 sm:w-10 ${
+        on
+          ? "border-solid-mark bg-solid-tint text-solid-ink hover:bg-solid-mark hover:text-page"
+          : "border-broken-mark bg-broken-tint text-broken-ink hover:bg-broken-mark hover:text-page"
+      }`}
+    >
+      <span aria-hidden>{on ? glyph[0] : glyph[1]}</span>
+    </button>
+  );
+}
+
+/** The background track. */
+export function MusicToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return <AudioToggle on={on} onToggle={onToggle} label="Music" glyph={["♫", "♫̸"]} />;
+}
+
+/** The event tones: right and wrong in Round Mode, the gavel in a debate. */
+export function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return <AudioToggle on={on} onToggle={onToggle} label="Sound" glyph={["♪", "♪̸"]} />;
+}
+
+/* ── Credit where it is required ──────────────────────────────────────────
+   The background track is used under Creative Commons BY 4.0, and attribution
+   is a condition of that licence rather than a courtesy. It is also in
+   CREDITS.md and in README.md, but neither of those is reachable by a student
+   who is only ever going to see the app.
+
+   On the front door of both modes, because both play the track. Closed by
+   default and one click from open, at the foot of the screen a session begins
+   on. That is as far from buried as a credit can be without taking space from
+   the thing the screen exists for. The text is reproduced exactly as the
+   licence requires: it is not reworded, wrapped in friendlier language, or
+   abbreviated. */
+export function Credits({ className = "" }: { className?: string }) {
+  return (
+    <details className={`group self-start ${className}`}>
+      <summary
+        style={NARROW}
+        className="inline-flex cursor-pointer list-none items-center gap-1.5 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
       >
-        <div className="reading-rule absolute inset-x-0 top-0 h-8">
-          <div className="h-full w-full bg-gradient-to-b from-transparent to-accent-wash" />
-          <div className="h-px w-full bg-accent/40" />
-        </div>
+        <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+          ›
+        </span>
+        Credits
+      </summary>
+
+      <div className="mt-3 border-l-2 border-line-strong pl-3.5">
+        <p className="font-sans text-[0.8125rem] leading-[1.7] text-ink-soft">
+          &ldquo;8bit Dungeon Level&rdquo; Kevin MacLeod (incompetech.com)
+          <br />
+          Licensed under Creative Commons: By Attribution 4.0
+          <br />
+          <a
+            href="http://creativecommons.org/licenses/by/4.0/"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent"
+          >
+            http://creativecommons.org/licenses/by/4.0/
+          </a>
+        </p>
       </div>
-      <div>
-        <p className="font-sans text-[0.9375rem] font-semibold text-ink">{title}</p>
+    </details>
+  );
+}
+
+/* ── Waiting on the model ─────────────────────────────────────────────────
+   One mark, everywhere, and that is the whole of the design.
+
+   There used to be three. Round Mode drew a bar meter while it built a round,
+   debate parked a pulsing dot after a half-written speech, and judging drew a
+   ruled page with a rule travelling down it, on the reasoning that a judge is
+   reading rather than generating. Each was defensible on its own screen and
+   the set was indefensible. An indicator earns its keep by being recognised,
+   and a mark that appears on one screen is a mark nobody has time to learn:
+   somebody who knows the bars mean "wait" learns nothing from the dot. The
+   ruled page was worse than unfamiliar. With no writing on it, it read as an
+   empty form that had failed to load rather than as anything happening.
+
+   So there is one mark: bars rising and falling, in the accent, at two sizes.
+   The same object whether it sits in a row of buttons, after a sentence still
+   arriving, or in the middle of an empty screen. Only the size changes, and
+   the words beside it.
+
+   The travelling rule is gone rather than kept for a rainy day, and its
+   keyframes went with it. */
+
+/** The bars. Not exported: the two sizes below are the sizes this app has,
+    and a third defined at a call site is how the drift starts again. */
+function Meter({ small = false }: { small?: boolean }) {
+  const height = small ? "0.85rem" : "2rem";
+
+  return (
+    <span
+      aria-hidden
+      className={`inline-flex items-end ${small ? "gap-[3px]" : "gap-1.5"}`}
+      style={{ height }}
+    >
+      {[0, 1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className={`working-bar block rounded-[1px] bg-accent ${small ? "w-[3px]" : "w-2"}`}
+          style={{ height, animationDelay: `${i * 120}ms` }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/** Waiting, with the page still under it.
+
+    For a wait that happens underneath something the student is still looking
+    at: their own explanation while it is being marked, the speech box while
+    the opponent writes. Small enough to sit in a row of controls, and it says
+    what is being waited on rather than that something is.
+
+    `label` may be left off where what is happening is already obvious from
+    what it is attached to, which is the case at the end of a speech that is
+    visibly still arriving. */
+export function Working({ label }: { label?: string }) {
+  return (
+    <span role="status" className="inline-flex items-center gap-2.5 align-baseline">
+      <Meter small />
+      {label && <span className="font-sans text-[0.8125rem] text-ink-soft">{label}</span>}
+    </span>
+  );
+}
+
+/** Waiting, with nothing under it.
+
+    For the waits where the screen has nothing else on it and nothing for the
+    student to do: the first questions of a run, a round being written, a
+    round being judged. Same mark, larger and centred, with a line saying what
+    is happening and a line saying what to expect. */
+export function Waiting({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div role="status" className="settle flex flex-col items-center gap-6 py-16">
+      <Meter />
+      <div className="text-center">
+        <p className="font-sans text-[1rem] font-semibold text-ink">{title}</p>
         <p className="mt-1 font-sans text-[0.875rem] text-ink-soft">{sub}</p>
       </div>
     </div>

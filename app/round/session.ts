@@ -12,9 +12,12 @@ import {
   beatsBest,
   rankForProduction,
 } from "./engine";
-import { setMusic, stopMusic } from "./music";
+import { setMusic } from "../music";
+
 import { newSeed } from "./presentations/registry";
 import { bestFor, openConcepts, recordFor, rememberRun, standingsFor } from "./record";
+import { applyRun, type RatingChange } from "@/lib/elo";
+import { recordRun, standing } from "../standing";
 import type { Standing } from "./engine";
 import {
   type Answer,
@@ -131,50 +134,15 @@ export function useRoundSession() {
       notice a round went missing. */
   const [busyRounds, setBusyRounds] = useState<Round[]>([]);
 
-  /* Audio. Both halves on by default, and the music starts as early as a
-     browser will let it.
+  /* The audio settings used to live here, as two booleans and two togglers
+     that the page threaded down into the round components to guard each
+     `play(...)` call.
 
-     Asked for on mount rather than at any particular button, so that a
-     student who lands on the entry screen and reads it for a moment has music
-     while they read. A browser will not actually allow sound on a page nobody
-     has touched, so in practice it begins at the first interaction, whatever
-     that turns out to be: clicking the topic field, tapping a starter chip,
-     typing the first letter of a topic, or pressing start. music.ts handles
-     that fallback; nothing here needs to know which gesture won.
-
-     Turning it off is one click on a control that is on every screen, and the
-     control is on the entry screen precisely so it can be reached before the
-     first gesture has started anything.
-
-     Both settings survive a restart, so the choice is made once per tab. */
-  const [sound, setSound] = useState(true);
-  const [music, setMusicOn] = useState(true);
-
-  useEffect(() => {
-    setMusic(music);
-  }, [music]);
-
-  /** Flip the music, and tell music.ts immediately rather than waiting for the
-      effect above to notice.
-
-      The duplicate call is deliberate and load bearing. React batches state,
-      so the effect does not run until after this click has finished
-      propagating, and music.ts is meanwhile listening on window for the first
-      gesture. Without this line, a student whose very first action is hitting
-      mute gets: React sets the state, the window listener fires with the old
-      value still in place, starts the track, and the effect pauses it a frame
-      later. A blip of music played at exactly the person switching it off.
-      Setting it synchronously here means the listener sees the truth. */
-  const toggleMusic = useCallback(() => {
-    const next = !music;
-    setMusicOn(next);
-    setMusic(next);
-  }, [music]);
-
-  const toggleSound = useCallback(() => setSound((on) => !on), []);
-
-  /* A track must not outlive the page that started it. */
-  useEffect(() => stopMusic, []);
+     They are in app/audio-controls.tsx now, one component mounted on every
+     screen of both modes and on the landing page, and `play` asks audio.ts
+     for the setting itself. A session is about a run of questions; it was
+     never the right owner of whether somebody wants music, and being the
+     owner is what kept the landing page silent. */
 
   /* Presentations are how rounds look, so there is no setting for them. This
      is the one way to the plain rendering, and it is reached through the skip
@@ -189,6 +157,13 @@ export function useRoundSession() {
      resets everything else. */
   const runs = useRef<RunRecord[]>([]);
   const [best, setBest] = useState<Best>(null);
+
+  /** What this run did to the app-wide elo, once it has done it.
+
+      Null everywhere except the results screen. Cleared on a restart, because
+      a movement left lying around would be shown against the next run as
+      though it had earned it. */
+  const [eloChange, setEloChange] = useState<RatingChange | null>(null);
 
   /** Where every concept on this topic stood BEFORE this run started.
 
@@ -608,34 +583,64 @@ export function useRoundSession() {
   useEffect(() => {
     if (phase !== "reveal" || recorded.current || !topic) return;
     recorded.current = true;
-    rememberRun(topic, buildReveal(answers, productions, splits));
+
+    const data = buildReveal(answers, productions, splits);
+    rememberRun(topic, data);
+
+    /* The same elo the debate mode moves, moved by this run.
+
+       The formula is not the debate one and is not meant to be: a run has no
+       opponent, so `applyRun` rates it against the material it was served.
+       What the two share is the ladder and the arithmetic, which is the
+       whole reason there is one number rather than three. See lib/elo.ts.
+
+       Guarded by the same `recorded` flag as the record for the same reason:
+       a second pass through here would charge one session to the rating
+       twice, and unlike a bad question that is not something a student could
+       see happen. */
+    const moved = applyRun({
+      user: standing().rating,
+      share: data.rating.share,
+      possible: data.rating.possible,
+      items: data.rating.items,
+    });
+    recordRun(moved.after);
+    setEloChange(moved);
   }, [answers, phase, productions, splits, topic]);
 
-  /** Bank this run and reset for another, keeping the run history so the next
-      one has a target, and keeping every question already asked so the next
-      run on the same topic is a different set of questions. */
-  const restart = useCallback(() => {
-    const data = buildReveal(answers, productions, splits);
-    if (data.splits.length > 0) {
-      const record: RunRecord = {
-        rating: data.rating.earned,
-        runTime: data.runTime,
-        openCorrect: data.open?.correct ?? 0,
-        openAnswered: data.open?.answered ?? 0,
-        demonstrated: data.productions.filter((p) => p.outcome === "solid").length,
-        productions: data.productions.length,
-      };
-      runs.current = [...runs.current, record];
-    }
-    /* The best to beat is no longer computed here. It is read from the record
-       for whichever topic the next run is on, in `start`, because a best is
-       only meaningful against the same questions: this used to take the
-       highest rating in the tab whatever it was earned on, so a strong run on
-       one topic set the bar for the next run on a different one. */
+  /** The finished run, added to this tab's history.
 
-    setPhase("entry");
-    setTopic("");
-    setNotes("");
+      The best to beat is not computed here. It is read from the record for
+      whichever topic the next run is on, in `start`, because a best is only
+      meaningful against the same questions: this used to take the highest
+      rating in the tab whatever it was earned on, so a strong run on one
+      topic set the bar for the next run on a different one. */
+  const bank = useCallback(() => {
+    const data = buildReveal(answers, productions, splits);
+    if (data.splits.length === 0) return;
+
+    const record: RunRecord = {
+      rating: data.rating.earned,
+      runTime: data.runTime,
+      openCorrect: data.open?.correct ?? 0,
+      openAnswered: data.open?.answered ?? 0,
+      demonstrated: data.productions.filter((p) => p.outcome === "solid").length,
+      productions: data.productions.length,
+    };
+    runs.current = [...runs.current, record];
+  }, [answers, productions, splits]);
+
+  /** Everything about the run just finished, wiped.
+
+      Not the topic and not the phase. Those are the only two things the two
+      ways out of the results screen disagree about, so each of them says what
+      it wants rather than having this guess.
+
+      `seenByTopic` is deliberately untouched. It is what makes a second run on
+      the same topic a different set of questions, and it is the one thing here
+      that has to outlive the run it came from. */
+  const wipe = useCallback(() => {
+    setEloChange(null);
     setConcepts([]);
     setWarmUp([]);
     setBanks({});
@@ -660,7 +665,36 @@ export function useRoundSession() {
     /* A new seed for the next run, so going again does not draw the same
        presentations in the same order. */
     setSeed(newSeed());
-  }, [answers, productions, splits]);
+  }, []);
+
+  /** Go again on the same topic.
+
+      The results screen used to offer this and not do it: both buttons called
+      the one reset, which cleared the topic and dropped the student back on
+      the entry screen with an empty field, so the button that said it would
+      repeat the topic was the button that threw it away. This is the version
+      the label always claimed.
+
+      The topic and notes are read before the wipe, because the wipe is what
+      makes them unreadable. `start` re-reads the record for the topic, so the
+      best to beat and the concepts still open come back correctly, and
+      `seenByTopic` means the questions are new ones. */
+  const again = useCallback(() => {
+    const sameTopic = topic;
+    const sameNotes = notes;
+    bank();
+    wipe();
+    void start(sameTopic, sameNotes);
+  }, [bank, notes, start, topic, wipe]);
+
+  /** Bank this run and go back to the entry screen for a different topic. */
+  const restart = useCallback(() => {
+    bank();
+    wipe();
+    setPhase("entry");
+    setTopic("");
+    setNotes("");
+  }, [bank, wipe]);
 
   return {
     phase,
@@ -679,9 +713,8 @@ export function useRoundSession() {
     error,
     busyRounds,
     nextPlayable,
-    sound,
-    music,
     best,
+    eloChange,
     previously,
     runCount: runs.current.length,
     banks,
@@ -693,8 +726,6 @@ export function useRoundSession() {
     plainOnly,
     seed,
     setPlainOnly,
-    toggleSound,
-    toggleMusic,
     start,
     answer,
     advance,
@@ -702,6 +733,7 @@ export function useRoundSession() {
     recordProduction,
     nextProduction,
     finish,
+    again,
     restart,
     reveal,
     runElapsed,

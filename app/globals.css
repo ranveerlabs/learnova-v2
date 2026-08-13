@@ -52,6 +52,43 @@
   --gap-ink: #3d4757;
   --gap-tint: #e6e9ef;
 
+  /* rank: the seven rungs of the elo ladder.
+
+     ── Why this is a spectrum and not a set of labels ───────────────────────
+     Four rungs were four tinted chips that happened to differ. Seven have to
+     read as a ladder, which means the colour has to climb: cool at the bottom,
+     warm in the middle, metal at the top, in the order everybody already reads
+     as low-to-high. Somebody who sees plum knows without being told that it
+     beats teal, and that is the whole job.
+
+     ── Why they are filled rather than tinted ───────────────────────────────
+     A tinted chip is coloured paper with coloured type on it, which is exactly
+     what the marks on a student's words are, and the two families meet on the
+     results screen. Solid fill with reversed type is a different kind of
+     object at a glance, so a rank can borrow a hue near a mark's without the
+     two ever being confused. That is what buys the spectrum enough room to be
+     seven steps instead of three.
+
+     `ink` sets the rating itself and has to clear contrast on the page; `fill`
+     backs the badge and the rail and carries `--on-rank` type. Colour is never
+     the only channel: the rank word sits inside every badge, so the ladder is
+     legible with no colour vision at all. */
+  --rank-1-ink: #4f5967;
+  --rank-1-fill: #5c6675;
+  --rank-2-ink: #0b6560;
+  --rank-2-fill: #0e6f6a;
+  --rank-3-ink: #0a5f8c;
+  --rank-3-fill: #0b6a9c;
+  --rank-4-ink: #5a32b8;
+  --rank-4-fill: #6237c4;
+  --rank-5-ink: #842b8f;
+  --rank-5-fill: #8e2f9e;
+  --rank-6-ink: #a34310;
+  --rank-6-fill: #b04a12;
+  --rank-7-ink: #8a6608;
+  --rank-7-fill: #9a7209;
+  --on-rank: #ffffff;
+
   --rule: rgb(20 26 38 / 0.06); /* the ruling on the page */
 }
 
@@ -92,6 +129,25 @@
     --gap-ink: #9aa5b8;
     --gap-tint: #1c2230;
 
+    /* Inks climb for contrast against the dark page; fills stay bright enough
+       to carry near-black type, which is what keeps a badge reading as a badge
+       rather than as a dim rectangle. */
+    --rank-1-ink: #98a3b3;
+    --rank-1-fill: #7d8798;
+    --rank-2-ink: #45c4bd;
+    --rank-2-fill: #2ea79f;
+    --rank-3-ink: #5cb4e8;
+    --rank-3-fill: #2f93d4;
+    --rank-4-ink: #a893f7;
+    --rank-4-fill: #8a6ff0;
+    --rank-5-ink: #dd8ae8;
+    --rank-5-fill: #c063cd;
+    --rank-6-ink: #f0935e;
+    --rank-6-fill: #dd6f33;
+    --rank-7-ink: #efc457;
+    --rank-7-fill: #d8a92c;
+    --on-rank: #10141c;
+
     --rule: rgb(231 235 243 / 0.07);
   }
 }
@@ -125,8 +181,25 @@
   --color-gap-ink: var(--gap-ink);
   --color-gap-tint: var(--gap-tint);
 
+  --color-rank-1-ink: var(--rank-1-ink);
+  --color-rank-1-fill: var(--rank-1-fill);
+  --color-rank-2-ink: var(--rank-2-ink);
+  --color-rank-2-fill: var(--rank-2-fill);
+  --color-rank-3-ink: var(--rank-3-ink);
+  --color-rank-3-fill: var(--rank-3-fill);
+  --color-rank-4-ink: var(--rank-4-ink);
+  --color-rank-4-fill: var(--rank-4-fill);
+  --color-rank-5-ink: var(--rank-5-ink);
+  --color-rank-5-fill: var(--rank-5-fill);
+  --color-rank-6-ink: var(--rank-6-ink);
+  --color-rank-6-fill: var(--rank-6-fill);
+  --color-rank-7-ink: var(--rank-7-ink);
+  --color-rank-7-fill: var(--rank-7-fill);
+  --color-on-rank: var(--on-rank);
+
   --color-sheet: var(--sheet);
   --color-sheet-ink: var(--sheet-ink);
+  --color-sheet-soft: var(--sheet-soft);
   --color-sheet-faint: var(--sheet-faint);
   --color-sheet-rule: var(--sheet-rule);
   --color-sheet-margin: var(--sheet-margin);
@@ -151,6 +224,13 @@
 :root {
   --sheet: #fdfaf1;
   --sheet-ink: #22262e;
+  /* Secondary ink on paper: for a sentence somebody actually has to read.
+
+     --sheet-faint below is a placeholder grey, and at 2.5:1 against the sheet
+     it is correctly named: it is for a hint inside an empty field, not for
+     copy. A line of description set in it is a line most people cannot read
+     comfortably and some cannot read at all. This one clears 5.8:1. */
+  --sheet-soft: #565d6b;
   --sheet-faint: #9aa0ab;
   --sheet-rule: #a9c4e0;
   --sheet-margin: #e4707f;
@@ -424,20 +504,10 @@ body {
   transform: scaleX(1);
 }
 
-/* Reading in progress: a rule travelling down the ruling, like a finger
-   moving down a page. Same device as the leaf, not a second idea. */
-@keyframes read-down {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(8rem);
-  }
-}
-
-.reading-rule {
-  animation: read-down 1.9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
+/* The travelling rule that used to mark "the app is reading" lived here. It
+   is gone with the component that drew it: every wait in both modes now
+   draws the one meter in `Working` and `Waiting`, because an indicator that
+   appears on a single screen is one nobody gets the chance to learn. */
 
 /* ── The desk: looseleaf, tape, stickers ─────────────────────────────────
    Everything under here is scoped to the source screen. It is the loudest
@@ -479,6 +549,90 @@ body {
   width: 1px;
   background: var(--sheet-margin);
   opacity: 0.62;
+  pointer-events: none;
+}
+
+/* A sticky note, stuck down at an angle.
+
+   ── Why the desk is allowed on the results screen ────────────────────────
+   The rule above says the desk stops at the session boundary, because once a
+   student's own words are on display the marks have to be the only colour on
+   the page. This is the one exception and it is a narrow one: what goes on
+   the note is the topic or the motion, which is the one thing on a results
+   screen that is neither a judgement nor a number. It is the label on the
+   folder, and a label is exactly what a sticky note is for. It never carries
+   a score, a standing, or a word the model wrote.
+
+   Two details do the work and both are about the adhesive. The glue band
+   across the top catches light differently from the rest of the sheet, and
+   the corner at the bottom right has stopped holding. Without the lifted
+   corner this is a coloured rectangle; with it, the eye reads paper.
+
+   The band is a soft gradient rather than a hard-edged strip. Drawn as a
+   strip it was a visible seam a third of the way down a short note, which
+   reads as a printing fault rather than as glue.
+
+   Proportion is the other half of the illusion, and it lives at the call
+   site: a sticky note is roughly square, so anything using this wants a
+   width that fits its text and a minimum height to stop a short line
+   flattening it into a banner. */
+.sticky {
+  --sticky-paper: var(--supply-gold);
+  position: relative;
+  background:
+    linear-gradient(180deg, rgb(0 0 0 / 0.07), transparent 2.4rem),
+    var(--sticky-paper);
+  color: #22262e;
+  transform: rotate(var(--tilt, -1.4deg));
+  box-shadow:
+    0 2px 2px rgb(12 16 24 / 0.16),
+    0 14px 24px -16px rgb(12 16 24 / 0.6);
+}
+
+/* The last rung, and the only one that gets anything extra.
+
+   A diagonal sheen across the fill, the way light sits on something metal.
+   Static rather than travelling: this badge appears beside a rating somebody
+   spent months earning, and a shimmer looping forever next to a number would
+   make it look like a reward popup rather than a standing. */
+.rank-apex {
+  background-image: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0) 34%,
+    rgb(255 255 255 / 0.42) 50%,
+    rgb(255 255 255 / 0) 66%
+  );
+}
+
+/* Selecting the text on a note.
+
+   The browser paints its own highlight, which is the accent blue, and the
+   accent blue over gold or mint is a muddy overlap that makes the words
+   harder to read while they are selected than while they are not. A note is
+   paper: white is what a highlight looks like on it, and the ink stays the
+   ink. Both the note itself and anything inside it, because a selection drag
+   that starts on the paper and ends in the text crosses both. */
+.sticky::selection,
+.sticky *::selection {
+  background: #ffffff;
+  color: #22262e;
+}
+
+/* The corner that has let go: a wedge of the desk showing through, with the
+   paper's own thickness catching the light along the fold. */
+.sticky::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  background: linear-gradient(
+    315deg,
+    var(--ground) 0 44%,
+    color-mix(in srgb, var(--sticky-paper) 62%, #000) 44% 50%,
+    color-mix(in srgb, var(--sticky-paper) 88%, #000) 50%
+  );
   pointer-events: none;
 }
 
@@ -674,6 +828,111 @@ body {
   }
 }
 
+/* ── Chips ───────────────────────────────────────────────────────────────
+   A small thing you pick up and set down, so both ends of that need to feel
+   physical. Round 3's sentence tray is where these started; debate mode's
+   topic suggestions are the same object doing the same job.
+
+   Here rather than in round.css because of what that cost: round.css is
+   imported by Round Mode's page and by nothing else, so every chip on
+   /debate rendered with its Tailwind border and none of this, which is a
+   button that does not answer the cursor. The Round-3-only behaviour, a chip
+   snapping into the sentence and the gap it leaves in the tray, is still over
+   there where it belongs. */
+.chip {
+  transition:
+    transform 0.16s cubic-bezier(0.2, 1.3, 0.4, 1),
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.chip:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.chip:not(:disabled):active {
+  transform: translateY(1px) scale(0.97);
+  transition-duration: 0.05s;
+}
+
+/* ── Waiting on somebody ─────────────────────────────────────────────────
+   Slow, steady, unhurried. It marks Round 4 listening for a spoken answer
+   and it marks a debate opponent writing their speech, and in both places it
+   is the only thing on screen saying the app has not died. Same reason as the
+   chips for living here: the debate route does not load round.css, so this
+   was a static dot on the one screen with the longest wait in the app. */
+@keyframes listening {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+.listening {
+  animation: listening 1.5s ease-in-out infinite;
+}
+
+/* ── Working, with the page still under it ───────────────────────────────
+   The app has two kinds of wait and for a while only one of them said so.
+   `Waiting` takes the screen when there is nothing to look at yet: a round
+   being written, a transcript being judged. It does not fit the other kind, a
+   wait that happens underneath something the student is still looking at,
+   like their own explanation while it is being marked. Replacing the screen
+   there would take away the very thing the wait is about, so this is small,
+   sits inline, and leaves the page where it was.
+
+   A level meter rather than a throb. Scaling on Y from the bottom is what
+   makes it read as something being processed rather than a dot with a
+   heartbeat, and it is the same accent bar Round Mode's waiting screen uses,
+   which is what stops it being a second idea. */
+@keyframes working-bar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.working-bar {
+  transform-origin: bottom;
+  animation: working-bar 0.85s ease-in-out infinite;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition-duration: 0.01ms;
+  }
+
+  .chip:not(:disabled):hover,
+  .chip:not(:disabled):active {
+    transform: none;
+  }
+
+  /* An infinite animation is the kind that actually hurts. Every one of these
+     still leaves something on screen that says the app is working: the bars
+     and the dots keep their shape and their label, they simply stop moving. */
+  .listening,
+  .working-bar,
+  .about-to-speak {
+    animation: none;
+  }
+
+  /* Held part way up rather than at their resting 0.3, so a stopped meter
+     still looks like a meter and not like four bars that failed to draw. */
+  .working-bar {
+    transform: scaleY(0.7);
+    opacity: 0.8;
+  }
+
+  .about-to-speak {
+    opacity: 0.6;
+  }
+}
+
 /* ── Controls ────────────────────────────────────────────────────────────
    Buttons acknowledge the press. The arrow leans in the direction it takes
    you; nothing bounces. */
@@ -723,8 +982,7 @@ body {
   .note-in,
   .ink-in,
   .siglum-in,
-  .draw-check,
-  .reading-rule {
+  .draw-check {
     animation: none;
   }
 

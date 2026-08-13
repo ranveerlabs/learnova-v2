@@ -231,24 +231,9 @@
 }
 
 /* ── Chips ──────────────────────────────────────────────────────────────
-   Round 3. Chips are picked up from the tray and set down in the sentence,
-   so both ends of that need to feel physical. */
-.chip {
-  transition:
-    transform 0.16s cubic-bezier(0.2, 1.3, 0.4, 1),
-    background-color 0.16s ease,
-    border-color 0.16s ease,
-    opacity 0.16s ease;
-}
-
-.chip:not(:disabled):hover {
-  transform: translateY(-2px);
-}
-
-.chip:not(:disabled):active {
-  transform: translateY(1px) scale(0.97);
-  transition-duration: 0.05s;
-}
+   The chip itself, the pick-up and the press, moved to globals.css: debate
+   mode uses the same object for its topic suggestions and does not load this
+   file. What stays here is the part that is only true of Round 3. */
 
 /* A chip arriving in the sentence line. */
 @keyframes chip-snap {
@@ -295,18 +280,11 @@
 }
 
 /* ── Round 4 ────────────────────────────────────────────────────────────
-   The recording indicator. Slow, steady, unhurried: this is the one screen
-   in the mode that must not feel like it is rushing anybody. */
-@keyframes listening {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.12); }
-}
+   The recording indicator is `.listening`, in globals.css, because a debate
+   opponent writing a speech is the same idea and the debate route does not
+   load this file.
 
-.listening {
-  animation: listening 1.5s ease-in-out infinite;
-}
-
-/* Live transcript arriving. No motion on the text itself, which would make
+   Live transcript arriving. No motion on the text itself, which would make
    it unreadable while it is being written. */
 .transcript-live {
   border-left-color: var(--accent);
@@ -332,8 +310,7 @@
   .split-land,
   .chip-snap,
   .stage-in,
-  .rung-fill,
-  .listening {
+  .rung-fill {
     animation: none;
   }
 
@@ -346,14 +323,9 @@
   }
 
 
-  .chip,
+  /* `.chip` is handled where it is now defined, in globals.css. */
   .ring {
     transition-duration: 0.01ms;
-  }
-
-  .chip:not(:disabled):hover,
-  .chip:not(:disabled):active {
-    transform: none;
   }
 
   /* The urgent ring still has to warn. Without the pulse it keeps the colour

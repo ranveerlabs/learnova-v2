@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Debate · Learnova",
+  description:
+    "Pick a side and hold it for four speeches against an opponent trying to take it off you. A judged ballot at the end, tournament formats if you want them, and an elo that is arithmetic rather than a guess.",
+};
+
 /* The frame for debate mode.
 
    Round Mode's shell is inside `app/page.tsx`, because the viewport lock is
