@@ -205,6 +205,34 @@ export function Reveal({
         </p>
       </div>
 
+      {/* What the rating above is a rating of.
+
+          This sentence used to live inside the disclosure at the foot of the
+          screen, as a clause in the middle of a grey paragraph about how the
+          rating is weighted and what local storage keeps. Everything in that
+          paragraph is a footnote except this, which is a condition on every
+          other claim the screen makes: the number, the headline that says you
+          finished by explaining, and the list of concepts marked "explained".
+          A student who never opens the fold, which is most of them, read a
+          scored, graded, colour-coded report on how well they know something
+          with nothing anywhere on it to say that none of it was checked.
+
+          So it comes out of the fold and sits under the number it qualifies.
+          It is one line and it is small, because the screen is already busy
+          and the point is not to alarm anybody: it is to make sure that the
+          sentence exists somewhere a person actually reads before they walk
+          away believing they have learned something. */}
+      {provenance === "generated" && (
+        <p
+          className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
+          style={{ ["--i" as string]: 2 }}
+          title="Paste notes next time and every question arrives with the line it came from, checked word for word on the server."
+        >
+          Nothing in this run was checked against a source. You gave a topic, so an AI model wrote
+          the questions and marked the answers from its own knowledge.
+        </p>
+      )}
+
       {/* The app-wide elo, and what this run did to it.
 
           Two numbers on one screen is a risk, and they are kept apart on
@@ -327,11 +355,6 @@ export function Reveal({
               of it.
             </span>{" "}
             {runs > 1 && <>{runs} runs this tab. </>}
-            {provenance === "generated" && (
-              <span title="Paste notes next time and every question arrives with the line it came from, checked word for word on the server.">
-                Written by an AI model from your topic, not your own material.{" "}
-              </span>
-            )}
             {/* This used to read "Nothing is saved", and it was true until a
                 run started leaving something behind. What replaced it says
                 exactly what is kept and exactly where, because the difference
