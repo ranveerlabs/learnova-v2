@@ -313,12 +313,17 @@ export function SourceGauge({ status, minChars }: { status: SourceStatus; minCha
   const pct =
     status.state === "empty" ? 0 : status.state === "short" ? status.progress * 100 : 100;
 
-  const fill =
-    status.state === "ready"
-      ? "var(--supply-mint)"
-      : status.state === "unreadable"
-        ? "var(--supply-pink)"
-        : "var(--highlight)";
+  /* "too-long" is grouped with "unreadable" rather than left to the final
+     branch of each ternary. Those branches read as the healthy case, so a
+     source over the ceiling would have been painted mint and labelled "ready"
+     while the button refused it. */
+  const rejected = status.state === "unreadable" || status.state === "too-long";
+
+  const fill = status.state === "ready"
+    ? "var(--supply-mint)"
+    : rejected
+      ? "var(--supply-pink)"
+      : "var(--highlight)";
 
   const said =
     status.state === "empty"
@@ -327,14 +332,15 @@ export function SourceGauge({ status, minChars }: { status: SourceStatus; minCha
         ? `${status.chars} / ${minChars} characters`
         : status.state === "unreadable"
           ? "long enough, but it isn't prose yet"
-          : `ready! ${status.chars} characters`;
+          : status.state === "too-long"
+            ? `too much: ${status.chars.toLocaleString()} characters`
+            : `ready! ${status.chars} characters`;
 
-  const ink =
-    status.state === "ready"
-      ? "var(--supply-mint)"
-      : status.state === "unreadable"
-        ? "var(--supply-pink)"
-        : undefined;
+  const ink = status.state === "ready"
+    ? "var(--supply-mint)"
+    : rejected
+      ? "var(--supply-pink)"
+      : undefined;
 
   return (
     <div className="flex max-w-[17rem] flex-col gap-2">

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { AIError, chatJSON } from "@/lib/ai";
 import { bankKey, keep, recall } from "@/lib/bank-cache";
-import { MAX_SOURCE_CHARS, sampleForPrompt } from "@/lib/chunk";
+import { sampleForPrompt } from "@/lib/chunk";
+import { MAX_SOURCE_CHARS } from "@/lib/source";
 import { runningDry, sift, signature, type Signature } from "@/app/round/dedupe";
 import { placeAll } from "@/app/round/shuffle";
 import {
