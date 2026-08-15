@@ -19,6 +19,20 @@
 /** About a paragraph. Below this there is nothing to extract concepts from. */
 export const MIN_SOURCE_CHARS = 200;
 
+/** And a ceiling, for the opposite reason.
+
+    Material longer than a prompt can hold is thinned to an even spread of
+    itself before it reaches the model, so length is not by itself a problem
+    and most of a long chapter is handled. This is where that stops being
+    worth doing: past it, the paste is mostly text that will be sampled out,
+    and the whole of it would still cross the wire on each of the four calls
+    a run makes.
+
+    Stated here, in the same place as the floor and for the same reason. The
+    route enforces it too, but a limit a student only meets as a failed
+    request is a limit the interface never told them about. */
+export const MAX_SOURCE_CHARS = 100_000;
+
 /* The everyday words that hold English sentences together. Real prose is
    roughly a third function words; keyboard mash has almost none. The list is
    deliberately short and dull: it is a signal of grammar, not of vocabulary,
@@ -150,6 +164,8 @@ export type SourceStatus =
   | { state: "empty" }
   /** Short of the character floor. `progress` runs 0 to 1 toward it. */
   | { state: "short"; chars: number; progress: number }
+  /** Past the ceiling. More material than one session can work through. */
+  | { state: "too-long"; chars: number }
   /** Long enough, but it does not read like prose. */
   | { state: "unreadable"; chars: number; reasons: string[] }
   | { state: "ready"; chars: number };
@@ -161,6 +177,9 @@ export function sourceStatus(source: string): SourceStatus {
   const chars = trimmed.length;
   if (chars < MIN_SOURCE_CHARS) {
     return { state: "short", chars, progress: chars / MIN_SOURCE_CHARS };
+  }
+  if (chars > MAX_SOURCE_CHARS) {
+    return { state: "too-long", chars };
   }
 
   const reasons = substanceFailures(trimmed);
@@ -184,6 +203,9 @@ export function sourceProblem(source: string): string | null {
 
     case "short":
       return `That is too short to pull real concepts from: ${status.chars} characters of the ${MIN_SOURCE_CHARS} needed. Paste the actual notes or passage you are studying, a paragraph or more, in the source's own words. Anything shorter and the concepts would be invented rather than found.`;
+
+    case "too-long":
+      return `That is more material than one session can work through: ${status.chars.toLocaleString()} characters against a ceiling of ${MAX_SOURCE_CHARS.toLocaleString()}. Paste the chapter or section you are actually studying. A long passage is fine and gets spread across the run; a whole book would mostly go untested.`;
 
     case "unreadable":
       return `That does not read like study material: ${status.reasons.join(

@@ -48,13 +48,9 @@ const CHUNK_CHARS = 1200;
     call rather than tokens the model could technically hold. */
 export const PROMPT_BUDGET_CHARS = 12_000;
 
-/** Beyond this, the paste is refused rather than sampled.
-
-    Sampling already caps what reaches the model, so this is not about the
-    prompt: it is about the megabyte that would otherwise be sent from the
-    browser on every one of the four calls in a run, to be thinned to the same
-    twelve thousand characters each time. */
-export const MAX_SOURCE_CHARS = 100_000;
+/* The ceiling on pasted material is not here. It lives in lib/source.ts
+   beside the floor, because it is the same kind of fact and the interface
+   states both from one place. */
 
 /** Split material into paragraph-sized pieces.
 
