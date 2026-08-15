@@ -202,15 +202,24 @@ export function TimerRing({
     Shown on every screen of a run, the live questions included, so the answer
     is never more than a glance away from the claim it qualifies.
 
-    The ungrounded side used to read "AI-generated", and that was the wrong
-    fact to put in the one slot there is. A student who typed a topic into a
-    box already knows a model wrote the questions; they asked it to. What they
-    have no way to know is that nothing checked whether the answers are TRUE,
-    and that is the failure that actually costs them: a topic-only session on a
-    spray-applied roofing compound insisted for a whole run that it was
-    torch-applied, and the only reason it was caught is that the person already
-    knew. Naming the authorship and not the risk is how a badge becomes
-    furniture. This one names the risk. */
+    The ungrounded side used to read "AI-generated", which named the fact a
+    student already has and not the one that costs them. They typed the topic
+    into a box themselves, so they know a model wrote the questions; what they
+    have no way to know is that nothing checked whether the answers are TRUE. A
+    topic-only session on a spray-applied roofing compound insisted for a whole
+    run that it was torch-applied, and the only reason that was caught is that
+    the person already knew. So "unchecked" leads.
+
+    It does not stand alone, though, and the reason is that this label outlives
+    the moment it was read in. A run gets screenshotted, shared, and come back
+    to a week later, and by then "unchecked" on its own is a word with no
+    subject: unchecked by whom, against what, written by what. Material a model
+    wrote has to stay identifiable as such with no context attached to it, which
+    is a different requirement from the one the rest of this badge serves and is
+    not satisfied by the tooltip, because a screenshot has no tooltip.
+
+    Both facts, then, in the order they matter to the person reading: what made
+    this, and what nobody did to it. */
 export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
   const grounded = provenance === "grounded";
   return (
@@ -231,7 +240,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
       }`}
     >
       <span aria-hidden>{grounded ? "❝" : "◇"}</span>
-      {grounded ? "From your notes" : "Unchecked"}
+      {grounded ? "From your notes" : "AI · unchecked"}
     </span>
   );
 }

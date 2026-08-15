@@ -52,47 +52,111 @@ export const PROMPT_BUDGET_CHARS = 12_000;
    beside the floor, because it is the same kind of fact and the interface
    states both from one place. */
 
+/** One piece of the source, and what its edges are.
+
+    A passage being a literal substring of the material is what makes citation
+    checking safe, and it is not the same thing as the passage being READABLE
+    on its own. A span can be substring-true and still mislead badly in
+    isolation: cut before the "not" that governs it, stopped halfway through a
+    conditional, begun mid-clause so the subject is somewhere else. So a piece
+    carries what is known about its own edges, and whoever assembles pieces
+    into a prompt has to say so rather than presenting a fragment as a
+    finished thought. */
+export type Chunk = {
+  text: string;
+  /** False when this piece begins part-way through a sentence. */
+  opensSentence: boolean;
+  /** False when this piece stops before its sentence has ended. */
+  closesSentence: boolean;
+};
+
+/** Where to cut a sentence that is longer than a chunk on its own.
+
+    There is no safe place to cut inside a sentence, so this is a ladder of
+    less-bad ones: a clause joint first, then any comma, then at least a word
+    boundary. Raw width is the floor and is only reached by something with no
+    spaces in it at all, which is a base64 blob or a URL rather than prose.
+
+    Only the last third of the window is considered, so that preferring a
+    joint cannot produce a run of tiny chunks out of a comma-heavy sentence. */
+function cutPoint(sentence: string, limit: number): number {
+  const floor = Math.floor(limit * 0.67);
+  const window = sentence.slice(0, limit);
+
+  for (const pattern of [/[;:]\s/g, /,\s/g, /\s/g]) {
+    let best = -1;
+    for (const match of window.matchAll(pattern)) {
+      const end = match.index + match[0].length;
+      if (end >= floor) best = end;
+    }
+    if (best > 0) return best;
+  }
+  return limit;
+}
+
 /** Split material into paragraph-sized pieces.
 
     Blank lines first, because that is where a writer already decided one idea
-    ends. A paragraph longer than a chunk on its own is split again at sentence
-    ends, and only if it is still too long is it cut mid-sentence, which is the
-    case that produces a chunk nobody can quote cleanly and is why it is last. */
-export function chunkSource(source: string): string[] {
+    ends. A paragraph longer than a chunk is split again at sentence ends, with
+    the terminator kept on the sentence it closes. Only a single sentence that
+    is itself longer than a chunk is ever cut inside, and those cuts are marked
+    on the pieces either side so nothing downstream can mistake half a sentence
+    for a whole one. */
+export function chunkSource(source: string): Chunk[] {
   const paragraphs = source
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
 
-  const pieces: string[] = [];
+  const pieces: Chunk[] = [];
+  const whole = (text: string) =>
+    ({ text, opensSentence: true, closesSentence: true }) satisfies Chunk;
+
   for (const paragraph of paragraphs) {
     if (paragraph.length <= CHUNK_CHARS) {
-      pieces.push(paragraph);
+      pieces.push(whole(paragraph));
       continue;
     }
-    /* Keep the terminator with the sentence it ends, so a chunk boundary never
-       lands between a word and its full stop. */
+
     const sentences = paragraph.match(/[^.!?]+[.!?]+[\])'"’”]*\s*|[^.!?]+$/g) ?? [paragraph];
     let held = "";
     for (const sentence of sentences) {
       if (held && held.length + sentence.length > CHUNK_CHARS) {
-        pieces.push(held.trim());
+        pieces.push(whole(held.trim()));
         held = "";
       }
-      /* A single sentence longer than a chunk. Nothing left to split on that
-         is not arbitrary, so it is cut on width. */
+
       if (sentence.length > CHUNK_CHARS) {
-        for (let i = 0; i < sentence.length; i += CHUNK_CHARS) {
-          pieces.push(sentence.slice(i, i + CHUNK_CHARS).trim());
+        /* Flush first: what is held is a run of complete sentences and must
+           not be glued onto the front of a severed one. */
+        if (held.trim()) {
+          pieces.push(whole(held.trim()));
+          held = "";
+        }
+        let rest = sentence;
+        let first = true;
+        while (rest.length > CHUNK_CHARS) {
+          const at = cutPoint(rest, CHUNK_CHARS);
+          pieces.push({
+            text: rest.slice(0, at).trim(),
+            opensSentence: first,
+            closesSentence: false,
+          });
+          rest = rest.slice(at);
+          first = false;
+        }
+        if (rest.trim()) {
+          pieces.push({ text: rest.trim(), opensSentence: false, closesSentence: true });
         }
         continue;
       }
+
       held += sentence;
     }
-    if (held.trim()) pieces.push(held.trim());
+    if (held.trim()) pieces.push(whole(held.trim()));
   }
 
-  return pieces.filter(Boolean);
+  return pieces.filter((c) => c.text.length > 0);
 }
 
 export type Sampled = {
@@ -135,20 +199,46 @@ export function sampleForPrompt(source: string, budget = PROMPT_BUDGET_CHARS): S
     if (picked[picked.length - 1] !== index) picked.push(index);
   }
 
-  /* The gaps are marked rather than papered over. A model given two paragraphs
-     spliced together with nothing between them will happily write a question
-     about the join, and the join is not in the student's notes. */
+  /* Assembling the picked pieces, where the only job is to not lie about what
+     sits between two of them.
+
+     Three different joins, because there are three different truths to tell
+     and the first version of this told all of them as "\n\n". A blank line
+     between two passages means a paragraph break in the student's material,
+     so using it for everything invented paragraph breaks that were not there
+     and, worse, presented the two halves of one severed sentence as two
+     separate complete thoughts. That is precisely the failure a verbatim
+     substring check cannot catch: both halves really are in the source, and
+     the thing being shown is still not what the source says. */
   const parts: string[] = [];
   let previous = -1;
   for (const index of picked) {
-    if (previous !== -1 && index > previous + 1) parts.push("[...]");
-    parts.push(chunks[index]);
+    const chunk = chunks[index];
+
+    if (previous === -1) {
+      parts.push(chunk.text);
+    } else if (index > previous + 1) {
+      /* Material was skipped. Said out loud, because a model handed two
+         paragraphs spliced together will write a question about the join. */
+      parts.push("\n\n[...]\n\n", chunk.text);
+    } else if (!chunks[previous].closesSentence && !chunk.opensSentence) {
+      /* Contiguous halves of one sentence too long to chunk. They are joined
+         back into the sentence they came from rather than broken apart. */
+      parts.push(chunk.text.startsWith(" ") ? chunk.text : ` ${chunk.text}`);
+    } else {
+      parts.push("\n\n", chunk.text);
+    }
     previous = index;
   }
-  if (previous < chunks.length - 1) parts.push("[...]");
+  if (previous < chunks.length - 1) parts.push("\n\n[...]");
+
+  /* An opening piece that begins mid-sentence can only happen when the first
+     chunk was itself a severed one, which the spread avoids by always keeping
+     chunk zero. Marked anyway rather than assumed away. */
+  if (!chunks[picked[0]].opensSentence) parts.unshift("[...] ");
 
   return {
-    text: parts.join("\n\n"),
+    text: parts.join("").trim(),
     sampled: true,
     kept: picked.length,
     total: chunks.length,
