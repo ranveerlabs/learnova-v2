@@ -316,6 +316,7 @@ export default function Home() {
               previously={s.previously}
               runs={s.runCount}
               droppedTotal={s.droppedTotal}
+              sampled={s.sampled}
               onAgain={s.again}
               onRestart={s.restart}
             />
