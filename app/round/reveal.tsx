@@ -105,12 +105,16 @@ export function Reveal({
   elo,
   previously,
   runs,
+  droppedTotal,
   onAgain,
   onRestart,
 }: {
   data: RevealData;
   topic: string;
   provenance: Provenance;
+  /** Questions this run lost to citation checking. Always 0 when ungrounded,
+      because there is nothing for a citation to be checked against. */
+  droppedTotal: number;
   /** The best rating on THIS topic, from the record, when there is one. */
   best: { rating: number } | null;
   /** What this run did to the app-wide elo. Null if storage refused it. */
@@ -222,7 +226,7 @@ export function Reveal({
           and the point is not to alarm anybody: it is to make sure that the
           sentence exists somewhere a person actually reads before they walk
           away believing they have learned something. */}
-      {provenance === "generated" && (
+      {provenance === "generated" ? (
         <p
           className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
           style={{ ["--i" as string]: 2 }}
@@ -231,6 +235,34 @@ export function Reveal({
           Nothing in this run was checked against a source. You gave a topic, so an AI model wrote
           the questions and marked the answers from its own knowledge.
         </p>
+      ) : (
+        /* The other half of the same sentence, for the run that did have
+           something to check against.
+
+           This is the only place in the app that can show what grounding is
+           worth, and it can only show it with a number. "Every question came
+           from your notes" is a claim; "eleven questions were written for you
+           and four were thrown away because they were not really in there" is
+           the check being seen to work, and it is the difference between
+           trusting the badge and having a reason to.
+
+           Shown only when something was actually dropped. A run where the
+           generator cited honestly throughout has nothing to report here, and
+           padding that out with a reassurance nobody asked for is how the line
+           would stop being read on the runs that do have news. */
+        droppedTotal > 0 && (
+          <p
+            className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
+            style={{ ["--i" as string]: 2 }}
+            title="Every question in a grounded session has to quote your material word for word. The quote is checked on the server before the question is served, and anything that cannot be found is dropped rather than shown to you."
+          >
+            Every question came from your notes.{" "}
+            {droppedTotal === 1
+              ? "One more was written and dropped: its quote"
+              : `${droppedTotal} more were written and dropped: their quotes`}{" "}
+            could not be found in your material.
+          </p>
+        )
       )}
 
       {/* The app-wide elo, and what this run did to it.
