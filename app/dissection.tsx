@@ -40,6 +40,28 @@ const NOTE_KIND: Record<Flagged, { word: string; mark: string; ink: string; tint
   },
 };
 
+/** What a "wrong" mark is allowed to call itself.
+
+    "Contradicts the source" is a true sentence in a grounded session and a
+    false one everywhere else, and it was being printed in both. In a
+    topic-only session there is no source: the student pasted nothing, the
+    grader is told in as many words that there is nothing to quote, and the
+    server blanks every citation on the way out. The screen went on saying
+    "Contradicts the source" anyway, over a heading that reads "The notes",
+    which names a document that does not exist and attributes the model's own
+    opinion to it.
+
+    That is not a missing disclaimer, it is the app asserting a check it never
+    ran, in the one place a student is most likely to defer to it. Somebody who
+    knew that Tritoflex is sprayed on cold wrote exactly that, and was told it
+    contradicted a source. There was no source. There was a model that had the
+    fact wrong, and an interface that dressed it up as an authority.
+
+    So the mark says who is actually disagreeing. */
+function wrongWord(grounded: boolean): string {
+  return grounded ? NOTE_KIND.wrong.word : "The model disagrees";
+}
+
 export type Segment =
   | { kind: "text"; value: string }
   | { kind: "mark"; value: string; id: number; type: Annotation["type"]; n?: number };
@@ -184,11 +206,15 @@ export function MarkedUpText({
   cards,
   active,
   setActive,
+  grounded,
 }: {
   segments: Segment[];
   cards: Card[];
   active: number | null;
   setActive: (id: number | null) => void;
+  /** Whether these marks were made against material the student pasted. Only
+      a grounded session may describe a mark as contradicting a source. */
+  grounded: boolean;
 }) {
   const hasSolid = segments.some((s) => s.kind === "mark" && s.type === "right");
   const kinds = Array.from(new Set(cards.map((c) => c.type)));
@@ -252,17 +278,28 @@ export function MarkedUpText({
         })}
       </div>
 
-      <MarkKey hasSolid={hasSolid} kinds={kinds} />
+      <MarkKey hasSolid={hasSolid} kinds={kinds} grounded={grounded} />
     </figure>
   );
 }
 
 /** Key to the apparatus. States what each underline means, so the marks are
     readable before the reader has hovered anything, and without colour. */
-function MarkKey({ hasSolid, kinds }: { hasSolid: boolean; kinds: Flagged[] }) {
+function MarkKey({
+  hasSolid,
+  kinds,
+  grounded,
+}: {
+  hasSolid: boolean;
+  kinds: Flagged[];
+  grounded: boolean;
+}) {
   const entries = [
     ...(hasSolid ? [{ cls: "mk mk-solid", word: "Holds up" }] : []),
-    ...kinds.map((k) => ({ cls: MARK_CLASS[k], word: NOTE_KIND[k].word })),
+    ...kinds.map((k) => ({
+      cls: MARK_CLASS[k],
+      word: k === "wrong" ? wrongWord(grounded) : NOTE_KIND[k].word,
+    })),
   ];
   if (entries.length === 0) return null;
   return (
@@ -282,10 +319,13 @@ export function MarginNotes({
   cards,
   active,
   setActive,
+  grounded,
 }: {
   cards: Card[];
   active: number | null;
   setActive: (id: number | null) => void;
+  /** See MarkedUpText. Decides whether a "wrong" mark may claim a source. */
+  grounded: boolean;
 }) {
   if (cards.length === 0) return null;
 
@@ -325,7 +365,7 @@ export function MarginNotes({
                     style={{ ...NARROW, color: kind.ink }}
                     className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em]"
                   >
-                    {kind.word}
+                    {card.type === "wrong" ? wrongWord(grounded) : kind.word}
                   </span>
                 </div>
 

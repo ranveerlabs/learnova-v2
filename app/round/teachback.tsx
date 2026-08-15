@@ -261,6 +261,35 @@ export function TeachBack({
             </span>
           </div>
           <OutcomeLine outcome={grade.outcome} verdict={grade.verdict} />
+
+          {/* What this mark actually is, when it is not a mark against
+              anything.
+
+              This is the screen the whole run builds to and the one a student
+              is most likely to take on trust: it is long, it is written in the
+              register of a marked essay, and it tells them in their own words
+              where they were wrong. In a grounded session it has earned that,
+              because every claim behind it was traced to a line they pasted.
+              In a topic-only session it has earned none of it, and the student
+              has no way to tell the two apart.
+
+              So the difference is stated, once, at the top, in the place they
+              are already reading. It ends by telling them what to do about it,
+              which is the part a person who already knows the answer needs and
+              never got: trust yourself.
+
+              It does not name the concept. Interpolating it put a sentence
+              fragment in the middle of a sentence, "one AI model's account of
+              What Tritoflex is made of", and the concept is already set as the
+              heading two lines above this. Saying it twice cost the sentence
+              its grammar and bought nothing. */}
+          {!usesNotes && (
+            <p className="max-w-[62ch] font-sans text-[0.8125rem] leading-[1.6] text-ink-faint">
+              Nothing here was checked against a source. You pasted no material, so these marks are
+              one AI model&rsquo;s opinion, and it can be wrong while sounding certain. If you have
+              reason to think a mark has the facts wrong, back yourself and go and check.
+            </p>
+          )}
         </div>
 
         <div
@@ -276,12 +305,18 @@ export function TeachBack({
               cards={dissection.cards}
               active={active}
               setActive={setActive}
+              grounded={usesNotes}
             />
           </div>
 
           {dissection.cards.length > 0 && (
             <div className="min-w-0 xl:col-start-2 xl:row-span-3 xl:row-start-1">
-              <MarginNotes cards={dissection.cards} active={active} setActive={setActive} />
+              <MarginNotes
+                cards={dissection.cards}
+                active={active}
+                setActive={setActive}
+                grounded={usesNotes}
+              />
             </div>
           )}
 

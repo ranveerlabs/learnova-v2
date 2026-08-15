@@ -197,12 +197,20 @@ export function TimerRing({
 
 /* ── Provenance ─────────────────────────────────────────────────────────── */
 
-/** Where these questions came from.
+/** Whether anything on screen was checked against a source.
 
-    Shown on every screen that is not a live question: the entry, the beat
-    between rounds, Round 4 and the results. A student is never left guessing
-    whether they are being tested on their own material, and it is never
-    implied that invented questions came from their notes. */
+    Shown on every screen of a run, the live questions included, so the answer
+    is never more than a glance away from the claim it qualifies.
+
+    The ungrounded side used to read "AI-generated", and that was the wrong
+    fact to put in the one slot there is. A student who typed a topic into a
+    box already knows a model wrote the questions; they asked it to. What they
+    have no way to know is that nothing checked whether the answers are TRUE,
+    and that is the failure that actually costs them: a topic-only session on a
+    spray-applied roofing compound insisted for a whole run that it was
+    torch-applied, and the only reason it was caught is that the person already
+    knew. Naming the authorship and not the risk is how a badge becomes
+    furniture. This one names the risk. */
 export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
   const grounded = provenance === "grounded";
   return (
@@ -210,7 +218,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
       title={
         grounded
           ? "Every question here was traced back to a verbatim line in the material you pasted."
-          : "You gave a topic, not material, so these questions were written by an AI model. They are not from your own notes."
+          : "You gave a topic, not material. Every question and answer here was written by an AI model and checked against nothing. It can be confidently wrong."
       }
       style={NARROW}
       /* One line. Two words of small caps wrapping inside a bordered chip is
@@ -223,7 +231,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
       }`}
     >
       <span aria-hidden>{grounded ? "❝" : "◇"}</span>
-      {grounded ? "From your notes" : "AI-generated"}
+      {grounded ? "From your notes" : "Unchecked"}
     </span>
   );
 }
