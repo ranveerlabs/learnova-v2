@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { AIError, chatJSON } from "@/lib/ai";
 import { bankKey, keep, recall } from "@/lib/bank-cache";
+import { MAX_SOURCE_CHARS, sampleForPrompt } from "@/lib/chunk";
 import { runningDry, sift, signature, type Signature } from "@/app/round/dedupe";
 import { placeAll } from "@/app/round/shuffle";
 import {
@@ -373,8 +374,30 @@ export async function POST(req: Request) {
   }
 
   const notes = typeof body.notes === "string" ? body.notes.trim() : "";
+  if (notes.length > MAX_SOURCE_CHARS) {
+    return NextResponse.json(
+      {
+        error: `That is more material than one session can work through: ${notes.length.toLocaleString()} characters against a ceiling of ${MAX_SOURCE_CHARS.toLocaleString()}. Paste the chapter or section you are actually studying.`,
+      },
+      { status: 413 }
+    );
+  }
+
   const provenance: Provenance = notes ? "grounded" : "generated";
   const rules = provenance === "grounded" ? GROUNDED_RULES : GENERATED_RULES;
+
+  /* What the model is shown, which is not always all of what was pasted.
+
+     Long material is thinned to an even spread of itself so that a run covers
+     the whole document rather than its opening pages. See lib/chunk.ts for why
+     every call in a session gets the SAME spread rather than a slice each.
+
+     Note what this is not used for. `notes` stays the full text everywhere it
+     matters: `keepGrounded` below checks every citation against it, and the
+     cache key hashes it. A citation is therefore still checked against
+     everything the student pasted, so thinning the prompt can only make the
+     check stricter than the model's view, never looser. */
+  const shown = sampleForPrompt(notes);
 
   const asked = readAsked(body.asked);
   const seen: Signature[] = asked.map(signature);
@@ -392,7 +415,11 @@ export async function POST(req: Request) {
 
   const material =
     provenance === "grounded"
-      ? `The student is studying: ${topic}\n\nTheir own material, which every question must come from:\n\n${notes}`
+      ? `The student is studying: ${topic}\n\nTheir own material, which every question must come from:\n\n${shown.text}${
+          shown.sampled
+            ? `\n\n(This is an even spread of a longer document. "[...]" marks material that was left out: do not write questions about what might be in a gap, and never quote across one.)`
+            : ""
+        }`
       : `The student is studying: ${topic}`;
 
   try {
@@ -418,6 +445,12 @@ export async function POST(req: Request) {
             dropped: 0,
             repeats: 0,
             exhausted: false,
+            /* A cache hit is the same material sampled the same way, since the
+               key hashes the notes and the spread is a pure function of them.
+               So this is still true of what the student is about to be served. */
+            sampled: provenance === "grounded" && shown.sampled,
+            chunksKept: shown.kept,
+            chunksTotal: shown.total,
           });
         }
       }
@@ -484,6 +517,11 @@ export async function POST(req: Request) {
         dropped,
         repeats: sifted.repeats,
         exhausted: false,
+        /* Said once, on the call that opens the session, because it is a fact
+           about the material rather than about any one round. */
+        sampled: provenance === "grounded" && shown.sampled,
+        chunksKept: shown.kept,
+        chunksTotal: shown.total,
       });
     }
 

@@ -226,10 +226,30 @@ export function Entry({
               </button>
             </div>
 
+            {/* What pasting actually buys, in the terms the session actually
+                delivers.
+
+                This used to promise that "every question comes with the line
+                from your own notes that it came from", and no screen has shown
+                that line since the disclosure came off the verdict. The
+                citation is still written, still required, and still checked
+                character for character on the server; it is simply not printed
+                beside a live question, because a question is on screen for
+                fifteen seconds against a clock and the line it came from
+                contains the answer.
+
+                Where it IS printed is the one place it decides something: the
+                Round 4 marks quote your material verbatim underneath every
+                correction. So the sentence now describes the check rather than
+                a display, which is both true and the better offer: what a
+                student gets is not a footnote per question, it is that nothing
+                the model invented ever reached them. */}
             <p className="max-w-[62ch] font-sans text-[0.875rem] leading-[1.6] text-ink-soft">
-              Paste it and every question comes with the line from your own notes that it came
-              from, checked word for word on the server. Leave it empty and the questions are
-              written by an AI model instead, which the session will say on every screen.
+              Paste it and every question has to quote your notes word for word, checked on the
+              server. Anything the model cannot find in your material is thrown away before you see
+              it, and the marks at the end quote your own text back to you. Leave it empty and the
+              questions come from an AI model and the topic alone, with nothing checking whether
+              they are true.
             </p>
 
             <Looseleaf

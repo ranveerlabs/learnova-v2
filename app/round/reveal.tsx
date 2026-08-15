@@ -106,6 +106,7 @@ export function Reveal({
   previously,
   runs,
   droppedTotal,
+  sampled,
   onAgain,
   onRestart,
 }: {
@@ -115,6 +116,9 @@ export function Reveal({
   /** Questions this run lost to citation checking. Always 0 when ungrounded,
       because there is nothing for a citation to be checked against. */
   droppedTotal: number;
+  /** Set when the pasted material was too long to show the model whole, and
+      the session was written from an even spread of it. */
+  sampled: { kept: number; total: number } | null;
   /** The best rating on THIS topic, from the record, when there is one. */
   best: { rating: number } | null;
   /** What this run did to the app-wide elo. Null if storage refused it. */
@@ -250,17 +254,31 @@ export function Reveal({
            generator cited honestly throughout has nothing to report here, and
            padding that out with a reassurance nobody asked for is how the line
            would stop being read on the runs that do have news. */
-        droppedTotal > 0 && (
+        (droppedTotal > 0 || sampled) && (
           <p
             className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
             style={{ ["--i" as string]: 2 }}
             title="Every question in a grounded session has to quote your material word for word. The quote is checked on the server before the question is served, and anything that cannot be found is dropped rather than shown to you."
           >
             Every question came from your notes.{" "}
-            {droppedTotal === 1
-              ? "One more was written and dropped: its quote"
-              : `${droppedTotal} more were written and dropped: their quotes`}{" "}
-            could not be found in your material.
+            {droppedTotal > 0 && (
+              <>
+                {droppedTotal === 1
+                  ? "One more was written and dropped: its quote"
+                  : `${droppedTotal} more were written and dropped: their quotes`}{" "}
+                could not be found in your material.{" "}
+              </>
+            )}
+            {/* Said plainly rather than buried, because it is the one thing on
+                this screen a student could not have worked out for themselves
+                and would care about: they pasted a document and only part of
+                it was ever asked about. */}
+            {sampled && (
+              <>
+                Your material was long, so the questions were written from an even spread of it:{" "}
+                {sampled.kept} passages out of {sampled.total}.
+              </>
+            )}
           </p>
         )
       )}

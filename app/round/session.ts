@@ -124,6 +124,14 @@ export function useRoundSession() {
       that pasting notes buys them something a topic cannot. */
   const [dropped, setDropped] = useState<Partial<Record<0 | Round, number>>>({});
 
+  /** Set when the pasted material was too long to put in front of the model
+      whole, so the session was written from an even spread of it instead.
+
+      Worth saying out loud for the same reason everything else here is: a
+      student who pasted twelve pages and is asked about eight of them should
+      hear that from the app rather than work it out from what never came up. */
+  const [sampled, setSampled] = useState<{ kept: number; total: number } | null>(null);
+
   const [stage, setStage] = useState<0 | Round>(0);
   const [current, setCurrent] = useState<Question | null>(null);
   const [asked, setAsked] = useState<Set<string>>(new Set());
@@ -334,6 +342,9 @@ export function useRoundSession() {
           questions: Question[];
           provenance: Provenance;
           dropped?: number;
+          sampled?: boolean;
+          chunksKept?: number;
+          chunksTotal?: number;
         }>("/api/round", {
           stage: "open",
           topic: nextTopic,
@@ -345,6 +356,11 @@ export function useRoundSession() {
         setWarmUp(payload.questions);
         setProvenance(payload.provenance);
         if (payload.dropped) setDropped({ 0: payload.dropped });
+        setSampled(
+          payload.sampled
+            ? { kept: payload.chunksKept ?? 0, total: payload.chunksTotal ?? 0 }
+            : null
+        );
         remember(nextTopic, payload.questions);
 
         /* Round 1 starts generating the instant the warm up lands, so it is
@@ -665,6 +681,7 @@ export function useRoundSession() {
     setBanks({});
     setFloors({});
     setDropped({});
+    setSampled(null);
     requested.current = new Set();
     setStage(0);
     setCurrent(null);
@@ -735,6 +752,7 @@ export function useRoundSession() {
     dropped,
     /** Everything this run lost to citation checking, across every stage. */
     droppedTotal: Object.values(dropped).reduce((sum, n) => sum + (n ?? 0), 0),
+    sampled,
     nextPlayable,
     best,
     eloChange,
