@@ -110,6 +110,20 @@ export function useRoundSession() {
       left to serve that the student has not already answered. */
   const [floors, setFloors] = useState<Partial<Record<Round, Difficulty>>>({});
 
+  /** How many questions each stage lost to citation checking.
+
+      Only ever non-zero in a grounded session, because that is the only kind
+      where there is anything to check against. The server writes a bank, drops
+      every question whose citation is not literally in the student's material,
+      and has always reported how many went. Nothing read it: the client
+      destructured the two fields it wanted and let this one fall on the floor.
+
+      So the one check in the app with real teeth was invisible, in both
+      directions. A student never learned that their round was short because
+      the generator made things up and got caught, and never had the evidence
+      that pasting notes buys them something a topic cannot. */
+  const [dropped, setDropped] = useState<Partial<Record<0 | Round, number>>>({});
+
   const [stage, setStage] = useState<0 | Round>(0);
   const [current, setCurrent] = useState<Question | null>(null);
   const [asked, setAsked] = useState<Set<string>>(new Set());
@@ -254,9 +268,11 @@ export function useRoundSession() {
       requested.current.add(round);
 
       try {
-        const { questions, exhausted } = await postJSON<{
+        const { questions, exhausted, dropped: lost } = await postJSON<{
           questions: Question[];
           exhausted?: boolean;
+          /** Questions this round lost to citation checking. */
+          dropped?: number;
         }>("/api/round", {
           stage: "round",
           round,
@@ -271,6 +287,7 @@ export function useRoundSession() {
 
         remember(forTopic, questions);
         if (exhausted) setFloors((prev) => ({ ...prev, [round]: "medium" }));
+        if (lost) setDropped((prev) => ({ ...prev, [round]: lost }));
         setBanks((prev) => ({ ...prev, [round]: questions }));
       } catch (err) {
         /* A failed bank is not fatal to the session: the rounds before it
@@ -316,6 +333,7 @@ export function useRoundSession() {
           concepts: string[];
           questions: Question[];
           provenance: Provenance;
+          dropped?: number;
         }>("/api/round", {
           stage: "open",
           topic: nextTopic,
@@ -326,6 +344,7 @@ export function useRoundSession() {
         setConcepts(payload.concepts);
         setWarmUp(payload.questions);
         setProvenance(payload.provenance);
+        if (payload.dropped) setDropped({ 0: payload.dropped });
         remember(nextTopic, payload.questions);
 
         /* Round 1 starts generating the instant the warm up lands, so it is
@@ -645,6 +664,7 @@ export function useRoundSession() {
     setWarmUp([]);
     setBanks({});
     setFloors({});
+    setDropped({});
     requested.current = new Set();
     setStage(0);
     setCurrent(null);
@@ -712,6 +732,9 @@ export function useRoundSession() {
 
     error,
     busyRounds,
+    dropped,
+    /** Everything this run lost to citation checking, across every stage. */
+    droppedTotal: Object.values(dropped).reduce((sum, n) => sum + (n ?? 0), 0),
     nextPlayable,
     best,
     eloChange,

@@ -18,7 +18,14 @@ import {
   TimerRing,
   Verdict,
 } from "./ui";
-import { ADVANCE_MS, type Question, QUESTION_SECONDS, type Round } from "./types";
+import {
+  ADVANCE_MS,
+  type Question,
+  QUESTION_SECONDS,
+  QUESTIONS_PER_ROUND,
+  type Round,
+  WARM_UP_COUNT,
+} from "./types";
 import { AudioControls } from "../audio-controls";
 import { play } from "../tone";
 import { Aside, Notice, Waiting, Wordmark } from "../ui";
@@ -75,6 +82,13 @@ export default function Home() {
     const frame = requestAnimationFrame(() => panel.current?.scrollTo({ top: 0 }));
     return () => cancelAnimationFrame(frame);
   }, [s.phase]);
+
+  /* Whether the round just finished was actually shortened by citation
+     checking, rather than merely having lost a couple of spares. */
+  const servedThisRound = s.answers.filter((a) => a.stage === s.stage).length;
+  const shortened =
+    (s.dropped[s.stage] ?? 0) > 0 &&
+    servedThisRound < (s.stage === 0 ? WARM_UP_COUNT : QUESTIONS_PER_ROUND);
 
   /* A correct answer flashes through the header clock. Held here rather than
      in the question because the clock is drawn here. */
@@ -203,6 +217,26 @@ export default function Home() {
             </div>
           )}
 
+          {/* A round cut short because the generator could not back it up.
+
+              Said only when the drops actually cost the student questions.
+              A bank is written with a third to spare, so losing two of fifteen
+              and still serving a full nine is the check doing its job with no
+              consequence anybody needs to read about; announcing that would be
+              noise, and noise is how a real notice gets skipped. When the round
+              is genuinely short, though, the student is looking at a round that
+              ended early and the honest explanation is a good one: the model
+              wrote questions your notes do not support and they were thrown
+              away before they reached you. */}
+          {s.phase === "interval" && shortened && (
+            <div className="mx-auto mb-6 w-full max-w-[46rem]">
+              <DroppedQuestions
+                count={s.dropped[s.stage] ?? 0}
+                served={s.answers.filter((a) => a.stage === s.stage).length}
+              />
+            </div>
+          )}
+
           {s.phase === "entry" && <Entry onStart={s.start} error={s.error} />}
 
           {s.phase === "opening" && (
@@ -281,6 +315,7 @@ export default function Home() {
               elo={s.eloChange}
               previously={s.previously}
               runs={s.runCount}
+              droppedTotal={s.droppedTotal}
               onAgain={s.again}
               onRestart={s.restart}
             />
@@ -312,6 +347,28 @@ function SkippedRounds({ rounds }: { rounds: Round[] }) {
       Learnova was busy when {which} {names.length === 1 ? "was" : "were"} due, so{" "}
       {names.length === 1 ? "it was" : "they were"} skipped. Everything you have already answered
       still counts, and the rest of the session carries on from here.
+    </Aside>
+  );
+}
+
+/** Questions the generator wrote and the server would not serve.
+
+    Framed as what it is rather than as a fault. Every question in a grounded
+    session has to carry a span copied out of the student's own material, and
+    the server checks that the span is genuinely in there, character for
+    character, before anybody sees the question. What could not be traced was
+    invented, and inventing is the whole failure this mode exists to prevent.
+
+    So this does not apologise for the short round. A round that is honest and
+    short is the product working; the alternative on offer is a full-length
+    round with made-up questions in it, which is what a topic-only session is
+    and is exactly why it now says so on every screen. */
+function DroppedQuestions({ count, served }: { count: number; served: number }) {
+  return (
+    <Aside>
+      {served} questions this round, not {QUESTIONS_PER_ROUND}. Another {count} were written and
+      dropped: {count === 1 ? "its quote was" : "their quotes were"} not in your notes, so you never
+      saw {count === 1 ? "it" : "them"}.
     </Aside>
   );
 }
