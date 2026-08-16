@@ -121,12 +121,29 @@ export default function Proof() {
             explanation.
           </p>
 
-          <div className="flex flex-wrap items-center gap-4">
+          {/* The way on lands in a grounded session, not on an empty field.
+
+              This used to point at a bare /round, whose default is a topic and
+              therefore the ungrounded half: somebody who had just read the case
+              for grounding was handed the thing the case was against, and had
+              to know to open a fold to get any. It carries the spec sheet over
+              now, so the first run they play is one with real citations in it.
+
+              The plain door is still here beside it, because a person who wants
+              to type their own subject should not have to clear somebody else's
+              paragraph out of the box first. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
             <Link
-              href="/round"
+              href="/round?demo"
               className="btn inline-flex items-center gap-2 rounded-[3px] bg-accent px-6 py-3 font-sans text-[0.9375rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover hover:shadow-[0_8px_20px_-10px_var(--accent)]"
             >
-              Try it on your own notes <Arrow />
+              Play a round on this spec sheet <Arrow />
+            </Link>
+            <Link
+              href="/round"
+              className="font-sans text-[0.875rem] text-ink-soft underline underline-offset-4 hover:text-ink"
+            >
+              Or study something of your own
             </Link>
             <Link
               href="/"

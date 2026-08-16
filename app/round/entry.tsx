@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { sourceProblem } from "@/lib/source";
+/* The same paragraph /proof quotes, imported rather than copied. Two copies
+   of the demonstration's material would drift, and the version a judge is
+   handed here has to be the version they just watched being cited. */
+import { SOURCE as DEMO_SOURCE, TOPIC as DEMO_TOPIC } from "../proof/recorded";
 import { Looseleaf, PixelSprite, PixelTag } from "../paper";
 import { Notice } from "../ui";
 import { openConcepts, studied, type TopicRecord } from "./record";
@@ -52,6 +56,32 @@ export function Entry({
 
   useEffect(() => {
     field.current?.focus();
+  }, []);
+
+  /* The one way into this screen that arrives with something already in it.
+
+     /proof makes the case that a session grounded in real material is a
+     different thing from one written out of a model's memory, and then the
+     way on from it used to be this screen, empty, whose default is a bare
+     topic and therefore the ungrounded half. Somebody who had just been shown
+     why grounding matters had to know to open a fold before they could have
+     any. The demonstration sold the thing and then handed over the other one.
+
+     So the link carries `?demo`, and this fills in the same roofing spec the
+     proof page quotes: notes open, topic named, one press from a grounded run
+     with real citations in it. Nothing is hidden by it. The field is still a
+     field, the notes are still editable, and clearing them is still a session
+     about the topic alone.
+
+     Read from `window` after mount rather than through `useSearchParams`,
+     which would make this statically prerendered route dynamic and want a
+     Suspense boundary around it, and the record below already establishes
+     that reading the browser after mount is how this screen does that. */
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has("demo")) return;
+    setTopic(DEMO_TOPIC);
+    setNotes(DEMO_SOURCE);
+    setShowNotes(true);
   }, []);
 
   function start() {
