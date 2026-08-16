@@ -22,11 +22,13 @@ import { Ballot as BallotCard } from "./ballot";
 import { DEFAULTS, type Defaults, Setup as SetupScreen } from "./setup";
 import {
   type Ballot,
+  MIN_WORDS_TO_JUDGE,
   SPEECH_ORDER,
   type Setup,
   type Speech,
   tier,
   type Turn,
+  wordsSpoken,
   worthJudging,
 } from "./types";
 
@@ -264,8 +266,10 @@ export default function DebatePage() {
   const judging = phase === "judging";
   const opponent = tier(setup!.tierId);
   /* The same test the route applies, so the button and the server never
-     disagree about whether there is a round here. */
+     disagree about whether there is a round here. The count beside it is only
+     ever shown at the end, and only when it is the reason there is no ballot. */
   const judgeable = worthJudging(turns);
+  const spoken = wordsSpoken(turns);
 
   return (
     <div className={`${SHELL} gap-4`}>
@@ -377,30 +381,65 @@ export default function DebatePage() {
               <PrimaryButton onClick={send} disabled={thinking || !draft.trim()}>
                 {thinking ? "Waiting…" : "Send"} {!thinking && <Arrow />}
               </PrimaryButton>
-              {/* Ending the round is only offered once there is a round to
-                  end. The server refuses to judge a transcript nobody argued
-                  in, and a button that offers a thing the server will decline
-                  is a button that teaches people the app is broken. The title
-                  says why it is greyed rather than leaving them to guess. */}
-              {turns.length >= 2 && (
-                <GhostButton
-                  onClick={judge}
-                  disabled={thinking || !judgeable}
-                  title={judgeable ? undefined : "Make an argument first, then the ballot has something to mark."}
-                >
+              {/* Ending early is only offered once ending early would work.
+
+                  It used to appear the moment there were two turns and sit
+                  there greyed out until the round was worth judging, with a
+                  `title` saying why. That is not an explanation on a phone,
+                  where there is no hover and therefore no title at all: it is
+                  a dead control with nothing to say for itself, on the screen
+                  where a student is most likely to think they have finished.
+
+                  This is a shortcut, not the way out, so the honest thing is
+                  simply not to offer it yet. Nothing is lost by its absence,
+                  because the round continues and the button arrives the moment
+                  there is a round to end. What must never happen is a student
+                  pressing something that looks available and getting nothing,
+                  which is how an app teaches people it is broken. */}
+              {turns.length >= 2 && judgeable && (
+                <GhostButton onClick={judge} disabled={thinking}>
                   End the round
                 </GhostButton>
               )}
             </div>
           </>
-        ) : (
-          <PrimaryButton
-            onClick={judge}
-            disabled={!judgeable}
-            title={judgeable ? undefined : "Make an argument first, then the ballot has something to mark."}
-          >
+        ) : judgeable ? (
+          <PrimaryButton onClick={judge}>
             Get the ballot <Arrow />
           </PrimaryButton>
+        ) : (
+          /* The round is over and there is not enough in it to mark.
+
+             This is the one place the greyed-out button could not simply be
+             removed, because at the end of a round it is the only control on
+             the screen: the compose box is gone, every speech has been given,
+             and a student looking at a dead button with an invisible tooltip
+             has no way forward and no idea why. Four speeches of "no" reaches
+             this exactly, and reached a dead end.
+
+             So it says what happened, in words, on the screen, and then hands
+             over a way on. Both halves matter. An explanation with no exit is
+             still a trap, and an exit with no explanation teaches somebody
+             that the round they just played was thrown away for no reason.
+
+             What it deliberately does NOT do is nag during the round. A word
+             counter ticking away beside the box was tried and cut, because it
+             turns writing an argument into hitting a target. The bar only
+             needs mentioning at the one moment it actually decides
+             something. */
+          <div className="flex flex-col gap-3">
+            <Notice>
+              There is not enough here to judge. You wrote {spoken}{" "}
+              {spoken === 1 ? "word" : "words"} across the round, and a ballot needs at least{" "}
+              {MIN_WORDS_TO_JUDGE}, which is about one real sentence of argument. Nothing was sent
+              to the judge and your rating has not moved.
+            </Notice>
+            <div className="flex flex-wrap items-center gap-3">
+              <PrimaryButton onClick={() => setPhase("setup")}>
+                Start a new round <Arrow />
+              </PrimaryButton>
+            </div>
+          </div>
         )}
       </div>
     </div>
