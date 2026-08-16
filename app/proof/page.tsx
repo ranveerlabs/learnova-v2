@@ -1,114 +1,51 @@
-"use client";
-
-import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AudioControls } from "../audio-controls";
-import { isBusy, postJSON } from "../client";
 import { PixelSprite, PixelTag } from "../paper";
-import { Arrow, Credits, GhostButton, Label, Working } from "../ui";
+import { Arrow, Credits, Label } from "../ui";
 import { markSource } from "./highlight";
-import {
-  RECORDED_GROUNDED,
-  RECORDED_INVENTED,
-  type Shown,
-  SOURCE,
-  TOPIC,
-} from "./recorded";
+import { GROUNDED, INVENTED, RECORDED_ON, type Shown, SOURCE } from "./recorded";
 
 /* The demonstration.
 
-   Everything else in this app is built for a student. This one screen is built
-   for somebody deciding in thirty seconds whether any of it is worth their
+   Everything else in this app is built for a student. This page is built for
+   somebody deciding in thirty seconds whether any of it is worth their
    attention, and it makes one argument: an AI study tool will invent material
-   with total confidence, you will not notice unless you already knew the
-   answer, and that is the worst possible failure for a tool whose entire
-   purpose is material you do not know yet.
+   with complete confidence, you will not notice unless you already knew the
+   answer, and that is the worst possible failure for a tool whose whole purpose
+   is material you do not know yet.
 
-   The argument is not made in prose. It is made by asking the same model the
-   same question twice, live, in front of the reader, changing exactly one
-   thing between the two: whether it was given anything to read.
+   It does not argue that in prose. It shows the same model answering the same
+   question twice, with one thing different between them: whether it was given
+   anything to read.
+
+   ── Why this is a recording and not a live call ────────────────────────────
+   It used to run both calls live, on the theory that watching it happen beats
+   being told about it. That theory was wrong for this page. A demonstration
+   whose whole point is reliability cannot itself be unreliable, and a live one
+   is: the key is shared and rate limited across everybody using it, the wait
+   is several seconds of nothing on the one screen that has thirty, and a model
+   is free to answer differently on the day and blunt the very contrast the
+   page exists to draw.
+
+   So it is fixed. Both answers below are verbatim, they are what the model
+   actually said, and the page says when and which model rather than implying
+   a freshness it no longer has. That last part is the whole discipline: a page
+   complaining about confident unsourced output does not get to produce any.
 
    ── Why Tritoflex ──────────────────────────────────────────────────────────
-   Because it is real. Somebody ran a topic-only session on it and was told
-   over and over that it is torch-applied. It is sprayed on cold. He caught it
-   because he installs the stuff; a student meeting it for the first time would
-   have learned the opposite of the truth and been graded as correct for it.
-
-   It also happens to be the perfect case, and not because it is obscure. The
-   model does not fail by admitting it has not heard of it. It fails by
-   producing a fluent, confident, internally consistent biochemistry: a protein
-   with an alpha helix, regulated by phosphorylation, implicated in cancer.
-   Every word of that is invented, and none of it looks invented.
-
-   ── Why it runs live ───────────────────────────────────────────────────────
-   A screenshot of a model getting something wrong proves nothing; anybody can
-   produce one. Watching it happen, now, on a key anyone can point at, is a
-   different kind of claim. The recorded answers exist only for when the shared
-   key is busy, and when they are used the page says so in words rather than
-   passing them off as fresh. A page arguing against confident unmarked output
-   does not get to produce any. */
-
-type Panel = {
-  state: "loading" | "live" | "recorded" | "failed";
-  questions: Shown[];
-  note?: string;
-};
-
-const WAITING: Panel = { state: "loading", questions: [] };
+   Because it is real, and because of HOW it fails. The model does not decline,
+   hedge, or admit it has not heard of it. It returns a fluent, detailed,
+   internally consistent biochemistry: a protein with an alpha helix, regulated
+   by phosphorylation, implicated in cancer. Every word invented, and nothing
+   about it looks invented. Somebody studying it here was told repeatedly that
+   it is torch-applied, and caught it only because he installs the stuff. */
 
 export default function Proof() {
-  const [invented, setInvented] = useState<Panel>(WAITING);
-  const [grounded, setGrounded] = useState<Panel>(WAITING);
-  const started = useRef(false);
-
-  const run = useCallback(async () => {
-    setInvented(WAITING);
-    setGrounded(WAITING);
-
-    /* Both at once, and reported the moment each lands rather than when the
-       pair does. The ungrounded call is the shorter prompt and usually arrives
-       first, which is a better beat than any staging: the invented answers
-       turn up promptly and confidently, and the checked ones take longer
-       because something is actually being checked. */
-    const ask = async (notes: string, set: (p: Panel) => void, fallback: Shown[]) => {
-      try {
-        const payload = await postJSON<{ questions: Shown[] }>("/api/round", {
-          stage: "open",
-          topic: TOPIC,
-          notes,
-          asked: [],
-        });
-        set({ state: "live", questions: payload.questions.slice(0, 5) });
-      } catch (err) {
-        set({
-          state: "recorded",
-          questions: fallback,
-          note: isBusy(err)
-            ? "Learnova is busy right now, so this is the answer it gave earlier rather than one taken just now."
-            : "The live call did not go through, so this is the answer it gave earlier rather than one taken just now.",
-        });
-      }
-    };
-
-    await Promise.all([
-      ask("", setInvented, RECORDED_INVENTED),
-      ask(SOURCE, setGrounded, RECORDED_GROUNDED),
-    ]);
-  }, []);
-
-  /* Runs itself. Somebody who opened this link should not have to find a
-     button before the page makes its point. */
-  useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    void run();
-  }, [run]);
-
-  const cited = grounded.questions.map((q) => q.citation ?? "").filter(Boolean);
+  const cited = GROUNDED.map((q) => q.citation ?? "").filter(Boolean);
 
   return (
     <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col overflow-y-auto">
-      <main className="mx-auto flex w-full max-w-[78rem] flex-col gap-10 px-5 py-10 sm:px-8 sm:py-14">
+      <main className="mx-auto flex w-full max-w-[76rem] flex-col gap-9 px-5 py-10 sm:px-8 sm:py-14">
         <header className="rise flex flex-col gap-5">
           <div className="flex items-center gap-2">
             <PixelTag className="press-on -rotate-2">watch it catch itself</PixelTag>
@@ -121,64 +58,53 @@ export default function Proof() {
             <AudioControls className="ml-auto" />
           </div>
 
-          <h1 className="max-w-[18ch] font-hand text-[clamp(2.75rem,1.8rem+4vw,4.75rem)] leading-[0.92] tracking-tight text-ink">
+          <h1 className="max-w-[16ch] font-hand text-[clamp(2.75rem,1.8rem+4vw,4.75rem)] leading-[0.92] tracking-tight text-ink">
             The same question, twice.
           </h1>
 
-          {/* Kept to one paragraph. On a laptop the longer version read well;
-              on a phone it filled the entire first screen, so the page opened
-              on an essay about a demonstration instead of on the
-              demonstration. The story is worth exactly the space it takes to
-              make the stakes real, which is three sentences. */}
-          <p className="max-w-[58ch] font-read text-[1.125rem] leading-[1.6] text-ink-soft">
+          <p className="max-w-[56ch] font-read text-[1.125rem] leading-[1.6] text-ink-soft">
             <strong className="font-semibold text-ink">Tritoflex</strong> is a rubber roofing
             compound, sprayed on cold. Somebody studying it here was told, over and over, that it is
-            applied with a torch, and caught it only because he installs the stuff. Below, the same
-            model is asked about it twice, live. One thing changes: whether it was given anything to
-            read.
+            applied with a torch, and caught it only because he installs the stuff. Here is the same
+            model asked about it twice. One thing changes: whether it was given anything to read.
           </p>
         </header>
 
-        <div className="rise grid gap-5 lg:grid-cols-2" style={{ ["--i" as string]: 1 }}>
+        <div className="grid gap-5 lg:grid-cols-2">
           <Column
-            panel={invented}
             kind="invented"
             heading="Given only the word"
             badge="AI · unchecked"
-            sub="Nothing was checked. Every answer here is the model's own, and it has never heard of this."
+            sub="It has never heard of this. Nothing it says here was checked against anything."
+            questions={INVENTED}
           />
           <Column
-            panel={grounded}
             kind="grounded"
             heading="Given the spec sheet"
             badge="From your notes"
-            sub="Every question had to quote the material. The quote was checked on the server before you saw it."
+            sub="Every question had to quote the material, and the quote was checked before you saw it."
+            questions={GROUNDED}
           />
         </div>
 
-        {/* The source, with the quotes lit up in it.
+        {/* The source, with the quotes lit up inside it.
 
-            This is the part that needs no trust. The column on the right can
-            claim its citations are real; this hands the reader the paragraph
-            and lets them find the words themselves. */}
+            This is the part that asks for nothing on trust. The column above
+            can claim its citations are real; this hands over the paragraph and
+            lets a reader find the words themselves, which is the only version
+            of the claim worth making on a page about not being taken on faith. */}
         <section className="rise flex flex-col gap-3" style={{ ["--i" as string]: 2 }}>
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <Label>What it was given to read</Label>
+            <Label>The whole of what it was given to read</Label>
             <span className="font-sans text-[0.75rem] text-ink-faint">
-              {cited.length > 0
-                ? "Highlighted: the exact spans the questions on the right were traced to."
-                : "The questions on the right quote this text."}
+              Highlighted: the exact words each question on the right was traced back to.
             </span>
           </div>
 
-          <p className="prose-read whitespace-pre-wrap rounded-[3px] border border-line bg-page px-5 py-4 font-read text-[1rem] leading-[1.75] text-ink-soft sm:px-6 sm:py-5">
+          <p className="whitespace-pre-wrap rounded-[3px] border border-line bg-page px-5 py-4 font-read text-[1rem] leading-[1.8] text-ink-soft sm:px-6 sm:py-5">
             {markSource(SOURCE, cited).map((piece, i) =>
               piece.cited ? (
-                <mark
-                  key={i}
-                  className="rounded-[2px] bg-solid-tint px-0.5 text-ink"
-                  style={{ ["--i" as string]: piece.n ?? 0 }}
-                >
+                <mark key={i} className="rounded-[2px] bg-solid-tint px-0.5 text-ink">
                   {piece.text}
                 </mark>
               ) : (
@@ -188,25 +114,20 @@ export default function Proof() {
           </p>
         </section>
 
-        <section className="rise flex flex-col gap-4" style={{ ["--i" as string]: 3 }}>
-          <p className="max-w-[62ch] font-read text-[1.125rem] leading-[1.6] text-ink">
-            Learnova does not claim to have solved this. It claims to know which of the two it is
+        <section className="rise flex flex-col gap-5" style={{ ["--i" as string]: 3 }}>
+          <p className="max-w-[56ch] font-read text-[1.25rem] leading-[1.5] text-ink">
+            Learnova does not claim to have fixed this. It claims to know which of the two it is
             doing, and to say so on every screen, including on the marks it puts on your own
             explanation.
           </p>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* A link wearing the primary button's clothes, rather than a
-                button inside a link. Nesting the two puts interactive markup
-                inside interactive markup, and costs the thing that makes a
-                door a door: middle-click, open in a tab, and the back button. */}
+          <div className="flex flex-wrap items-center gap-4">
             <Link
               href="/round"
-              className="btn inline-flex items-center gap-2 self-start rounded-[3px] bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover hover:shadow-[0_8px_20px_-10px_var(--accent)]"
+              className="btn inline-flex items-center gap-2 rounded-[3px] bg-accent px-6 py-3 font-sans text-[0.9375rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover hover:shadow-[0_8px_20px_-10px_var(--accent)]"
             >
-              Try it yourself <Arrow />
+              Try it on your own notes <Arrow />
             </Link>
-            <GhostButton onClick={run}>Run both again</GhostButton>
             <Link
               href="/"
               className="font-sans text-[0.875rem] text-ink-faint underline underline-offset-4 hover:text-ink-soft"
@@ -214,6 +135,18 @@ export default function Proof() {
               Back to the start
             </Link>
           </div>
+
+          {/* Where these answers came from, stated rather than implied.
+
+              The page would read as live if it said nothing, and it is not. A
+              recording presented as fresh would be exactly the move this page
+              was built to complain about. */}
+          <p className="max-w-[62ch] font-sans text-[0.75rem] leading-[1.6] text-ink-faint">
+            Both columns are verbatim, recorded {RECORDED_ON} from{" "}
+            <span className="font-mono">deepseek-v4-flash</span>, through the same route this app
+            uses. Nothing changed between the two requests except whether the paragraph above was
+            attached.
+          </p>
 
           <Credits />
         </section>
@@ -224,25 +157,26 @@ export default function Proof() {
 
 /** One side of the comparison. */
 function Column({
-  panel,
   kind,
   heading,
   badge,
   sub,
+  questions,
 }: {
-  panel: Panel;
   kind: "invented" | "grounded";
   heading: string;
   badge: string;
   sub: string;
+  questions: Shown[];
 }) {
   const grounded = kind === "grounded";
 
   return (
     <section
-      className={`flex min-w-0 flex-col gap-4 rounded-[4px] border-l-[5px] bg-sunk/50 p-5 sm:p-6 ${
+      className={`rise flex min-w-0 flex-col gap-4 rounded-[4px] border-l-[5px] bg-sunk/50 p-5 sm:p-6 ${
         grounded ? "border-solid-mark" : "border-broken-mark"
       }`}
+      style={{ ["--i" as string]: grounded ? 1.5 : 1 }}
     >
       <div className="flex flex-col gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
@@ -262,47 +196,43 @@ function Column({
         <p className="font-sans text-[0.8125rem] leading-[1.6] text-ink-faint">{sub}</p>
       </div>
 
-      {panel.state === "loading" ? (
-        <div className="py-6">
-          <Working label={grounded ? "Reading the source" : "Asking the model"} />
-        </div>
-      ) : (
-        <>
-          {/* Said before the answers, not after them, because it changes what
-              the answers are evidence of. */}
-          {panel.state === "recorded" && panel.note && (
-            <p className="rounded-[3px] border border-line bg-page px-3 py-2 font-sans text-[0.75rem] leading-[1.55] text-ink-faint">
-              {panel.note}
-            </p>
-          )}
+      <ol className="flex flex-col gap-2.5">
+        {questions.map((q, i) => (
+          <li
+            key={q.prompt}
+            style={{ ["--i" as string]: i }}
+            className="note-in flex flex-col gap-1 rounded-[3px] bg-page px-4 py-3"
+          >
+            <span className="font-read text-[0.9375rem] leading-snug text-ink-soft">{q.prompt}</span>
+            <span
+              className={`font-read text-[1.0625rem] leading-snug ${
+                grounded ? "text-solid-ink" : "text-broken-ink"
+              }`}
+            >
+              {q.answer}
+            </span>
 
-          <ol className="flex flex-col gap-3">
-            {panel.questions.map((q, i) => (
-              <li
-                key={i}
-                style={{ ["--i" as string]: i }}
-                className="split-land flex flex-col gap-1.5 rounded-[3px] bg-page px-4 py-3"
-              >
-                <span className="font-read text-[0.9375rem] leading-snug text-ink-soft">
-                  {q.prompt}
-                </span>
-                <span
-                  className={`font-read text-[1.0625rem] leading-snug ${
-                    grounded ? "text-solid-ink" : "text-broken-ink"
-                  }`}
-                >
-                  {q.answer}
-                </span>
-                {q.citation && (
-                  <span className="mt-0.5 font-read text-[0.8125rem] italic leading-[1.5] text-ink-faint">
-                    “{q.citation}”
-                  </span>
-                )}
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
+            {/* The slot under every answer, filled on one side and visibly
+                empty on the other.
+
+                Leaving the left column's answers with nothing beneath them
+                would have been accurate and would have argued nothing: a
+                reader scanning two columns reads the shorter one as tidier,
+                not as unsupported. Drawing the empty slot is what turns the
+                absence into the point. It is the same row, in the same place,
+                on both sides, and one of them has a source in it. */}
+            {q.citation ? (
+              <span className="mt-0.5 font-read text-[0.8125rem] italic leading-[1.5] text-solid-ink/80">
+                “{q.citation}”
+              </span>
+            ) : (
+              <span className="mt-1 border-t border-dashed border-line-strong pt-1.5 font-sans text-[0.6875rem] uppercase tracking-[0.1em] text-ink-faint">
+                nothing to check it against
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
