@@ -311,14 +311,3 @@ export function createSpeechFilter(cap: number): SpeechFilter {
   };
 }
 
-/** The same rules over a speech that arrived all at once.
-
-    Not used by the route, which streams. It exists because a single string in
-    and a single string out is the only version of this that can be checked
-    against a sample, and the check that matters is that feeding a speech
-    through in arbitrary chunks produces exactly what feeding it through whole
-    produces. That test is what caught the paragraph break above. */
-export function scrubWhole(raw: string, cap: number): string {
-  const filter = createSpeechFilter(cap);
-  return (filter.push(raw) + filter.end()).trim();
-}

@@ -57,10 +57,6 @@ function tokenize(source: string): string[] {
   return source.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? [];
 }
 
-export function countWords(source: string): number {
-  return tokenize(source).length;
-}
-
 type Signals = {
   /** Mean token length. English prose runs near 4.7; mashed keys near 1. */
   avgWordLength: number;
@@ -214,8 +210,3 @@ export function sourceProblem(source: string): string | null {
   }
 }
 
-/** Whether this source can start a session. The same test as a predicate, so
-    the gauge in the interface and the guard can never disagree. */
-export function sourceIsReady(source: string): boolean {
-  return sourceStatus(source).state === "ready";
-}

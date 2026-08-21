@@ -268,17 +268,6 @@
   animation-delay: calc(var(--i, 0) * 80ms);
 }
 
-/* The ladder rung lighting up as a round is cleared. */
-@keyframes rung-fill {
-  from { transform: scaleX(0); }
-}
-
-.rung-fill {
-  transform-origin: left center;
-  animation: rung-fill 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 100ms);
-}
-
 /* ── Round 4 ────────────────────────────────────────────────────────────
    The recording indicator is `.listening`, in globals.css, because a debate
    opponent writing a speech is the same idea and the debate route does not
@@ -309,8 +298,7 @@
   .urgent,
   .split-land,
   .chip-snap,
-  .stage-in,
-  .rung-fill {
+  .stage-in {
     animation: none;
   }
 

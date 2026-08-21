@@ -215,8 +215,6 @@ export type Wire =
   | { name: "ballot_returned"; data: { ballot: Ballot } }
   | { name: "room_closed"; data: { reason: Closed } };
 
-export type EventName = Wire["name"];
-
 /** Why a room ended, in the terms the person still sitting there needs.
 
     Four, and the distinctions are the whole point: this is the vocabulary

@@ -205,12 +205,3 @@ export function recordRun(strong: boolean): Book {
   return next;
 }
 
-export function forgetStanding(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(KEY);
-    window.localStorage.removeItem(DEBATE_KEY);
-  } catch {
-    /* Nothing to do. */
-  }
-}

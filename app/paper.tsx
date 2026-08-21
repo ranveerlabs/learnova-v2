@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { SourceStatus } from "@/lib/source";
 import { useAutoGrow } from "./ui";
 
 /* ═══ The desk ════════════════════════════════════════════════════════════
@@ -285,109 +284,6 @@ export function Looseleaf({
         className="press-on pointer-events-none absolute -left-1 bottom-8 lg:-left-4"
         style={{ ["--tilt" as string]: "-14deg", ["--i" as string]: 3 }}
       />
-    </div>
-  );
-}
-
-/** The three beats of a session, said once, before the first one happens.
-    Numbered because it genuinely is a sequence: you cannot be marked on an
-    explanation you have not written yet. Each sits on its own scrap, tilted
-    a little differently, the way three notes to yourself would end up. */
-export function Steps() {
-  const steps = [
-    { n: "1", word: "paste", said: "your notes, a passage, a chapter", tone: "gold" as const, tilt: "-1.2deg" },
-    { n: "2", word: "explain", said: "each idea, in your own words", tone: "mint" as const, tilt: "0.8deg" },
-    { n: "3", word: "read the marks", said: "checked against your source, word for word", tone: "pink" as const, tilt: "-0.6deg" },
-  ];
-
-  return (
-    <ol className="relative flex flex-col gap-2.5">
-      {steps.map((s, i) => (
-        <li
-          key={s.n}
-          /* Each scrap is set down at its own angle, fixed rather than random
-             so it never jitters between renders. */
-          style={{ ["--i" as string]: i + 2, ["--tilt" as string]: s.tilt }}
-          className="rise stuck relative flex items-center gap-3 rounded-[3px] border-2 border-sheet-ink/80 bg-sheet px-3 py-2.5"
-        >
-          <PixelTag tone={s.tone}>{s.n}</PixelTag>
-          <span className="min-w-0 flex-1">
-            <span className="block font-hand text-[1.25rem] leading-none text-sheet-ink">
-              {s.word}
-            </span>
-            <span className="mt-1 block font-hand text-[1rem] leading-none text-sheet-faint">
-              {s.said}
-            </span>
-          </span>
-
-          {/* The clip holds the first scrap, the way the top one in a stack
-              is the one that actually gets clipped. */}
-          {i === 0 && (
-            <PixelSprite
-              name="clip"
-              scale={3}
-              className="press-on pointer-events-none absolute -right-2 -top-4 drop-shadow-[2px_2px_0_rgb(12_16_24/0.3)]"
-              style={{ ["--tilt" as string]: "16deg", ["--i" as string]: 4 }}
-            />
-          )}
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/** How close the pasted source is to being usable. A highlighter stroke
-    filling a ruled box, rather than a progress bar. */
-export function SourceGauge({ status, minChars }: { status: SourceStatus; minChars: number }) {
-  const pct =
-    status.state === "empty" ? 0 : status.state === "short" ? status.progress * 100 : 100;
-
-  /* "too-long" is grouped with "unreadable" rather than left to the final
-     branch of each ternary. Those branches read as the healthy case, so a
-     source over the ceiling would have been painted mint and labelled "ready"
-     while the button refused it. */
-  const rejected = status.state === "unreadable" || status.state === "too-long";
-
-  const fill = status.state === "ready"
-    ? "var(--supply-mint)"
-    : rejected
-      ? "var(--supply-pink)"
-      : "var(--highlight)";
-
-  const said =
-    status.state === "empty"
-      ? `${minChars} characters to get going`
-      : status.state === "short"
-        ? `${status.chars} / ${minChars} characters`
-        : status.state === "unreadable"
-          ? "long enough, but it isn't prose yet"
-          : status.state === "too-long"
-            ? `too much: ${status.chars.toLocaleString()} characters`
-            : `ready! ${status.chars} characters`;
-
-  const ink = status.state === "ready"
-    ? "var(--supply-mint)"
-    : rejected
-      ? "var(--supply-pink)"
-      : undefined;
-
-  return (
-    <div className="flex max-w-[17rem] flex-col gap-2">
-      <div
-        className="h-3 w-full overflow-hidden rounded-[2px] border-2 border-sheet-ink bg-sheet"
-        aria-hidden
-      >
-        <div
-          className="h-full transition-[width,background-color] duration-500 ease-out"
-          style={{ width: `${pct}%`, background: fill }}
-        />
-      </div>
-      <p
-        className="font-pixel text-[0.5625rem] leading-relaxed tracking-tight text-ink-soft"
-        style={ink ? { color: ink } : undefined}
-      >
-        {said}
-      </p>
     </div>
   );
 }
