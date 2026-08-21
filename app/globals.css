@@ -138,7 +138,7 @@
     /* The logo's own cream, and two steps down from it that hold the
        luminance the greys had, so no contrast ratio moves: 16.19:1 on the
        page. Chalk is not white, and neither is this. */
-    --ink: #fdfcdf;
+    --ink: var(--cream);
     --ink-soft: #a7a793;
     --ink-faint: #787869;
 
@@ -206,6 +206,7 @@
   --color-gap-tint: var(--gap-tint);
 
 
+  --color-cream: var(--cream);
   --color-sheet: var(--sheet);
   --color-sheet-ink: var(--sheet-ink);
   --color-sheet-soft: var(--sheet-soft);
@@ -231,6 +232,11 @@
    intent. Nothing here is allowed past the first screen. The moment a
    student's own words are on display, the marks are the only colour. */
 :root {
+  /* The cream, and the only definition of it. The dark theme's type and the
+     two cards on the landing page both point here, so "the same cream as the
+     text" stays true by construction rather than by two hexes agreeing. */
+  --cream: #fdfcdf;
+
   --sheet: #fdfaf1;
   --sheet-ink: #262626;
   /* Secondary ink on paper: for a sentence somebody actually has to read.
