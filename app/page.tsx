@@ -74,40 +74,17 @@ export default function Landing() {
             sprite="clip"
             tilt="1.4deg"
             name="Debate"
-            line="Pick a side and hold it for four speeches against an opponent trying to take it off you. Judged ballot, tournament formats, a rating."
+            line="Pick a side and hold it for four speeches, against the model or against a friend on a four-letter code. Judged ballot at the end."
           />
         </div>
 
-        {/* A third way in, and deliberately not a third door.
+        {/* The "Watch it invent something, then catch itself" strip stood
+            here, linking to /proof. Both are gone.
 
-            The two above are modes: things you do, equal in weight, and the
-            argument of this screen is that neither is the product and both are.
-            This is not one of those. It is thirty seconds of watching the
-            thing this app was built around actually happen, for somebody who
-            has not decided yet whether to spend ten minutes on either mode.
-
-            So it is a strip rather than a card, quieter and below them, where
-            it cannot be mistaken for a third thing to choose between. Somebody
-            who came here to study walks straight past it, which is correct.
-            Somebody weighing up whether any of this is real clicks it. */}
-        <Link
-          href="/proof"
-          className="rise lift group flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[3px] border border-line bg-page/60 px-4 py-3 hover:border-accent"
-          style={{ ["--i" as string]: 2 }}
-        >
-          <span className="font-read text-[1.0625rem] leading-snug text-ink">
-            Watch it invent something, then catch itself
-          </span>
-          <span className="font-sans text-[0.8125rem] leading-snug text-ink-faint">
-            The same question asked twice, live. Thirty seconds.
-          </span>
-          <span
-            aria-hidden
-            className="arrow ml-auto shrink-0 font-sans text-[1rem] text-ink-faint group-hover:text-accent"
-          >
-            →
-          </span>
-        </Link>
+            It was a third way in on a screen whose whole argument is that
+            there are two, and it asked somebody who had not yet decided to
+            spend ten minutes studying to spend thirty seconds watching
+            instead. The two doors above are the screen. */}
 
         {/* The licence credit for the background track, which both modes play.
             It is here rather than inside either of them now: this is the one
