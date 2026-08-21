@@ -38,66 +38,53 @@ export function sideWord(side: Side): "For" | "Against" {
   return side === "Pro" ? "For" : "Against";
 }
 
-/** How hard the opponent argues, and what that is worth.
+/** How hard the opponent argues.
 
-    The strength attached to each tier is the point of having tiers at all. ELO
-    is a relative measure: rating somebody against one fixed opponent produces
-    a monotonic restatement of their win rate, not a rating, and it cannot
-    support the comparison the number invites. Three tiers with declared
-    strengths make a rating mean something, because it means that much against
-    opposition whose strength was declared in advance.
+    Each tier used to carry a `strength` as well: a number in rating points
+    the elo was computed against, -125, 50 and 275, tuned so that a player at
+    0 was expected to take 67% off Novice, 43% off Varsity and 17% off
+    Circuit. It was the load-bearing half of the tier, and the argument for
+    having tiers at all was that a rating means nothing unless the opposition
+    has a declared strength.
 
-    ── Why these numbers, and what was wrong with the last set ───────────────
-    They were -300, 0 and 350, which were the old 1000/1300/1650 gaps moved so
-    that a beginner started level with Varsity. The gaps were preserved and the
-    thing they were preserved against was not: on the old scale a player began
-    at 1200 with a thousand points of room beneath them, and on this one they
-    begin at 0 with a floor at 0. Every point of Novice's -300 was under that
-    floor.
+    There is no rating now, so there is nothing to declare a strength to. See
+    app/standing.ts for why it went. What is left is the half a student could
+    always actually feel: how hard this opponent argues, and the brief that
+    says so, which is what reaches the prompt in app/api/debate/route.ts.
 
-    What that did to a beginner is the whole reason these moved. Rated -300
-    against a player at 0, Novice is an opponent you are expected to beat 85%
-    of the time, so a win is worth almost nothing and the rating cannot rise:
-    a student who picked the gentlest opponent and beat it four times out of
-    five settled at exactly 0 and stayed there. They won, and the number never
-    moved. That is the worst feedback this app can give, and it was aimed
-    squarely at the people least able to read past it.
-
-    The three now sit where a player standing at 0 is expected to take 67% off
-    Novice, 43% off Varsity and 17% off Circuit. The spread is narrower than it
-    was, which is the correction rather than a compromise: tiers are only ever
-    used as a difference from the player's rating, and a 650-point spread was
-    calibrated for a scale where the player had room to move underneath it.
-    Players live between 0 and about 600 here, so the opposition has to.
-
-    `strength` rather than `rating`, because there is only one rating in this
-    app and it belongs to the person playing. A second number called a rating,
-    sitting on a button next to theirs, was two things with one name. */
+    The tiers are not a lesser thing for having lost the number. Choosing an
+    opponent who will punish a dropped argument is why somebody preparing for
+    a tournament opens the fold, and that was never about what beating it was
+    worth. */
 export const TIERS = [
   {
     id: "novice" as const,
     name: "Novice",
-    strength: -125,
     brief:
       "Argues in good faith, makes one clear point per speech, misses some of what you said.",
   },
   {
     id: "varsity" as const,
     name: "Varsity",
-    strength: 50,
     brief: "Signposts, weighs, and will punish a dropped argument.",
   },
   {
     id: "circuit" as const,
     name: "Circuit",
-    strength: 275,
     brief: "Fast, technical, turns your own framework against you.",
   },
 ] as const;
 
 export type TierId = (typeof TIERS)[number]["id"];
 
-export function tier(id: TierId) {
+/** The tier a round is being argued against, if there is one.
+
+    `undefined` is a real answer rather than a missing argument. A live 1v1
+    room has no tier, because the opponent is a person and there is no model
+    to set a difficulty for. The fallback is kept for a bad id, which is still
+    a bug, but an absent one is a live round and every caller that actually
+    needs a brief is on the single-player path where one was chosen. */
+export function tier(id: TierId | undefined) {
   return TIERS.find((t) => t.id === id) ?? TIERS[1];
 }
 
@@ -156,7 +143,11 @@ export type Setup = {
   /** The motion, for competitive. The subject, for casual. */
   motion: string;
   side: Side;
-  tierId: TierId;
+  /** Which opponent the model is playing. Absent in a live 1v1 room, where
+      the opponent is a person and there is nothing to declare a strength
+      for. Every path that reads a strength off this is a single-player path
+      where one was chosen on the setup screen. */
+  tierId?: TierId;
   /** Competitive only. Absent on a casual round, where there are no format
       conventions to judge against. */
   format?: Format;

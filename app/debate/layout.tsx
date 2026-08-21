@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Debate · Learnova",
   description:
-    "Pick a side and hold it for four speeches against an opponent trying to take it off you. A judged ballot at the end, tournament formats if you want them, and an elo that is arithmetic rather than a guess.",
+    "Pick a side and hold it for four speeches against an opponent trying to take it off you. A judged ballot at the end, tournament formats if you want them, and a record of what you have won and lost.",
 };
 
 /* The frame for debate mode.

@@ -163,9 +163,16 @@ const HONESTY = `WHAT YOU MAY ASSERT. You have no sources in this round. Argue l
 - A hypothetical is honest if you mark it as one. "Take a student working an evening shift" is fine. "A study of students working evening shifts found" is not.
 - If they challenge a fact you cannot actually support, drop it and argue the mechanism. Do not defend it, do not add detail to it, and do not produce a second invented fact to prop up the first. Dropping a bad card and winning on warrant is what a good debater does.`;
 
-function opponentSystem(setup: Setup, speech: Speech): string {
+/* The tier arrives beside the setup rather than inside it.
+
+   `Setup.tierId` is optional now, because a live 1v1 round has no tier and
+   putting a plausible one in the payload would be a number describing an
+   opponent who does not exist. This function cannot run without one, so it
+   asks for one outright, and its only caller is the branch that has already
+   refused the request without it. */
+function opponentSystem(setup: Setup, speech: Speech, tierId: TierId): string {
   const side: Side = setup.side === "Pro" ? "Con" : "Pro";
-  const cap = BUDGET[speech][setup.tierId];
+  const cap = BUDGET[speech][tierId];
 
   const format = setup.format
     ? `You are debating in ${setup.format} format. Argue the way that format expects: ${FORMAT_NOTE[setup.format]}`
@@ -177,7 +184,7 @@ MOTION: ${setup.motion}
 YOU ARE ARGUING: ${side}
 ${format}
 
-${OPPONENT_CRAFT[setup.tierId]}
+${OPPONENT_CRAFT[tierId]}
 
 THIS SPEECH IS YOUR ${speech.toUpperCase()}. ${SPEECH_BRIEF[speech]}
 
@@ -421,8 +428,17 @@ function readSetup(v: unknown): Setup | null {
   if (!tab) return null;
   if (typeof s.motion !== "string" || !s.motion.trim()) return null;
   if (s.side !== "Pro" && s.side !== "Con") return null;
+  /* Absent is allowed, wrong is not.
+
+     A live 1v1 round has no tier — the opponent is a person — and it still
+     needs the judge, which never looked at the tier anyway: both judge
+     prompts read the motion, the side and the format and nothing else. What
+     is refused is a tier that is present and is not one of the three, which
+     is a request that has been tampered with rather than a live round. */
   const tierId = s.tierId;
-  if (tierId !== "novice" && tierId !== "varsity" && tierId !== "circuit") return null;
+  if (tierId !== undefined && tierId !== "novice" && tierId !== "varsity" && tierId !== "circuit") {
+    return null;
+  }
   if (tab === "competitive" && typeof s.format !== "string") return null;
 
   return {
@@ -478,6 +494,17 @@ export async function POST(req: Request) {
 
   try {
     if (body.action === "reply") {
+      /* The one branch that genuinely needs a tier: it picks how the model
+         argues and how long it may run. A live 1v1 round has no tier and no
+         business here either — the opponent in that room is a person, and
+         asking this route for their next speech would be asking the model to
+         argue for them. */
+      if (!setup.tierId) {
+        return NextResponse.json(
+          { error: "An opponent strength is required to write a reply." },
+          { status: 400 }
+        );
+      }
       const speech = readSpeech(body.speech);
 
       /* The nudge at the end is speech-specific, and it has to be.
@@ -511,7 +538,7 @@ export async function POST(req: Request) {
          sample reaches further for a vivid specific, and a vivid specific this
          model does not know is a fabrication. 0.6 still varies the phrasing
          round to round, which is all the warmth was ever for. */
-      const stream = chatStream(opponentSystem(setup, speech), said, 0.6);
+      const stream = chatStream(opponentSystem(setup, speech, setup.tierId), said, 0.6);
 
       /* Ask for the first chunk here, inside the try, rather than inside the
          stream below. Everything that can fail with a status a student should
@@ -630,6 +657,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     console.error("Debate route failed:", err);
-    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+    return NextResponse.json({ error: "Oops! Something went wrong on our end :(" }, { status: 500 });
   }
 }

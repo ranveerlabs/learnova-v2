@@ -1,8 +1,8 @@
 "use client";
 
-import type { RatingChange } from "@/lib/elo";
-import { Elo } from "../elo";
-import { Arrow, Label, PrimaryButton } from "../ui";
+import type { Book } from "../standing";
+import { Record } from "../tally";
+import { Label, PrimaryButton } from "../ui";
 import {
   type Ballot,
   DIMENSIONS,
@@ -17,8 +17,8 @@ import {
 
    ── What this screen is for, and what it was doing instead ───────────────
    Somebody who has just finished a round wants three things, in this order:
-   did I win, what did it do to my elo, and what do I do differently next
-   time. This screen used to answer all three and then keep going, into ten
+   did I win, what does that make my record, and what do I do differently
+   next time. This screen used to answer all three and then keep going, into ten
    dimension scores across two columns, a speaker points figure, a strongest
    line, a weakest line, and a closing paragraph about the separation between
    what the model judges and what the app computes. Every one of those was
@@ -29,15 +29,16 @@ import {
    equally important, and the fastest way to make something unread is to give
    it the same weight as nine things beside it.
 
-   So the face of the ballot is now the decision, the elo, and the fix. The
+   So the face of the ballot is now the decision, the record, and the fix. The
    rest is not gone: it is behind one disclosure, which is the same shape
    Round Mode's results screen settled on for the same reason. A competitive
    debater who wants their speaks is exactly the person who will open a fold
    labelled with them.
 
    Nothing on this screen is invented here. Every figure came back from the
-   judge except the elo, which was computed in `lib/elo.ts` from the rating
-   already held and the tier's declared strength. */
+   judge except the record, which is a count of judgements already made. The
+   elo that used to sit under the verdict is gone along with the file that
+   computed it; standing.ts says why. */
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
@@ -51,18 +52,34 @@ const LABEL: Record<Dimension, string> = {
 
 export function Ballot({
   ballot,
-  change,
+  book,
   setup,
+  opponentName,
   onAgain,
+  againLabel = "Another round",
 }: {
   ballot: Ballot;
-  change: RatingChange;
+  /** The record this round has just been added to, where it was added to one.
+
+      Absent in a live 1v1 room, and absent on purpose rather than pending.
+      Nothing about a live room is written down anywhere — not the room, not
+      the transcript, not the result — and a record is a thing written down.
+      A live round produces a verdict and counts for nothing, which is the
+      promise the mode is built on rather than a gap in it. */
+  book?: Book;
   setup: Setup;
+  /** Who the other side was, for the scoresheet column and the key moments.
+
+      Defaults to the tier's name, which is right for every single-player
+      round and wrong for a live one, where the opponent is a person and the
+      column should say so. */
+  opponentName?: string;
   onAgain: () => void;
+  againLabel?: string;
 }) {
   const won = ballot.winner === "user";
   const drew = ballot.winner === "draw";
-  const opponent = tier(setup.tierId);
+  const opponent = { name: opponentName ?? tier(setup.tierId).name };
 
   /* The decision, in three channels rather than one.
 
@@ -75,11 +92,6 @@ export function Ballot({
   const ink = won ? "text-solid-ink" : drew ? "text-shaky-ink" : "text-broken-ink";
   const rule = won ? "border-solid-mark" : drew ? "border-shaky-mark" : "border-broken-mark";
   const wash = won ? "bg-solid-tint" : drew ? "bg-shaky-tint" : "bg-broken-tint";
-
-  /* Rounded to whole percent, because a rating system that reports what it
-     expected to three decimal places is claiming a precision it does not
-     have about a judge that is not that consistent. */
-  const chance = Math.round(change.expected * 100);
 
   return (
     <section className="flex w-full flex-col gap-6 pb-4">
@@ -94,9 +106,20 @@ export function Ballot({
           that does not mean anything, which is what keeps it from competing
           with the marks below it. */}
       <div className="flex flex-col gap-3">
+        {/* Who you played is only named when it is a tier.
+
+            The line is "Open debate · Novice · For", and it survives the
+            opponent's name being swapped for anything except a pronoun. In a
+            live room the opponent is "Them", and "Open debate · Them · For"
+            reads on sight as *they* were arguing For — a middle dot is not a
+            strong enough separator to stop it, and this sits directly above
+            the verdict, which is the worst place in the app to leave a
+            question about which side was whose. A live round drops the
+            segment: there is no tier to name, and the two things left are
+            the two things that matter. */}
         <Label>
-          {setup.tab === "competitive" ? setup.format : "Open debate"} · {opponent.name} ·{" "}
-          {sideWord(setup.side)}
+          {setup.tab === "competitive" ? setup.format : "Open debate"}
+          {setup.tierId ? ` · ${opponent.name}` : ""} · {sideWord(setup.side)}
         </Label>
         <div
           className="sticky flex min-h-[7.5rem] w-fit min-w-[11rem] max-w-[20rem] items-start rounded-[2px] pb-6 pl-5 pr-6 pt-5"
@@ -106,38 +129,48 @@ export function Ballot({
         </div>
       </div>
 
-      {/* The decision, and what it did to the elo.
+      {/* The decision, and what it makes your record.
 
           There was a phrase after the verdict saying how decisively it went,
-          "comfortably" or "on the narrowest of margins". It came from the same
-          judge figure that scales the rating, so it was true, and it was also
-          a second verdict sitting beside the first in smaller type, inviting
-          the reader to work out how the two related. The margin has not gone
-          anywhere: it is in the elo, which moved further for a blowout than it
-          would have for a coin toss, and that is the honest place for it.
+          "comfortably" or "on the narrowest of margins". It came from the
+          judge's own margin, so it was true, and it was also a second verdict
+          sitting beside the first in smaller type, inviting the reader to work
+          out how the two related. The margin is still on the ballot, in the
+          scoresheet, where a number belongs.
 
-          The elo sits under the verdict rather than over it, because a rating
-          is a consequence of the round and putting it first would make it the
-          point. Same component the setup screen draws, so the number somebody
-          left with is the number they come back to. */}
+          On a live round there is no record under the verdict, and nothing
+          takes its place. The block is the verdict on its own, which is what
+          a live round actually produced: see `book` above for why there is
+          nothing to count. A greyed-out record, or a "not counted" caption,
+          would both be a space set aside for something that is never coming. */}
       {/* Width fits the content rather than the column. Run full bleed, the
           wash was mostly empty colour with a verdict in the corner of it,
           which reads as a banner nobody filled in. */}
       <div
         className={`flex w-fit min-w-[18rem] max-w-full flex-col gap-4 rounded-[3px] border-l-[5px] py-4 pl-4 pr-8 ${rule} ${wash}`}
       >
+        {/* Stamped, not set.
+
+            It was the app's own sans at its largest weight, which is a
+            heading: correct, legible, and the same object as every other
+            heading in the app, on the one line in the mode that is not a
+            heading at all. A verdict is a thing pressed onto a ballot at the
+            end of a round, so it is drawn as one — the pixel face inside a
+            hard ruled box, off-square, arriving from above the screen with a
+            bounce. The colour and the wash behind it are unchanged, and the
+            words still say it on their own for anybody the colour does not
+            reach. See the `stamp` keyframes in globals.css. */}
         <h2
-          style={NARROW}
-          className={`font-sans text-[clamp(1.75rem,1.3rem+1.8vw,2.75rem)] font-bold uppercase leading-[1] tracking-[0.04em] ${ink}`}
+          className={`stamp self-start border-[3px] px-3.5 py-2.5 font-pixel text-[clamp(1.125rem,0.85rem+1.1vw,1.75rem)] leading-none ${rule} ${ink}`}
         >
           {word}
         </h2>
 
-        <Elo
-          rating={change.after}
-          delta={change.delta}
-          title={`You were given a ${chance}% chance against ${opponent.name}. The judge returns a winner and a margin, never an elo: that is arithmetic on top, kept in this browser.`}
-        />
+        {/* The record, under the verdict rather than over it: what you have
+            played is a consequence of the round and putting it first would
+            make it the point. Same component the setup screen draws, so the
+            figures somebody leaves with are the figures they come back to. */}
+        {book && <Record book={book} />}
       </div>
 
       {/* The one thing to do differently, and the only piece of the judge's
@@ -208,9 +241,15 @@ export function Ballot({
         </div>
       )}
 
+      {/* Back to the top, and it says so anticlockwise. The one thing this
+          button must not look like is "next": it goes back to the screen the
+          round started on, not on to another part of this one. */}
       <div className="flex flex-wrap items-center gap-3">
         <PrimaryButton onClick={onAgain}>
-          Another round <Arrow />
+          {againLabel}
+          <span aria-hidden className="rewound">
+            ↺
+          </span>
         </PrimaryButton>
       </div>
 
@@ -258,9 +297,9 @@ function Detail({
               They are the most recognisable thing on a real ballot and the
               first number a competitive debater looks for. They are worked
               out here from the five dimension scores the judge already gave,
-              in the same spirit as the elo: the model is asked for the
-              judgements it can actually make and never for a number on a
-              scale it has no feel for. A model asked directly for speaker
+              in the spirit the rest of this file works in: the model is
+              asked for the judgements it can actually make and never for a
+              number on a scale it has no feel for. A model asked directly for speaker
               points returns 28.5 almost every time, because 28.5 is what the
               internet says the average is, and a figure that never moves is
               not a measurement. */}
@@ -293,8 +332,8 @@ function Detail({
     The mean of the five dimensions, mapped so that 50 out of 100 lands on
     27.5, which is what an average round is actually given, and reported to
     the nearest half point because that is the resolution tournaments use.
-    Arithmetic, like the elo: nothing here is a judgement the model was not
-    already asked to make. */
+    Arithmetic on judgements already made: nothing here is a call the model
+    was not already asked for. */
 function speakerPoints(scores: Scores): number {
   const mean = DIMENSIONS.reduce((sum, d) => sum + scores[d], 0) / DIMENSIONS.length;
   return Math.round((25 + mean / 20) * 2) / 2;
