@@ -1,10 +1,26 @@
 @import "tailwindcss";
 
-/* ═══ Learnova: "the blue book and the marking pen" ═══════════════════════
-   Ground is the pale blue-grey of an exam booklet; the writing surface is a
-   ruled near-white page. The chrome is ink and one ink-blue accent. Colour
-   with meaning is reserved entirely for the marks on a student's words, so
-   the marked-up explanation is the loudest thing on any screen.
+/* ═══ Learnova: "the blackboard and the marking pen" ═════════════════════
+   Ground is the charcoal of the logo's own background, sampled rather than
+   matched by eye; the writing surface is a near-white page on top of it. The
+   chrome has no hue anywhere: greys, and a chalk accent. Colour with meaning
+   is therefore reserved entirely for the marks on a student's words, and on
+   most screens the marking is the only colour there is.
+
+   ── Why every neutral here is a true grey ────────────────────────────────
+   This was a blue book: the ground was #edeff4, the chrome carried a blue
+   cast all the way down to the shadows, and the accent was ink-blue. The
+   blue is gone, and the replacements were not picked. Each one is the grey
+   with the same relative luminance as the colour it replaced, so every
+   contrast ratio the old palette was tuned to still holds: ink on page moved
+   from 14.13:1 to 14.14:1, ink-faint from 3.78:1 to 3.76:1. Only the hue
+   left.
+
+   The accent went the same way, for a reason worth keeping: green, amber and
+   plum already carry meaning on a student's marked-up words, and any hue in
+   the chrome is a fourth colour competing with those three while meaning
+   nothing. Chalk-on-board and near-black-on-paper say "action" by fill
+   rather than by colour, which the marks cannot do and do not need to.
 
    Mark hues were chosen with the palette validator, not by eye: green↔bad
    under deuteranopia went from ΔE 3.2 (the old green/rose pair) to 10.8 by
@@ -17,21 +33,42 @@
   color-scheme: light;
 
   /* ground */
-  --ground: #edeff4; /* blue-book cover */
-  --page: #fbfcfe; /* the leaf you write on */
-  --sunk: #e4e8ef;
-  --line: #d2d9e4;
-  --line-strong: #b9c2d1;
+  --ground: #efefef;
+  --page: #fcfcfc; /* the leaf you write on */
+  --sunk: #e8e8e8;
+  --line: #d8d8d8;
+  --line-strong: #c1c1c1;
+
+  /* The two washes behind `.page-glow`, as tokens rather than the chrome
+     colours the glow used to borrow. */
+  --glow-near: #e4e4e4;
+  --glow-far: var(--sunk);
 
   /* ink */
-  --ink: #141a26;
-  --ink-soft: #4c5769;
-  --ink-faint: #7d879a;
+  --ink: #1a1a1a;
+  --ink-soft: #565656;
+  --ink-faint: #868686;
 
-  /* accent: actions and focus only, never meaning */
-  --accent: #2a3f8f;
-  --accent-hover: #1f3070;
-  --accent-wash: #dfe4f2;
+  /* accent: actions and focus only, never meaning.
+
+     ── Why the accent has no hue at all ────────────────────────────────────
+     It was ink-blue, then briefly the teal of the logo's chevron. Both were
+     colours, and a colour here has to survive one hard test: this app spends
+     its most important screen putting green, amber and plum on a student's
+     own sentences to say which parts were right. Anything the chrome is
+     tinted with is a fourth colour competing with those three for meaning,
+     and the reader has no way to know it means nothing.
+
+     So the accent is chalk. On the board it is the cream of the logo's
+     letter; on paper it is near-black. Actions read as actions because they
+     are filled and everything around them is not, which is a stronger signal
+     than hue was, and the only colour left on any screen is the marking.
+
+     Light: 13.2:1 under white type, against 9.52:1 for the blue it replaced.
+     Nothing on this screen got quieter for losing its hue. */
+  --accent: #2b2b2b;
+  --accent-hover: #000000;
+  --accent-wash: #e4e4e4;
   --on-accent: #ffffff;
 
   /* marks: meaning only, never chrome.
@@ -48,9 +85,9 @@
   --broken-ink: #8f2069;
   --broken-tint: #f9e3f0;
 
-  --gap-mark: #566275;
-  --gap-ink: #3d4757;
-  --gap-tint: #e6e9ef;
+  --gap-mark: #616161;
+  --gap-ink: #464646;
+  --gap-tint: #e9e9e9;
 
   /* rank: the seven rungs of the elo ladder.
 
@@ -89,27 +126,59 @@
   --rank-7-fill: #9a7209;
   --on-rank: #ffffff;
 
-  --rule: rgb(20 26 38 / 0.06); /* the ruling on the page */
+  --rule: rgb(26 26 26 / 0.06); /* the ruling on the page */
+
+  /* The dot array, so the ground reads as a surface and not as a fill.
+
+     This is the cutting-mat grid `.desk-grid` already drew behind the source
+     screen, promoted to the whole ground. Same construction and same 23px
+     pitch on purpose: two dot fields at different spacings on the same page
+     would read as a mistake, and the desk is where this pattern earned its
+     place.
+
+     Built from the ink token rather than a fixed grey, so it follows the
+     theme: faint dark dots on paper, faint light ones on the board. Ten per
+     cent is the ceiling at which it stops being a texture and starts being a
+     grid somebody tries to read. */
+  --dots: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--ink) 10%, transparent) 1px,
+    transparent 0
+  );
+  --dots-pitch: 23px 23px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --ground: #10151f;
-    --page: #171d29;
-    --sunk: #131824;
-    --line: #29313f;
-    --line-strong: #3b4557;
+    /* Sampled from the logo's own ground rather than picked to look near it:
+       #131313 is 39.8% of the pixels outside the mark, and the weighted mean
+       of the whole field is rgb(19.5 19.5 18.8). The variation around it is
+       the grain in the artwork, not a hue, so the flat value is neutral. */
+    --ground: #131313;
 
-    --ink: #e7ebf3;
-    --ink-soft: #9ba6b9;
-    --ink-faint: #6d7889;
+    /* Neutral, so the lit-surface reading survives without a hue. A blackboard
+       catches light as chalk dust rather than as a colour, and these two are
+       the same grey as the ground, lifted. */
+    --glow-near: #242424;
+    --glow-far: #1a1a1a;
 
-    --accent: #8ea6ee;
-    --accent-hover: #a8bbf5;
-    --accent-wash: #232c42;
-    --on-accent: #0e1420;
+    --page: #1d1d1d;
+    --sunk: #181818;
+    --line: #313131;
+    --line-strong: #454545;
+
+    --ink: #ebebeb;
+    --ink-soft: #a5a5a5;
+    --ink-faint: #777777;
+
+    /* Chalk, sampled off the logo's letter. See the light value for why the
+       accent carries no hue in either theme. */
+    --accent: #fdfcdf;
+    --accent-hover: #ffffff;
+    --accent-wash: #2c2c2c;
+    --on-accent: #141414;
 
     /* Dark steps are selected against the dark page, not flipped: marks stay
        inside the dark lightness band, inks climb for text contrast. */
@@ -125,9 +194,9 @@
     --broken-ink: #ef8fc4;
     --broken-tint: #2e1526;
 
-    --gap-mark: #6b788d;
-    --gap-ink: #9aa5b8;
-    --gap-tint: #1c2230;
+    --gap-mark: #777777;
+    --gap-ink: #a4a4a4;
+    --gap-tint: #222222;
 
     /* Inks climb for contrast against the dark page; fills stay bright enough
        to carry near-black type, which is what keeps a badge reading as a badge
@@ -148,7 +217,10 @@
     --rank-7-fill: #d8a92c;
     --on-rank: #10141c;
 
-    --rule: rgb(231 235 243 / 0.07);
+    --rule: rgb(235 235 235 / 0.07);
+
+    /* No `--dots` override: it is built from `--ink`, which has already
+       flipped by the time it is read. */
   }
 }
 
@@ -223,16 +295,16 @@
    student's own words are on display, the marks are the only colour. */
 :root {
   --sheet: #fdfaf1;
-  --sheet-ink: #22262e;
+  --sheet-ink: #262626;
   /* Secondary ink on paper: for a sentence somebody actually has to read.
 
      --sheet-faint below is a placeholder grey, and at 2.5:1 against the sheet
      it is correctly named: it is for a hint inside an empty field, not for
      copy. A line of description set in it is a line most people cannot read
      comfortably and some cannot read at all. This one clears 5.8:1. */
-  --sheet-soft: #565d6b;
-  --sheet-faint: #9aa0ab;
-  --sheet-rule: #a9c4e0;
+  --sheet-soft: #5d5d5d;
+  --sheet-faint: #a0a0a0;
+  --sheet-rule: #c1c1c1;
   --sheet-margin: #e4707f;
   --sheet-edge: #d9cfba;
   --tape: rgb(238 226 168 / 0.62);
@@ -242,12 +314,16 @@
   --supply-gold: #f5c243;
   --supply-mint: #7cc9a6;
   --supply-wood: #e8c9a0;
-  --supply-metal: #b9bec9;
-  --supply-graphite: #2b2f38;
+  --supply-metal: #bebebe;
+  --supply-graphite: #2f2f2f;
 }
 
 body {
-  background: var(--ground);
+  /* Split rather than shorthand: the grain is an image over the ground, and
+     `background:` would drop one every time the other was set. */
+  background-color: var(--ground);
+  background-image: var(--dots);
+  background-size: var(--dots-pitch);
   color: var(--ink);
   font-family: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -283,8 +359,8 @@ body {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(52rem 24rem at 18% -6rem, var(--accent-wash) 0%, transparent 68%),
-    radial-gradient(38rem 20rem at 88% -10rem, var(--sunk) 0%, transparent 70%);
+    radial-gradient(52rem 24rem at 18% -6rem, var(--glow-near) 0%, transparent 68%),
+    radial-gradient(38rem 20rem at 88% -10rem, var(--glow-far) 0%, transparent 70%);
   opacity: 0.85;
 }
 
@@ -365,8 +441,8 @@ body {
 .leaf:focus {
   border-color: var(--line-strong);
   box-shadow:
-    0 1px 2px rgb(20 26 38 / 0.04),
-    0 14px 34px -20px rgb(20 26 38 / 0.4);
+    0 1px 2px rgb(26 26 26 / 0.04),
+    0 14px 34px -20px rgb(26 26 26 / 0.4);
 }
 
 /* ── Marks on a student's words ──────────────────────────────────────────
@@ -522,8 +598,8 @@ body {
   border-radius: 2px 2px 3px 3px;
   box-shadow:
     0 1px 0 var(--sheet-edge),
-    0 18px 34px -22px rgb(12 16 24 / 0.55),
-    0 2px 8px -4px rgb(12 16 24 / 0.25);
+    0 18px 34px -22px rgb(16 16 16 / 0.55),
+    0 2px 8px -4px rgb(16 16 16 / 0.25);
   transform: rotate(-0.35deg);
 }
 
@@ -582,11 +658,11 @@ body {
   background:
     linear-gradient(180deg, rgb(0 0 0 / 0.07), transparent 2.4rem),
     var(--sticky-paper);
-  color: #22262e;
+  color: #262626;
   transform: rotate(var(--tilt, -1.4deg));
   box-shadow:
-    0 2px 2px rgb(12 16 24 / 0.16),
-    0 14px 24px -16px rgb(12 16 24 / 0.6);
+    0 2px 2px rgb(16 16 16 / 0.16),
+    0 14px 24px -16px rgb(16 16 16 / 0.6);
 }
 
 /* The last rung, and the only one that gets anything extra.
@@ -615,7 +691,7 @@ body {
 .sticky::selection,
 .sticky *::selection {
   background: #ffffff;
-  color: #22262e;
+  color: #262626;
 }
 
 /* The corner that has let go: a wedge of the desk showing through, with the
@@ -664,7 +740,7 @@ body {
   width: 6.5rem;
   height: 1.6rem;
   background: var(--tape);
-  box-shadow: 0 1px 3px rgb(12 16 24 / 0.22);
+  box-shadow: 0 1px 3px rgb(16 16 16 / 0.22);
   /* Ragged short edges, the way tape tears off the roll. */
   clip-path: polygon(
     3% 0%, 97% 4%, 100% 22%, 96% 48%, 99% 74%, 95% 100%,
@@ -687,7 +763,14 @@ body {
 
    The resting angle travels in --tilt rather than in a transform, so hover
    and press can compose with it. Set it as a transform and the inline style
-   would outrank every state rule here, and nothing would move. */
+   would outrank every state rule here, and nothing would move.
+
+   --swing arrived with the two side buttons on the debate setup screen, which
+   are the only pair in the app that face each other. Every other sticker
+   cocks the same way on hover, and two of them side by side doing that read
+   as one object with a shear across it rather than as two sides pulling
+   apart. The default is what every sticker was already doing, so nothing that
+   does not set it moved. */
 .stuck {
   transform: rotate(var(--tilt, 0deg));
   box-shadow: 3px 3px 0 var(--sheet-edge);
@@ -697,7 +780,7 @@ body {
 }
 
 .stuck:hover:not(:disabled) {
-  transform: translate(-1px, -2px) rotate(calc(var(--tilt, 0deg) + 0.7deg));
+  transform: translate(-1px, -2px) rotate(calc(var(--tilt, 0deg) + var(--swing, 0.7deg)));
   box-shadow: 6px 6px 0 var(--sheet-edge);
 }
 
@@ -717,6 +800,105 @@ body {
   transform: translate(2px, 2px) rotate(var(--tilt, 0deg));
   box-shadow: 0 0 0 var(--sheet-edge);
   transition-duration: 0.04s;
+}
+
+/* ── One gesture per control, in debate mode ─────────────────────────────
+   Every button on this screen used to answer the pointer the same way: the
+   `.btn` lift, a one-pixel rise and an arrow nudging three pixels right. That
+   is a good default and it is the reason the mode read as a form — six
+   controls doing six unrelated things to a round, all of them shrugging
+   identically.
+
+   So each of these is the gesture the control's own job already suggests, and
+   none of them is decoration you could swap between buttons: a speech is
+   thrown, a round is gavelled shut, a rematch winds back, a code drops into a
+   slot. The rule they all obey is that the movement happens to the GLYPH
+   rather than to the button. `.btn` owns the button's transform, and an
+   animation on the same element wins while it plays and then snaps back to
+   the hover rule the moment it stops.
+
+   Every one is disarmed under reduced motion at the foot of this file. */
+
+/* Send: the speech leaves. Off the right edge, and the next one arrives from
+   the left, which is the arrow saying "gone" rather than "about to go". */
+@keyframes throw {
+  0% { transform: translateX(0); opacity: 1; }
+  40% { transform: translateX(1.5rem); opacity: 0; }
+  41% { transform: translateX(-1.1rem); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.btn:not(:disabled):hover .thrown {
+  animation: throw 0.55s cubic-bezier(0.35, 0, 0.2, 1);
+}
+
+/* End the round, and get the ballot: the gavel falls. Pivoting near the
+   handle, not the head, so it swings rather than spinning, and it bounces
+   once because a gavel that lands dead reads as a dropped object. */
+@keyframes knock {
+  0% { transform: rotate(0deg); }
+  34% { transform: rotate(-24deg); }
+  58% { transform: rotate(6deg); }
+  76% { transform: rotate(-8deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.gavel {
+  /* The hand, not the middle. The sprite is drawn head-up and handle-down-
+     right, so this is the corner a person would be holding. */
+  transform-origin: 88% 88%;
+}
+
+.btn:not(:disabled):hover .gavel {
+  animation: knock 0.5s cubic-bezier(0.3, 0.9, 0.35, 1);
+}
+
+/* Another round: back to the top. Anticlockwise, because the one thing this
+   button must not look like is "next". */
+@keyframes rewind {
+  to { transform: rotate(-360deg); }
+}
+
+.btn:not(:disabled):hover .rewound {
+  animation: rewind 0.6s cubic-bezier(0.45, 0, 0.25, 1);
+}
+
+/* Join: the code drops into the slot. */
+@keyframes slot {
+  0% { transform: translateY(0); }
+  45% { transform: translateY(0.35rem); }
+  100% { transform: translateY(0); }
+}
+
+.btn:not(:disabled):hover .slotted {
+  animation: slot 0.4s cubic-bezier(0.3, 0.9, 0.35, 1);
+}
+
+.thrown,
+.gavel,
+.rewound,
+.slotted {
+  display: inline-block;
+}
+
+/* The verdict, stamped rather than faded in.
+
+   The one moment in the mode that was earned rather than clicked, and it used
+   to arrive by the same `settle` every notice in the app uses. It comes down
+   from above the screen, overshoots, and rests off-square, because a stamp
+   pressed by a hand is never straight and a verdict that lands square looks
+   like a heading. */
+@keyframes stamp {
+  0% { opacity: 0; transform: scale(2.6) rotate(-9deg); }
+  55% { opacity: 1; transform: scale(0.93) rotate(-1.2deg); }
+  74% { transform: scale(1.05) rotate(-2.8deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-2deg); }
+}
+
+.stamp {
+  transform: rotate(-2deg);
+  animation: stamp 0.5s cubic-bezier(0.2, 1.1, 0.4, 1) both;
+  animation-delay: 120ms;
 }
 
 /* Pixel art must never be smoothed, at any scale. */
@@ -812,6 +994,18 @@ body {
   .press-on,
   .drop-in,
   .fill-up {
+    animation: none;
+  }
+
+  /* The debate gestures stop, and the verdict simply is where it lands: the
+     stamp's resting angle is on `.stamp` itself rather than only in the last
+     keyframe, so cancelling the animation leaves the mark off-square instead
+     of quietly handing reduced-motion users a straight heading. */
+  .btn:not(:disabled):hover .thrown,
+  .btn:not(:disabled):hover .gavel,
+  .btn:not(:disabled):hover .rewound,
+  .btn:not(:disabled):hover .slotted,
+  .stamp {
     animation: none;
   }
 
@@ -973,7 +1167,7 @@ body {
 
 .lift:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px -18px rgb(20 26 38 / 0.5);
+  box-shadow: 0 10px 24px -18px rgb(26 26 26 / 0.5);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1006,4 +1200,27 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* Where the field IS the object, the ring goes round the object.
+
+   The motion on the debate setup screen is typed onto a sticky note, and the
+   textarea is the whole face of it. Left to the rule above, a keyboard focus
+   drew an accent rectangle floating inside the note, which reads as a second
+   box sitting on the paper rather than as "you are writing here" — the note
+   already looks like a field, so a field drawn on top of it is furniture.
+
+   The ring is not dropped, only moved: it goes round the paper, in the ink
+   the paper is written in. Both halves are needed, because the outline the
+   rule above sets is unlayered and beats any utility class on the textarea.
+
+   `:has(:focus-visible)` rather than `:focus-within` on purpose. A ring that
+   also appears on a mouse click is the thing focus-visible exists to stop. */
+.note textarea:focus-visible {
+  outline: none;
+}
+
+.note:has(textarea:focus-visible) {
+  outline: 2px solid var(--sheet-ink);
+  outline-offset: 3px;
 }

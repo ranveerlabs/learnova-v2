@@ -13,8 +13,15 @@ import { useAutoGrow } from "./ui";
    palette, rendered one rect per pixel with no smoothing, so they stay crisp
    at any scale and stay editable as pictures rather than as paths.
 
-   Nothing in this file is imported by the explain or result screens. That is
-   the deal: the front door is playful, the marking is not. */
+   The deal used to be "nothing in this file reaches the explain or result
+   screens: the front door is playful, the marking is not". That held while
+   the only playful surface was Round Mode's source screen, and it stopped
+   holding when the landing became three scraps pinned to a desk and debate
+   was asked to look like the rest of the app rather than like a form. It is
+   now drawn narrower and it is still a real line: sprites may mark CONTROLS
+   anywhere — a door, a side, the button that closes a round — and may not
+   decorate a JUDGEMENT. Nothing in here goes near a mark on a student's own
+   words, which is where the original rule was actually aimed. */
 
 type Sprite = { rows: string[]; palette: Record<string, string> };
 
@@ -95,7 +102,29 @@ const CLIP: Sprite = {
   palette: { C: "var(--supply-metal)" },
 };
 
-export const SPRITES = { pencil: PENCIL, star: STAR, eraser: ERASER, clip: CLIP };
+/* The gavel, for the two buttons that close a round.
+
+   It is the object debate mode is actually about and the app already had a
+   sound for it — `gavel` in tone.ts, the two low knocks the ballot lands on —
+   with nothing on screen to go with it. Drawn head-up and handle-down-right
+   so it pivots at the hand: see the `knock` keyframes in globals.css, which
+   swing it about that corner rather than spinning it about its middle. */
+const GAVEL: Sprite = {
+  rows: [
+    "WWWWWWW..",
+    "WkWWWkW..",
+    "WkWWWkW..",
+    "WWWWWWW..",
+    "...WW....",
+    "....WW...",
+    ".....WW..",
+    "......WW.",
+    ".......WW",
+  ],
+  palette: { W: "var(--supply-wood)", k: "var(--supply-graphite)" },
+};
+
+export const SPRITES = { pencil: PENCIL, star: STAR, eraser: ERASER, clip: CLIP, gavel: GAVEL };
 
 export function PixelSprite({
   name,
@@ -383,7 +412,7 @@ export function PixelTag({
 
   return (
     <span
-      className={`inline-block rounded-[2px] px-2 py-1 font-pixel text-[0.5625rem] leading-none text-[#22262e] ${className}`}
+      className={`inline-block rounded-[2px] px-2 py-1 font-pixel text-[0.5625rem] leading-none text-[#262626] ${className}`}
       style={{ background: bg, ...style }}
     >
       {children}
