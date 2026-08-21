@@ -1,25 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { applyRound, type RatingChange } from "@/lib/elo";
 import { AudioControls } from "../audio-controls";
 import { isBusy, postJSON, postStream } from "../client";
 import { play } from "../tone";
-import {
-  Arrow,
-  Aside,
-  GhostButton,
-  Label,
-  Leaf,
-  Notice,
-  PrimaryButton,
-  Waiting,
-  Wordmark,
-  Working,
-} from "../ui";
-import { recordDebate, standing } from "../standing";
+import { Aside, GhostButton, Leaf, Notice, PrimaryButton, Waiting, Wordmark } from "../ui";
+import { PixelTag } from "../paper";
+import { type Book, recordDebate } from "../standing";
 import { Ballot as BallotCard } from "./ballot";
 import { DEFAULTS, type Defaults, Setup as SetupScreen } from "./setup";
+import { Gavel, Opening, Said, SpeechRail } from "./transcript";
 import {
   type Ballot,
   MIN_WORDS_TO_JUDGE,
@@ -43,7 +33,8 @@ import {
    pretending they were would have made both of them vaguer.
 
    The shape is: agree what is being argued, argue it for four speeches each,
-   then read the ballot. The rating moves in `lib/elo.ts` and nowhere else.
+   then read the ballot. What the round is worth is a line in the record, in
+   app/standing.ts, and nowhere else.
 
    This file is the shell and the traffic. What the opponent sounds like is
    decided in app/api/debate/route.ts and enforced in the scrub beside it. */
@@ -67,7 +58,10 @@ export default function DebatePage() {
   const [error, setError] = useState<string | null>(null);
   const [wasBusy, setWasBusy] = useState(false);
   const [ballot, setBallot] = useState<Ballot | null>(null);
-  const [change, setChange] = useState<RatingChange | null>(null);
+  /** The record after this round, for the ballot to print. Read back from
+      `recordDebate` rather than re-read from storage, so what is shown is
+      exactly what was written. */
+  const [book, setBook] = useState<Book | null>(null);
   /** The speech being given right now, as far as it has got. Held apart from
       `turns` because it is not a turn yet: it is not in the transcript, it is
       not in the prompt, and if the stream dies half way through it never
@@ -111,12 +105,15 @@ export default function DebatePage() {
       /* A casual round carries no format, and must not wipe the one a
          tournament round set. */
       format: chosen.format ?? prev.format,
-      tierId: chosen.tierId,
+      /* A tier is always chosen on this screen. The fallback is for the
+         type, which allows an absent one now so that a live 1v1 round can
+         say it has no opponent strength — see `Setup` in ./types. */
+      tierId: chosen.tierId ?? prev.tierId,
     }));
     setTurns([]);
     setDraft("");
     setBallot(null);
-    setChange(null);
+    setBook(null);
     setError(null);
     setPhase("arguing");
   }, []);
@@ -178,20 +175,23 @@ export default function DebatePage() {
     }
   }
 
-  /** Close the round: judge it, then move the rating.
+  /** Close the round: judge it, then write the result down.
 
-      The two are deliberately in this order and deliberately separate. The
-      model returns a winner, a margin and ten dimension scores; the rating is
-      then computed here, from the rating we already held and the tier's
-      declared strength, by arithmetic the model never sees and cannot get
-      wrong. Asking it to do both in one breath would produce a number that
-      looks like a rating and is a guess. */
+      There used to be arithmetic between those two steps. The judge returned
+      a winner and a margin, `applyRound` turned them into an elo movement
+      against the tier's declared strength, and the ballot printed the new
+      number. All of that is gone with lib/elo.ts — see standing.ts for why.
+      What is left is the judge's own verdict, counted.
+
+      The margin still comes back on the ballot and is still used: it is what
+      the ballot's own wording and the scoresheet are built from. It simply no
+      longer scales anything. */
   async function judge() {
     /* The phase check, not just `thinking`, and it is the whole guard. Judging
        does not set `thinking`, so a second click on the ballot button used to
        start a second judge call, and a second judge call means a second
-       `recordDebate`: the same debate charged to the elo twice, off one
-       impatient double tap, with nothing on screen to say it happened. */
+       `recordDebate`: the same debate counted twice, off one impatient double
+       tap, with nothing on screen to say it happened. */
     if (!setup || phase !== "arguing") return;
 
     setPhase("judging");
@@ -205,16 +205,8 @@ export default function DebatePage() {
         turns,
       });
 
-      const moved = applyRound({
-        user: standing().rating,
-        opponent: tier(setup.tierId).strength,
-        outcome: verdict.winner,
-        margin: verdict.margin,
-      });
-      recordDebate(moved.after, verdict.winner);
-
       setBallot(verdict);
-      setChange(moved);
+      setBook(recordDebate(verdict.winner));
       setPhase("ballot");
       /* The gavel. The one moment in the mode that has been earned rather
          than clicked, and it used to land in silence. */
@@ -248,16 +240,11 @@ export default function DebatePage() {
   }
 
   /* ── The ballot ──────────────────────────────────────────────────────── */
-  if (phase === "ballot" && ballot && change && setup) {
+  if (phase === "ballot" && ballot && book && setup) {
     return (
       <div className={SHELL}>
         {bar}
-        <BallotCard
-          ballot={ballot}
-          change={change}
-          setup={setup}
-          onAgain={() => setPhase("setup")}
-        />
+        <BallotCard ballot={ballot} book={book} setup={setup} onAgain={() => setPhase("setup")} />
       </div>
     );
   }
@@ -280,11 +267,19 @@ export default function DebatePage() {
           The label used to also name the opponent, which is on every card
           they speak in, and repeat the format, which was chosen a screen ago
           and does not change. What a person actually needs here is what they
-          are arguing and which side of it they are on. */}
+          are arguing and which side of it they are on.
+
+          The side is the tag from the slab you pressed, in the same colour it
+          was pressed in: mint for it, pink against. That is the one thing on
+          this screen a person can lose track of four speeches in, and it now
+          carries over from the decision that set it rather than being a fresh
+          grey caption that has to be read. */}
       <header className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <Label>You are {setup && setup.side === "Pro" ? "for it" : "against it"}</Label>
-          <p className="mt-1 font-read text-[clamp(1.0625rem,0.9rem+0.6vw,1.375rem)] leading-tight text-ink">
+          <PixelTag tone={setup && setup.side === "Pro" ? "mint" : "pink"}>
+            you are {setup && setup.side === "Pro" ? "for it" : "against it"}
+          </PixelTag>
+          <p className="mt-2 font-read text-[clamp(1.0625rem,0.9rem+0.6vw,1.375rem)] leading-tight text-ink">
             {setup?.motion}
           </p>
         </div>
@@ -305,11 +300,7 @@ export default function DebatePage() {
         ref={transcript}
         className="flex max-h-[52vh] min-h-[8rem] flex-col gap-3 overflow-y-auto rounded-[3px] border border-line bg-sunk/40 p-3"
       >
-        {turns.length === 0 && (
-          <p className="m-auto max-w-[34ch] text-center font-sans text-[0.875rem] leading-[1.6] text-ink-faint">
-            You open.
-          </p>
-        )}
+        {turns.length === 0 && <Opening said="You open." />}
 
         {turns.map((turn, i) => (
           <Said key={i} turn={turn} tierName={opponent.name} />
@@ -378,8 +369,17 @@ export default function DebatePage() {
             />
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              {/* Send: the speech leaves. The arrow goes off the right edge
+                  and the next one comes back in from the left, which is the
+                  one gesture on this screen that is about what the button
+                  does rather than about it being a button. */}
               <PrimaryButton onClick={send} disabled={thinking || !draft.trim()}>
-                {thinking ? "Waiting…" : "Send"} {!thinking && <Arrow />}
+                {thinking ? "Waiting…" : "Send"}
+                {!thinking && (
+                  <span aria-hidden className="thrown">
+                    →
+                  </span>
+                )}
               </PrimaryButton>
               {/* Ending early is only offered once ending early would work.
 
@@ -398,14 +398,14 @@ export default function DebatePage() {
                   which is how an app teaches people it is broken. */}
               {turns.length >= 2 && judgeable && (
                 <GhostButton onClick={judge} disabled={thinking}>
-                  End the round
+                  End the round <Gavel />
                 </GhostButton>
               )}
             </div>
           </>
         ) : judgeable ? (
           <PrimaryButton onClick={judge}>
-            Get the ballot <Arrow />
+            Get the ballot <Gavel />
           </PrimaryButton>
         ) : (
           /* The round is over and there is not enough in it to mark.
@@ -436,110 +436,15 @@ export default function DebatePage() {
             </Notice>
             <div className="flex flex-wrap items-center gap-3">
               <PrimaryButton onClick={() => setPhase("setup")}>
-                Start a new round <Arrow />
+                Start a new round
+                <span aria-hidden className="rewound">
+                  ↺
+                </span>
               </PrimaryButton>
             </div>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-/** Where the round has got to.
-
-    Dots and a name, the same grammar as Round Mode's ladder: a filled square
-    is a speech that has been given, a ring is the one being written, a faint
-    dot is still ahead. Shape rather than colour alone, for the same reason it
-    is over there.
-
-    It replaced "Constructive · 1 of 4", which said the same thing in a way
-    that made the reader do the arithmetic to find out how much was left. */
-function SpeechRail({ at, finished }: { at: number; finished: boolean }) {
-  return (
-    <nav aria-label="Speeches" className="flex min-w-0 shrink-0 items-center gap-2.5">
-      <span className="flex shrink-0 items-center gap-1.5">
-        {SPEECH_ORDER.map((name, i) => {
-          const done = finished || i < at;
-          const current = !finished && i === at;
-          return (
-            <span
-              key={name}
-              title={name}
-              aria-label={`${name}: ${done ? "given" : current ? "current" : "ahead"}`}
-              aria-current={current ? "step" : undefined}
-              className="grid h-2.5 w-2.5 place-items-center"
-            >
-              {done ? (
-                <span className="block h-2.5 w-2.5 rounded-[2px] bg-solid-mark" />
-              ) : current ? (
-                <span className="block h-2.5 w-2.5 rounded-full border-[2px] border-accent" />
-              ) : (
-                <span className="block h-1.5 w-1.5 rounded-full bg-line-strong" />
-              )}
-            </span>
-          );
-        })}
-      </span>
-      <span
-        style={{ fontVariationSettings: '"wdth" 88' }}
-        className={`truncate font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
-          finished ? "text-solid-ink" : "text-ink-soft"
-        }`}
-      >
-        {finished ? "Round over" : SPEECH_ORDER[Math.min(at, SPEECH_ORDER.length - 1)]}
-      </span>
-    </nav>
-  );
-}
-
-/** One speech in the transcript. The two sides are told apart by which edge
-    the rule sits on and by the name above it, never by colour alone.
-
-    `speaking` marks the one still being given. It changes nothing about the
-    shape of the card, only what sits at the end of the words: the same meter
-    the app uses everywhere else for "this is still happening", parked after
-    the last sentence that has landed.
-
-    There was a word "speaking" in the label too, and it went. The meter is
-    already saying it, in the one mark this app uses for waiting, and a label
-    that repeats an indicator is a label that has to be read to learn nothing. */
-function Said({
-  turn,
-  tierName,
-  speaking = false,
-}: {
-  turn: Turn;
-  tierName: string;
-  speaking?: boolean;
-}) {
-  const mine = turn.speaker === "user";
-  return (
-    <div
-      className={`rounded-[3px] border-l-[3px] bg-page px-3.5 py-2.5 ${
-        mine ? "border-accent" : "border-line-strong"
-      }`}
-      role={speaking ? "status" : undefined}
-      aria-live={speaking ? "polite" : undefined}
-    >
-      <p
-        style={{ fontVariationSettings: '"wdth" 88' }}
-        className="mb-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-ink-faint"
-      >
-        {mine ? "You" : tierName} · {turn.speech}
-      </p>
-      <p className="whitespace-pre-wrap font-read text-[1rem] leading-[1.6] text-ink">
-        {turn.text}
-        {/* The same meter the rest of the app waits with, parked after the
-            last sentence that landed. Before the first token there is nothing
-            else in the card and it is the only thing in it, which is what
-            says the opponent has stood up and is about to speak. */}
-        {speaking && (
-          <span className="ml-1.5">
-            <Working />
-          </span>
-        )}
-      </p>
     </div>
   );
 }
