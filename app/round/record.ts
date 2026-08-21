@@ -270,11 +270,3 @@ export function forget(topic: string): void {
   write({ version: 1, topics: read().topics.filter((t) => t.key !== key) });
 }
 
-export function forgetEverything(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(KEY);
-  } catch {
-    /* Nothing to do and nothing to say. */
-  }
-}

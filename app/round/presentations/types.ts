@@ -84,13 +84,3 @@ export type Presentation = {
   Component: React.ComponentType<PresentationProps>;
 };
 
-/** The families, as the round formats map onto them. A helper for describing
-    presentations in prose rather than a second taxonomy: `presents` is the
-    single source of truth. */
-export const FAMILY: Record<Format, "choice" | "blank" | "assemble" | "open"> = {
-  recognition: "choice",
-  choice: "choice",
-  blank: "blank",
-  assemble: "assemble",
-  open: "open",
-};

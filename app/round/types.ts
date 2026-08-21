@@ -38,37 +38,6 @@ export const ROUND_FORMAT: Record<Round, Format> = {
   4: "open",
 };
 
-/** What the student is being asked to do, in the words the screen uses. */
-export const ROUND_TITLE: Record<Round, string> = {
-  1: "Pick it out",
-  2: "Fill the gap",
-  3: "Build the sentence",
-  4: "Say it yourself",
-};
-
-/** What each stage still gives away, as the share you would expect to get
-    right by guessing alone.
-
-    This number exists so the results screen can never quietly compare two
-    scores that were never the same test. Three out of five on a two-option
-    question and three out of five on open production are different events.
-
-    These hold because option order is placed rather than generated: see
-    shuffle.ts. A model that puts the correct answer first three times in four
-    turns the 0.25 below into something closer to 0.75 for anyone who notices,
-    and every figure downstream of it into fiction. */
-export const CHANCE: Record<Format, number> = {
-  recognition: 0.5,
-  choice: 0.25,
-  blank: 0,
-  /* Not strictly zero: with five chips and no distractors there are a hundred
-     and twenty orderings, so blind luck is under one percent. Close enough to
-     zero that calling it zero would be the honest simplification, but it is
-     shown as its own thing rather than folded in with typed recall. */
-  assemble: 0.01,
-  open: 0,
-};
-
 export type Question = {
   id: string;
   /** Which concept this tests. Rounds escalate on the same concepts, so this
