@@ -439,9 +439,12 @@ function Join() {
         e.preventDefault();
         if (good) router.push(`/debate/live/${good}`);
       }}
-      className="flex flex-col gap-2 border-t border-line pt-5"
+      /* Colour-coded, because this is the one thing on the screen that is
+         not opening a room, and it used to be the same gold as the two side
+         slabs that are. See --supply-ice. */
+      className="flex flex-col gap-2 border-t border-supply-ice/35 pt-5"
     >
-      <Label>Or join a room somebody opened</Label>
+      <Label className="text-supply-ice">Or join a room somebody opened</Label>
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={code}
@@ -464,12 +467,24 @@ function Join() {
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
-          className="leaf w-[7.5rem] rounded-[3px] border border-line bg-page text-center font-mono text-[1.375rem] uppercase tracking-[0.3em] text-ink caret-accent placeholder:tracking-[0.3em] placeholder:text-ink-faint"
+          className="leaf w-[7.5rem] rounded-[3px] border border-supply-ice/55 bg-page text-center font-mono text-[1.375rem] uppercase tracking-[0.3em] text-ink caret-supply-ice placeholder:tracking-[0.3em] placeholder:text-ink-faint"
           style={{ padding: "0.625rem 0.5rem 0.625rem 0.8rem" }}
         />
         {/* The code drops into the slot. Nothing else on the screen goes
             down, which is what makes it read as this button's own move. */}
-        <PrimaryButton type="submit" disabled={!good}>
+        {/* The accent is overridden on the element rather than by a second
+            button component: `bg-accent` resolves `var(--accent)` at the
+            element, so one local value recolours the fill, the hover and the
+            glow together and nothing else on the page moves. */}
+        <PrimaryButton
+          type="submit"
+          disabled={!good}
+          style={{
+            ["--accent" as string]: "var(--supply-ice)",
+            ["--accent-hover" as string]: "#a5dde0",
+            ["--on-accent" as string]: "#14201f",
+          }}
+        >
           Join{" "}
           <span aria-hidden className="slotted">
             ↓
