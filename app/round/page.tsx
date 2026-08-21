@@ -312,7 +312,7 @@ export default function Home() {
               topic={s.topic}
               provenance={s.provenance}
               best={s.best}
-              elo={s.eloChange}
+              tally={s.tally}
               previously={s.previously}
               runs={s.runCount}
               droppedTotal={s.droppedTotal}

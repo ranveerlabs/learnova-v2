@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { RatingChange } from "@/lib/elo";
 import { conceptStanding, formatClock, type Reveal as RevealData, type Standing } from "./engine";
-import { Elo } from "../elo";
+import type { Book } from "../standing";
+import { Runs } from "../tally";
 import { Arrow, GhostButton, PrimaryButton } from "../ui";
 import { conceptKey, forget } from "./record";
 import type { Provenance } from "./types";
@@ -70,8 +70,8 @@ function Figure({ value, label }: { value: string; label: string }) {
    not being able to see the colour. The wash and the rule are new: the number
    used to be coloured type on the page background, which is a lot of weight
    to hang on the hue of a glyph, and it left the two numbers on this screen,
-   the run and the elo, looking like one stack of figures. The run sits in a
-   card of its own now, in its own colour; the elo sits plainly underneath.
+   the run and the record, looking like one stack of figures. The run sits in
+   a card of its own now, in its own colour; the tally sits plainly underneath.
    Same treatment as the verdict on the debate ballot, on purpose. */
 const BAND: Record<
   RevealData["rating"]["band"],
@@ -102,7 +102,7 @@ export function Reveal({
   topic,
   provenance,
   best,
-  elo,
+  tally,
   previously,
   runs,
   droppedTotal,
@@ -121,8 +121,9 @@ export function Reveal({
   sampled: { kept: number; total: number } | null;
   /** The best rating on THIS topic, from the record, when there is one. */
   best: { rating: number } | null;
-  /** What this run did to the app-wide elo. Null if storage refused it. */
-  elo: RatingChange | null;
+  /** What has been finished on this device, this run included. Null when
+      storage refused the write. */
+  tally: Book | null;
   /** Where each concept stood before this run, keyed as the record keys them.
       Empty on a first visit, which is what makes "moved" sayable at all. */
   previously: Record<string, Standing>;
@@ -283,25 +284,23 @@ export function Reveal({
         )
       )}
 
-      {/* The app-wide elo, and what this run did to it.
+      {/* How many runs have ended where this one just did.
 
-          Two numbers on one screen is a risk, and they are kept apart on
-          purpose: the big one above is what this session was worth out of
-          what it could have been, and it resets every run. This one carries
-          across every run and every debate, and it is the only figure in the
-          app that answers "am I getting better at this" rather than "how did
-          that go". The rung and the rail are what keep them from being read
-          as two versions of the same thing.
+          It was an elo, shared with debate mode, on a seven-rung ladder. That
+          number is gone — standing.ts has the argument — and what stands in
+          its place is deliberately in the same words as the band above it
+          rather than in a second vocabulary. The big figure says how this run
+          went; this says how often runs go that way, and a reader who
+          understands one understands the other without being taught a scale.
+
+          Nothing here decides what "strong" is. It is the band `buildReveal`
+          already computed for the figure at the top of this screen.
 
           Absent rather than zeroed when storage refused the write, because a
-          rating that silently reports 0 is worse than one that is not there. */}
-      {elo && (
+          count that silently reports 0 is worse than one that is not there. */}
+      {tally && (
         <div className="stage-in" style={{ ["--i" as string]: 2 }}>
-          <Elo
-            rating={elo.after}
-            delta={elo.delta}
-            title="One elo across Round Mode and Debate, kept in this browser. A run is rated against how hard the material it served you was, so a long easy session moves it very little. Studying can carry it to the top of Sharp; the rungs above that are earned in a debate."
-          />
+          <Runs book={tally} />
         </div>
       )}
 
