@@ -286,6 +286,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     console.error("Grading failed:", err);
-    return NextResponse.json({ error: "Grading failed. Try again." }, { status: 500 });
+    return NextResponse.json({ error: "Oops! We could not mark that one :( Give it another go." }, { status: 500 });
   }
 }

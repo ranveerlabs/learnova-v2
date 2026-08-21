@@ -26,7 +26,7 @@ export async function postJSON<T>(url: string, body: unknown): Promise<T> {
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new RequestError(data?.error ?? "Something went wrong. Try again.", res.status);
+    throw new RequestError(data?.error ?? "Oops! Something went wrong on our end :( Give it another go.", res.status);
   }
   return data as T;
 }
@@ -57,9 +57,9 @@ export async function postStream(
 
   if (!res.ok) {
     const data = await res.json().catch(() => null);
-    throw new RequestError(data?.error ?? "Something went wrong. Try again.", res.status);
+    throw new RequestError(data?.error ?? "Oops! Something went wrong on our end :( Give it another go.", res.status);
   }
-  if (!res.body) throw new RequestError("The reply arrived empty. Try again.", 502);
+  if (!res.body) throw new RequestError("Oops! That came back empty :( Give it another go.", 502);
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
