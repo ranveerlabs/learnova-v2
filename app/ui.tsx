@@ -64,13 +64,18 @@ export function Label({
   );
 }
 
-/** Something went wrong, or something isn't ready. Said in the broken-mark
-    register, which is the one the student already reads as "look here". */
+/** Something went wrong, or something isn't ready.
+
+    In the stationery pink the debate screen puts on "against it", not in the
+    broken-mark register it used to borrow. That register belongs to marks on
+    a student's own sentences, and an app telling you its own key expired has
+    no business wearing the colour that means "this part of what you wrote is
+    wrong". Same reason the sound toggle moved. */
 export function Notice({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="alert"
-      className="settle max-w-[44rem] rounded-[3px] border-l-[3px] border-broken-mark bg-broken-tint px-4 py-3 font-sans text-[0.875rem] leading-[1.6] text-broken-ink"
+      className="settle max-w-[44rem] rounded-[3px] border-l-[3px] border-supply-pink bg-supply-pink/12 px-4 py-3 font-sans text-[0.875rem] leading-[1.6] text-ink"
     >
       {children}
     </p>
@@ -239,14 +244,17 @@ export function Leaf({
    app/round/ui.tsx where they began.
 ------------------------------------------------------------------------- */
 
-/** On is green, off is the same red the app marks a wrong answer in.
+/** On is mint, off is pink: the stationery pair, drawn as the same sticker
+    the debate screen offers "for it" and "against it" on.
 
-    The colours are doing real work here and are also not doing it alone. Red
-    against green is the one pairing that collapses for the eight or so percent
-    of men with deuteranopia, so each state carries a different glyph as well:
-    a slashed note is off whether or not the colour arrives. That is the same
-    discipline the marking screens use, and the palette is the same validated
-    pair, --solid-mark against --broken-mark. */
+    It used to be --solid-mark against --broken-mark, which are marking
+    colours, and marking colours are supposed to mean something about a
+    student's work rather than about whether the music is playing. The
+    stationery pair says the same on/off without borrowing that meaning.
+
+    The colours are still not doing it alone. Each state carries a different
+    glyph, a slashed note against a plain one, so the state survives any
+    colour vision at all. */
 function AudioToggle({
   on,
   onToggle,
@@ -267,8 +275,8 @@ function AudioToggle({
       title={`${label} ${on ? "on" : "off"}`}
       className={`grid h-9 w-9 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[1.125rem] leading-none transition-colors sm:h-10 sm:w-10 ${
         on
-          ? "border-solid-mark bg-solid-tint text-solid-ink hover:bg-solid-mark hover:text-page"
-          : "border-broken-mark bg-broken-tint text-broken-ink hover:bg-broken-mark hover:text-page"
+          ? "border-sheet-ink bg-supply-mint text-[#262626]"
+          : "border-sheet-ink bg-supply-pink text-[#262626]"
       }`}
     >
       <span aria-hidden>{on ? glyph[0] : glyph[1]}</span>

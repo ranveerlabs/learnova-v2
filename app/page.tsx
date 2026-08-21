@@ -120,7 +120,10 @@ function Door({
     <Link
       href={href}
       style={{ ["--tilt" as string]: tilt }}
-      className="stuck sticker group flex flex-col gap-3 rounded-[3px] border-[2.5px] border-sheet-ink bg-sheet p-5 sm:p-6"
+      /* The cream the type is set in, not the paper the rest of the app
+         writes on. On the landing page these two cards are the only paper
+         there is, so they take the colour the page is already speaking in. */
+      className="stuck sticker group flex flex-col gap-3 rounded-[3px] border-[2.5px] border-sheet-ink bg-cream p-5 sm:p-6"
     >
       <PixelSprite name={sprite} scale={3} />
 
