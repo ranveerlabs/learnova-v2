@@ -40,7 +40,12 @@ it gets it right and shows its working:
 > **How is Tritoflex applied to the substrate?** Cold with airless spray.
 > *cited:* "applied cold with airless spray equipment"
 
-`/proof` shows both side by side.
+Both of those are real: they came back from the route on 15
+August 2026, and the paragraph behind the grounded one is the
+worked example the entry screen still offers under "I have
+notes to paste". There used to be a `/proof` page showing them
+side by side. It is gone, along with the strip on the landing
+page that pointed at it.
 
 ## The two modes
 
@@ -334,27 +339,34 @@ generously:
 - The deployed build can lag this repository. If the app does
   not match what is described here, it has not been
   redeployed yet.
-- **Live debate has not been played end to end.** It builds,
-  it typechecks, and its room logic is covered by 29
-  assertions run against the compiled helpers — codes, turn
-  order, both transcripts and the ballot flip. The screens
-  reachable without a connection have been looked at in
-  headless Chrome. What has *not* happened is two browsers in
-  one room passing real speeches, because that needs an
-  `ABLY_API_KEY` and there is not one on this machine. Set the
-  key and the first thing to check is the join: whether the
-  second tab is offered the motion, and whether the ballot
-  reads correctly in *both* chairs rather than only the
-  host's.
-- **The disconnect endings have been read, not triggered.**
-  Every end-of-room screen — dropped out, left, idle timeout,
-  and the round that finished before the host went — has been
-  rendered against fabricated state and checked in headless
-  Chrome at 1100pt and 360pt. What has not been exercised is
-  the part that fires them: whether Ably's presence `leave`
-  actually arrives when a tab is closed, and how long it takes
-  to. Once there is a key, close one of the two tabs
-  mid-round and time it.
+- **Live debate has now been played end to end, except for the
+  judge.** With `ABLY_API_KEY` set, two separate browser
+  sessions (one normal profile, one isolated context) opened a
+  room, joined by typing the four characters, and argued a
+  full eight speeches. The guest was shown the motion 1.6s
+  after pressing Join, and each speech reached the other
+  window in 423–1039ms. No "room full" and no "nobody is in
+  that room" on a good join.
+  What was *not* exercised is the live judge call: the shared
+  key is out of credit and `POST /api/debate` answers 402, so
+  the round could not actually be marked. The ballot was
+  checked against a stubbed response instead, which does
+  verify the part this mode owns — the host is told they won,
+  the guest is told they lost, the scoresheet columns are
+  swapped rather than copied, and the key moments change
+  chairs. It does not verify that the real judge returns a
+  ballot of that shape. Top the key up and ask for one.
+- **The disconnect endings have now been triggered, and
+  timed.** Closing one tab mid-round moved the other side onto
+  the unfinished screen — transcript kept, no ballot, no
+  rejoin — and closing the host's tab after all eight speeches
+  told the guest there would be no ballot rather than leaving
+  them on a meter. Ably's presence `leave` does arrive, and it
+  is not quick: **15.2 seconds** in both cases, measured from
+  the tab closing to the screen changing. That is a long time
+  to watch a "waiting for their rebuttal" meter for a speech
+  nobody is writing, and it is the first thing to shorten if
+  it can be shortened.
 - Browser testing has been done on one machine: headless
   Chrome on Windows, with mobile viewports emulated rather
   than run on a physical phone. Layout has been checked down
