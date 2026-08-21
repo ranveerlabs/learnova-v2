@@ -2,10 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { sourceProblem } from "@/lib/source";
-/* The same paragraph /proof quotes, imported rather than copied. Two copies
-   of the demonstration's material would drift, and the version a judge is
-   handed here has to be the version they just watched being cited. */
-import { SOURCE as DEMO_SOURCE, TOPIC as DEMO_TOPIC } from "../proof/recorded";
+import { SOURCE as DEMO_SOURCE, TOPIC as DEMO_TOPIC } from "./demo-source";
 import { Looseleaf, PixelSprite, PixelTag } from "../paper";
 import { Notice } from "../ui";
 import { openConcepts, studied, type TopicRecord } from "./record";
@@ -163,7 +160,7 @@ export function Entry({
             type="submit"
             disabled={!topic.trim()}
             style={{ ["--tilt" as string]: "-1.4deg" }}
-            className="stuck sticker inline-flex shrink-0 items-center gap-2 self-start rounded-[3px] border-[2.5px] border-sheet-ink bg-supply-gold px-6 py-4 font-pixel text-[0.8125rem] leading-none text-[#22262e] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
+            className="stuck sticker inline-flex shrink-0 items-center gap-2 self-start rounded-[3px] border-[2.5px] border-sheet-ink bg-supply-gold px-6 py-4 font-pixel text-[0.8125rem] leading-none text-[#262626] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
           >
             start
             <span aria-hidden className="arrow">→</span>
@@ -197,25 +194,14 @@ export function Entry({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-sans text-[0.75rem] text-ink-faint">or try</span>
-          {STARTERS.map((starter) => (
-            <button
-              key={starter}
-              onClick={() => {
-                setTopic(starter);
-                field.current?.focus();
-              }}
-              /* A starting point has to be tappable by a thumb, not only
-                 clickable by a cursor. At the old height these were a
-                 twenty-six pixel target, which on a phone is a coin toss
-                 between filling the field and hitting the one next to it. */
-              className="chip min-h-[2.25rem] rounded-[3px] border border-line px-3 py-1.5 font-sans text-[0.8125rem] text-ink-soft hover:border-accent hover:text-ink"
-            >
-              {starter}
-            </button>
-          ))}
-        </div>
+        {/* The "or try" chips stood here. They are gone: the question above
+            is already one line long and answerable by anybody, and four
+            worked examples under it turned "name a topic" into "pick one of
+            these", which is the one reading this screen cannot afford.
+
+            `STARTERS` itself stays. It is still what `lib/warm.ts` warms, and
+            those four are the topics most likely to be typed regardless of
+            whether anything on screen suggests them. */}
 
         {error && <Notice>{error}</Notice>}
       </div>
