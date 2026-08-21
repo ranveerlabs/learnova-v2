@@ -22,7 +22,61 @@ export class AIError extends Error {
    wherever it surfaces, and it is said in one place so it cannot drift into
    four slightly different apologies. */
 export const BUSY =
-  "Learnova is busy right now. Give it a moment and try again.";
+  "Everyone is studying at once! Give it a moment and try again.";
+
+/* The other way a shared key stops answering, and the one that does not pass.
+
+   429 is a busy afternoon. 402 is the credit behind the key being spent, and
+   401 and 403 are a key that has been revoked or rotated. All three arrive as
+   an HTTP error on a request that was correctly formed, and not one of them
+   clears because a student pressed the button again. "Try again" is the wrong
+   instruction twice over there: it will fail in exactly the same way, and it
+   invites them to think the fault might be in what they wrote.
+
+   The body behind the 402, recorded verbatim on 2026-08-21 so that whoever
+   reads this next is not diagnosing it from a status code again:
+
+     {"error":{"message":"Insufficient credits. Add more using
+      https://openrouter.ai/settings/credits","code":402,
+      "metadata":{"limit_source":"openrouter_credits","remedy_hint":"Add
+      credits at https://openrouter.ai/settings/credits, or lower max_tokens
+      / prompt size to fit your remaining balance."}}}
+
+   Note where that points. The Hack Club proxy is forwarding OpenRouter's own
+   402, so the balance to top up is on the OpenRouter account behind the key.
+   Nothing in this repository can fix it, which is exactly why the message
+   below does not ask the student to do anything about it. */
+export const UNAVAILABLE =
+  "Oops! We cannot reach our marker right now :( That one is on us, not on anything you wrote, and nothing you typed has been lost.";
+
+/** Whether this status is a standing condition rather than a passing one. */
+function spent(status: number): boolean {
+  return status === 401 || status === 402 || status === 403;
+}
+
+/** One HTTP failure, read the same way wherever it happens.
+
+    Both call paths route through here so the two cannot drift apart, which is
+    the same reason `BUSY` is a constant rather than a sentence written twice.
+    The raw body is logged in every case, not just the interesting ones: the
+    status code on its own has never once been enough to say what went wrong,
+    and the body says it in a sentence. */
+async function failed(res: Response, where: string): Promise<AIError> {
+  const detail = await res.text().catch(() => "");
+  console.error(`Hack Club AI API ${where} error ${res.status} (model ${MODEL}):`, detail);
+
+  if (spent(res.status)) {
+    console.error(
+      `HTTP ${res.status} is a credit or credential fault and will not clear on its own. ` +
+        `Check the balance and the key on the account behind HACKCLUB_AI_KEY; ` +
+        `no change in this repository will fix it.`
+    );
+    return new AIError(UNAVAILABLE, 503);
+  }
+
+  if (res.status === 429) return new AIError(BUSY, 429);
+  return new AIError(`Oops! Something went wrong on our end (HTTP ${res.status}) :( Give it another go.`);
+}
 
 /* Reasoning off, deliberately.
 
@@ -101,15 +155,7 @@ async function callModel(
   for (let attempt = 1; attempt <= 2; attempt++) {
     const res = await request(token, system, user, opts);
 
-    if (!res.ok) {
-      const detail = await res.text();
-      console.error(`Hack Club AI API error ${res.status} (model ${MODEL}):`, detail);
-
-      if (res.status === 429) {
-        throw new AIError(BUSY, 429);
-      }
-      throw new AIError(`The AI service returned an error (HTTP ${res.status}). Try again.`);
-    }
+    if (!res.ok) throw await failed(res, "call");
 
     const data = await res.json();
     const content: unknown = data?.choices?.[0]?.message?.content;
@@ -121,7 +167,7 @@ async function callModel(
     );
   }
 
-  throw new AIError("The AI returned an empty response. Try again.");
+  throw new AIError("Hmm, the AI drew a blank there. Give it another go?");
 }
 
 /* ── Getting the JSON back out of a reply ─────────────────────────────────
@@ -206,13 +252,13 @@ export async function chatJSON<T>(
   const found = extractJSON(content);
   if (!found) {
     console.error("Failed to parse model output as JSON:", content.slice(0, 2000));
-    throw new AIError("The AI returned an unreadable response. Try again.");
+    throw new AIError("Hmm, the AI said something we could not read. Give it another go?");
   }
   const parsed = found.value;
 
   if (!isValid(parsed)) {
     console.error("Model output failed shape validation:", content.slice(0, 2000));
-    throw new AIError("The AI returned an unexpected response format. Try again.");
+    throw new AIError("Hmm, the AI answered in a shape we did not expect. Give it another go?");
   }
   return parsed;
 }
@@ -254,12 +300,7 @@ export async function* chatStream(
 ): AsyncGenerator<string> {
   const res = await request(key(), system, user, { json: false, temperature, stream: true });
 
-  if (!res.ok || !res.body) {
-    const detail = await res.text().catch(() => "");
-    console.error(`Hack Club AI API stream error ${res.status} (model ${MODEL}):`, detail);
-    if (res.status === 429) throw new AIError(BUSY, 429);
-    throw new AIError(`The AI service returned an error (HTTP ${res.status}). Try again.`);
-  }
+  if (!res.ok || !res.body) throw await failed(res, "stream");
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

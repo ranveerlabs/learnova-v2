@@ -496,7 +496,7 @@ export async function POST(req: Request) {
             error:
               provenance === "grounded"
                 ? "None of the opening questions could be traced back to your notes, so none were kept. Try pasting a fuller passage."
-                : "No usable questions came back for that topic. Try again.",
+                : "Hmm, nothing usable came back for that topic. Give it another go?",
           },
           { status: 422 }
         );
@@ -640,6 +640,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     console.error("Round generation failed:", err);
-    return NextResponse.json({ error: "Could not build that round. Try again." }, { status: 500 });
+    return NextResponse.json({ error: "Oops! We could not build that round :( Give it another go." }, { status: 500 });
   }
 }

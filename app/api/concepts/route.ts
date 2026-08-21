@@ -86,6 +86,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     console.error("Concept extraction failed:", err);
-    return NextResponse.json({ error: "Concept extraction failed. Try again." }, { status: 500 });
+    return NextResponse.json({ error: "Oops! We could not pull the concepts out of that :( Give it another go." }, { status: 500 });
   }
 }
