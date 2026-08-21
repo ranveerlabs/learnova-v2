@@ -3,9 +3,9 @@
 /* ═══ Learnova: "the blackboard and the marking pen" ═════════════════════
    Ground is the charcoal of the logo's own background, sampled rather than
    matched by eye; the writing surface is a near-white page on top of it. The
-   chrome has no hue anywhere: greys, and a chalk accent. Colour with meaning
-   is therefore reserved entirely for the marks on a student's words, and on
-   most screens the marking is the only colour there is.
+   chrome is greys, cream type, and the app's own star gold for anything you
+   can press. Colour with meaning is still reserved for the marks on a
+   student's words, and the marks are still the loudest thing on any screen.
 
    ── Why every neutral here is a true grey ────────────────────────────────
    This was a blue book: the ground was #edeff4, the chrome carried a blue
@@ -16,11 +16,12 @@
    from 14.13:1 to 14.14:1, ink-faint from 3.78:1 to 3.76:1. Only the hue
    left.
 
-   The accent went the same way, for a reason worth keeping: green, amber and
-   plum already carry meaning on a student's marked-up words, and any hue in
-   the chrome is a fourth colour competing with those three while meaning
-   nothing. Chalk-on-board and near-black-on-paper say "action" by fill
-   rather than by colour, which the marks cannot do and do not need to.
+   Type is the cream of the logo's letter rather than white, and the accent
+   is the gold of its star. One caution worth writing down: that gold sits in
+   the same family as the amber "shaky" mark. They are told apart by shape
+   and by place, never by hue alone, so an action never has to be read as a
+   verdict; but if a gold button ever starts looking like a mark, this is the
+   line that explains why, and the fix is to move the accent, not the mark.
 
    Mark hues were chosen with the palette validator, not by eye: green↔bad
    under deuteranopia went from ΔE 3.2 (the old green/rose pair) to 10.8 by
@@ -66,8 +67,10 @@
 
      Light: 13.2:1 under white type, against 9.52:1 for the blue it replaced.
      Nothing on this screen got quieter for losing its hue. */
-  --accent: #2b2b2b;
-  --accent-hover: #000000;
+  /* The same gold taken down until it can carry white type: 9.66:1, against
+     the 9.52:1 the ink-blue it replaced had. */
+  --accent: #554211;
+  --accent-hover: #3b2d0c;
   --accent-wash: #e4e4e4;
   --on-accent: #ffffff;
 
@@ -88,43 +91,6 @@
   --gap-mark: #616161;
   --gap-ink: #464646;
   --gap-tint: #e9e9e9;
-
-  /* rank: the seven rungs of the elo ladder.
-
-     ── Why this is a spectrum and not a set of labels ───────────────────────
-     Four rungs were four tinted chips that happened to differ. Seven have to
-     read as a ladder, which means the colour has to climb: cool at the bottom,
-     warm in the middle, metal at the top, in the order everybody already reads
-     as low-to-high. Somebody who sees plum knows without being told that it
-     beats teal, and that is the whole job.
-
-     ── Why they are filled rather than tinted ───────────────────────────────
-     A tinted chip is coloured paper with coloured type on it, which is exactly
-     what the marks on a student's words are, and the two families meet on the
-     results screen. Solid fill with reversed type is a different kind of
-     object at a glance, so a rank can borrow a hue near a mark's without the
-     two ever being confused. That is what buys the spectrum enough room to be
-     seven steps instead of three.
-
-     `ink` sets the rating itself and has to clear contrast on the page; `fill`
-     backs the badge and the rail and carries `--on-rank` type. Colour is never
-     the only channel: the rank word sits inside every badge, so the ladder is
-     legible with no colour vision at all. */
-  --rank-1-ink: #4f5967;
-  --rank-1-fill: #5c6675;
-  --rank-2-ink: #0b6560;
-  --rank-2-fill: #0e6f6a;
-  --rank-3-ink: #0a5f8c;
-  --rank-3-fill: #0b6a9c;
-  --rank-4-ink: #5a32b8;
-  --rank-4-fill: #6237c4;
-  --rank-5-ink: #842b8f;
-  --rank-5-fill: #8e2f9e;
-  --rank-6-ink: #a34310;
-  --rank-6-fill: #b04a12;
-  --rank-7-ink: #8a6608;
-  --rank-7-fill: #9a7209;
-  --on-rank: #ffffff;
 
   --rule: rgb(26 26 26 / 0.06); /* the ruling on the page */
 
@@ -169,14 +135,19 @@
     --line: #313131;
     --line-strong: #454545;
 
-    --ink: #ebebeb;
-    --ink-soft: #a5a5a5;
-    --ink-faint: #777777;
+    /* The logo's own cream, and two steps down from it that hold the
+       luminance the greys had, so no contrast ratio moves: 16.19:1 on the
+       page. Chalk is not white, and neither is this. */
+    --ink: #fdfcdf;
+    --ink-soft: #a7a793;
+    --ink-faint: #787869;
 
-    /* Chalk, sampled off the logo's letter. See the light value for why the
-       accent carries no hue in either theme. */
-    --accent: #fdfcdf;
-    --accent-hover: #ffffff;
+    /* The star, and literally the same token the star sprite is drawn from,
+       so the two can never drift apart. The favicon's raw #fcd309 was tried
+       first and read as too bright next to cream type; this is the gold the
+       app already puts on screen. 11.12:1 carrying near-black type. */
+    --accent: var(--supply-gold);
+    --accent-hover: #ffce48;
     --accent-wash: #2c2c2c;
     --on-accent: #141414;
 
@@ -198,26 +169,7 @@
     --gap-ink: #a4a4a4;
     --gap-tint: #222222;
 
-    /* Inks climb for contrast against the dark page; fills stay bright enough
-       to carry near-black type, which is what keeps a badge reading as a badge
-       rather than as a dim rectangle. */
-    --rank-1-ink: #98a3b3;
-    --rank-1-fill: #7d8798;
-    --rank-2-ink: #45c4bd;
-    --rank-2-fill: #2ea79f;
-    --rank-3-ink: #5cb4e8;
-    --rank-3-fill: #2f93d4;
-    --rank-4-ink: #a893f7;
-    --rank-4-fill: #8a6ff0;
-    --rank-5-ink: #dd8ae8;
-    --rank-5-fill: #c063cd;
-    --rank-6-ink: #f0935e;
-    --rank-6-fill: #dd6f33;
-    --rank-7-ink: #efc457;
-    --rank-7-fill: #d8a92c;
-    --on-rank: #10141c;
-
-    --rule: rgb(235 235 235 / 0.07);
+    --rule: rgb(253 252 223 / 0.07);
 
     /* No `--dots` override: it is built from `--ink`, which has already
        flipped by the time it is read. */
@@ -253,21 +205,6 @@
   --color-gap-ink: var(--gap-ink);
   --color-gap-tint: var(--gap-tint);
 
-  --color-rank-1-ink: var(--rank-1-ink);
-  --color-rank-1-fill: var(--rank-1-fill);
-  --color-rank-2-ink: var(--rank-2-ink);
-  --color-rank-2-fill: var(--rank-2-fill);
-  --color-rank-3-ink: var(--rank-3-ink);
-  --color-rank-3-fill: var(--rank-3-fill);
-  --color-rank-4-ink: var(--rank-4-ink);
-  --color-rank-4-fill: var(--rank-4-fill);
-  --color-rank-5-ink: var(--rank-5-ink);
-  --color-rank-5-fill: var(--rank-5-fill);
-  --color-rank-6-ink: var(--rank-6-ink);
-  --color-rank-6-fill: var(--rank-6-fill);
-  --color-rank-7-ink: var(--rank-7-ink);
-  --color-rank-7-fill: var(--rank-7-fill);
-  --color-on-rank: var(--on-rank);
 
   --color-sheet: var(--sheet);
   --color-sheet-ink: var(--sheet-ink);
@@ -279,6 +216,7 @@
   --color-supply-pink: var(--supply-pink);
   --color-supply-gold: var(--supply-gold);
   --color-supply-mint: var(--supply-mint);
+  --color-supply-ice: var(--supply-ice);
 
   --font-read: var(--font-newsreader);
   --font-sans: var(--font-archivo);
@@ -313,6 +251,17 @@
   --supply-pink: #f08aa4;
   --supply-gold: #f5c243;
   --supply-mint: #7cc9a6;
+  /* Ice: the cyan chevron from the favicon, muted into the same band the
+     rest of this set lives in. Straight off the favicon it is electric
+     (#54cbd1 at 58% saturation reads as a highlighter next to mint), so it
+     is taken to mint's own softness and lifted a little. It marks joining a
+     room, which is the one action on the debate screen that is not opening
+     one, and the two were previously the same gold. 10.46:1 on the board. */
+  --supply-ice: #89ced2;
+  /* The stationery the pixel sprites are drawn from. Referenced as
+     var(--supply-*) inside style objects in paper.tsx rather than through a
+     Tailwind utility, which is why a search for the class name finds nothing
+     and deleting them turned the paperclip and the pencil black. */
   --supply-wood: #e8c9a0;
   --supply-metal: #bebebe;
   --supply-graphite: #2f2f2f;
@@ -665,21 +614,6 @@ body {
     0 14px 24px -16px rgb(16 16 16 / 0.6);
 }
 
-/* The last rung, and the only one that gets anything extra.
-
-   A diagonal sheen across the fill, the way light sits on something metal.
-   Static rather than travelling: this badge appears beside a rating somebody
-   spent months earning, and a shimmer looping forever next to a number would
-   make it look like a reward popup rather than a standing. */
-.rank-apex {
-  background-image: linear-gradient(
-    115deg,
-    rgb(255 255 255 / 0) 34%,
-    rgb(255 255 255 / 0.42) 50%,
-    rgb(255 255 255 / 0) 66%
-  );
-}
-
 /* Selecting the text on a note.
 
    The browser paints its own highlight, which is the accent blue, and the
@@ -992,8 +926,7 @@ body {
   .bob,
   .scribbling,
   .press-on,
-  .drop-in,
-  .fill-up {
+  .drop-in {
     animation: none;
   }
 
@@ -1110,8 +1043,7 @@ body {
      still leaves something on screen that says the app is working: the bars
      and the dots keep their shape and their label, they simply stop moving. */
   .listening,
-  .working-bar,
-  .about-to-speak {
+  .working-bar {
     animation: none;
   }
 
@@ -1120,10 +1052,6 @@ body {
   .working-bar {
     transform: scaleY(0.7);
     opacity: 0.8;
-  }
-
-  .about-to-speak {
-    opacity: 0.6;
   }
 }
 
