@@ -292,44 +292,79 @@ export function TeachBack({
           )}
         </div>
 
-        <div
-          className={`grid gap-x-10 gap-y-8 ${
-            dissection.cards.length > 0
-              ? "xl:grid-cols-[minmax(0,44rem)_minmax(0,22rem)]"
-              : "max-w-[48rem]"
-          }`}
-        >
-          <div className="rise min-w-0 xl:col-start-1" style={{ ["--i" as string]: 1 }}>
-            <MarkedUpText
-              segments={dissection.segments}
-              cards={dissection.cards}
-              active={active}
-              setActive={setActive}
-              grounded={usesNotes}
-            />
-          </div>
+        {/* The marking, behind one click.
 
-          {dissection.cards.length > 0 && (
-            <div className="min-w-0 xl:col-start-2 xl:row-span-3 xl:row-start-1">
-              <MarginNotes
+            ── Why this is folded and the verdict is not ────────────────────
+            What was here was the whole apparatus, open: the student's own
+            explanation with every span underlined, a column of margin notes
+            beside it, and the list of what they left out underneath. All of
+            it is worth reading and none of it is what the screen is for. The
+            first question at the end of Round 4 is "did I get it", and that
+            is answered two lines above this by one word and one sentence.
+            "Which clause did that", which is this, is the second question,
+            and a second question drawn at the size of the first buries the
+            first.
+
+            So the panel keeps every part it had and simply starts closed.
+            Nothing is summarised, nothing is dropped, and the counts stay on
+            the headings inside where they were: a fold that abbreviates its
+            own contents is a fold you have to open to find out whether it was
+            worth opening.
+
+            A `details` rather than state, for the reason the scoresheet on
+            the debate ballot is one: the browser already knows how to do
+            this, it works before the JavaScript settles, and "see why" is a
+            disclosure rather than a mode the screen can be in. */}
+        <details className="group flex flex-col border-t border-line pt-4">
+          <summary
+            style={{ fontVariationSettings: '"wdth" 88' }}
+            className="inline-flex cursor-pointer list-none items-center gap-1.5 self-start font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
+          >
+            <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+              ›
+            </span>
+            See why
+          </summary>
+
+          <div
+            className={`mt-5 grid gap-x-10 gap-y-8 ${
+              dissection.cards.length > 0
+                ? "xl:grid-cols-[minmax(0,44rem)_minmax(0,22rem)]"
+                : "max-w-[48rem]"
+            }`}
+          >
+            <div className="min-w-0 xl:col-start-1">
+              <MarkedUpText
+                segments={dissection.segments}
                 cards={dissection.cards}
                 active={active}
                 setActive={setActive}
                 grounded={usesNotes}
               />
             </div>
-          )}
 
-          {/* "Ask about a mark" sat here: a box that took a question about
-              the grade and sent it back to the model for a written answer. It
-              is gone, and so are the component and the route behind it. This
-              is the screen at the end of a run that a room is watching, and a
-              free-text conversation with the marker is the opposite of what
-              that moment wants. */}
-          <div className="rise min-w-0 xl:col-start-1" style={{ ["--i" as string]: 2 }}>
-            <LeftOut items={grade.missed} />
+            {dissection.cards.length > 0 && (
+              <div className="min-w-0 xl:col-start-2 xl:row-span-3 xl:row-start-1">
+                <MarginNotes
+                  cards={dissection.cards}
+                  active={active}
+                  setActive={setActive}
+                  grounded={usesNotes}
+                />
+              </div>
+            )}
+
+            {/* "Ask about a mark" sat here: a box that took a question about
+                the grade and sent it back to the model for a written answer.
+                It is gone, and so are the component and the route behind it.
+                This is the screen at the end of a run that a room is watching,
+                and a free-text conversation with the marker is the opposite of
+                what that moment wants. */}
+            <div className="min-w-0 xl:col-start-1">
+              <LeftOut items={grade.missed} />
+            </div>
           </div>
-        </div>
+        </details>
 
         {/* One way forward, and it is forward.
 
