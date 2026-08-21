@@ -216,7 +216,6 @@
   --color-supply-pink: var(--supply-pink);
   --color-supply-gold: var(--supply-gold);
   --color-supply-mint: var(--supply-mint);
-  --color-supply-ice: var(--supply-ice);
 
   --font-read: var(--font-newsreader);
   --font-sans: var(--font-archivo);
@@ -251,13 +250,6 @@
   --supply-pink: #f08aa4;
   --supply-gold: #f5c243;
   --supply-mint: #7cc9a6;
-  /* Ice: the cyan chevron from the favicon, muted into the same band the
-     rest of this set lives in. Straight off the favicon it is electric
-     (#54cbd1 at 58% saturation reads as a highlighter next to mint), so it
-     is taken to mint's own softness and lifted a little. It marks joining a
-     room, which is the one action on the debate screen that is not opening
-     one, and the two were previously the same gold. 10.46:1 on the board. */
-  --supply-ice: #89ced2;
   /* The stationery the pixel sprites are drawn from. Referenced as
      var(--supply-*) inside style objects in paper.tsx rather than through a
      Tailwind utility, which is why a search for the class name finds nothing
