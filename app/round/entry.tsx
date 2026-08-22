@@ -212,76 +212,43 @@ export function Entry({
           belongs. This screen is back to having one job. */}
 
       {/* Notes are the better session and are offered as such, not demanded.
-          Folded away by default so the front door stays one field. */}
-      <div className="rise flex flex-col gap-3" style={{ ["--i" as string]: 2 }}>
-        {!showNotes ? (
-          <button
-            onClick={() => setShowNotes(true)}
-            className="self-start font-sans text-[0.875rem] font-medium text-accent underline decoration-accent/30 decoration-1 underline-offset-4 transition-colors hover:decoration-accent"
-          >
-            I have notes to paste
-          </button>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-baseline justify-between gap-4">
-              <p
-                style={{ fontVariationSettings: '"wdth" 88' }}
-                className="font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-ink-faint"
-              >
-                Your material, optional
-              </p>
-              <button
-                onClick={() => {
-                  setShowNotes(false);
-                  setNotes("");
-                  setNotesProblem(null);
-                }}
-                className="font-sans text-[0.75rem] text-ink-faint underline underline-offset-4 hover:text-ink-soft"
-              >
-                Skip this
-              </button>
-            </div>
+          Closed by default so the front door stays one field.
 
-            {/* What pasting actually buys, in the terms the session actually
-                delivers.
+          It is a fold that opens and closes, rather than a link that swaps
+          itself for a panel with a "Skip this" out of it. Same control both
+          ways: the thing you pressed to open it is the thing you press to
+          shut it, and it is still there to press, which a one-way link is
+          not. The prose that used to sit inside — what a citation check buys
+          you — is gone; somebody opening a box labelled "I have notes to
+          paste" has already decided, and the paragraph was three sentences
+          standing between them and the box. */}
+      <details
+        open={showNotes}
+        onToggle={(e) => setShowNotes((e.currentTarget as HTMLDetailsElement).open)}
+        className="rise group flex flex-col gap-3"
+        style={{ ["--i" as string]: 2 }}
+      >
+        <summary className="inline-flex w-fit cursor-pointer list-none items-center gap-1.5 font-sans text-[0.875rem] font-medium text-accent underline decoration-accent/30 decoration-1 underline-offset-4 transition-colors hover:decoration-accent">
+          <span aria-hidden className="inline-block no-underline transition-transform group-open:rotate-90">
+            ›
+          </span>
+          I have notes to paste
+        </summary>
 
-                This used to promise that "every question comes with the line
-                from your own notes that it came from", and no screen has shown
-                that line since the disclosure came off the verdict. The
-                citation is still written, still required, and still checked
-                character for character on the server; it is simply not printed
-                beside a live question, because a question is on screen for
-                fifteen seconds against a clock and the line it came from
-                contains the answer.
+        <div className="flex flex-col gap-3 pt-3">
+          <Looseleaf
+            value={notes}
+            onChange={(v) => {
+              setNotes(v);
+              if (notesProblem) setNotesProblem(null);
+            }}
+            placeholder="Paste notes, a textbook passage, an article…"
+            minRows={10}
+          />
 
-                Where it IS printed is the one place it decides something: the
-                Round 4 marks quote your material verbatim underneath every
-                correction. So the sentence now describes the check rather than
-                a display, which is both true and the better offer: what a
-                student gets is not a footnote per question, it is that nothing
-                the model invented ever reached them. */}
-            <p className="max-w-[62ch] font-sans text-[0.875rem] leading-[1.6] text-ink-soft">
-              Paste it and every question has to quote your notes word for word, checked on the
-              server. Anything the model cannot find in your material is thrown away before you see
-              it, and the marks at the end quote your own text back to you. Leave it empty and the
-              questions come from an AI model and the topic alone, with nothing checking whether
-              they are true.
-            </p>
-
-            <Looseleaf
-              value={notes}
-              onChange={(v) => {
-                setNotes(v);
-                if (notesProblem) setNotesProblem(null);
-              }}
-              placeholder="Paste notes, a textbook passage, an article…"
-              minRows={10}
-            />
-
-            {notesProblem && <Notice>{notesProblem}</Notice>}
-          </div>
-        )}
-      </div>
+          {notesProblem && <Notice>{notesProblem}</Notice>}
+        </div>
+      </details>
 
     </section>
   );

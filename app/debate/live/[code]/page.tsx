@@ -188,9 +188,8 @@ function Room({ code }: { code: string }) {
       the contract `render` in the debate route works to, and the reason the
       guest's copy is put through `mirror` on the way in.
 
-      Nothing is counted after it. The single-player version calls
-      `recordDebate` on the next two lines; there is deliberately nothing
-      here, because there is no declared strength to rate against and nothing
+      Nothing is counted after it, here or in the single-player version:
+      there is no record of rounds played anywhere in the app, and nothing
       about a live room is written down. */
   async function judge() {
     if (role !== "host" || !setup || judging || room.ballot) return;
@@ -317,7 +316,7 @@ function Room({ code }: { code: string }) {
                 ? "That is the end of the round. Nothing from it was saved anywhere, here or on the server."
                 : room.closed === "gone"
                   ? "The other person's connection went and did not come back. A room is the two people attached to it, so there is nothing left here to wait in. Nothing was saved anywhere."
-                  : "The other person left, and a room with one person in it is not a debate. Nothing from it was saved anywhere."
+                  : "The other person left."
           }
         />
       </div>
@@ -533,8 +532,6 @@ function Motion({ setup, mine }: { setup: LiveSetup; mine: Side }) {
 function Share({ code }: { code: string }) {
   return (
     <div className="flex flex-col gap-4">
-      <Label>Read them this</Label>
-
       {/* The code, at the size of a thing meant to be read across a room.
 
           ── The link is gone, and this replaced it ─────────────────────────
@@ -558,19 +555,23 @@ function Share({ code }: { code: string }) {
       </p>
 
       <p className="max-w-[40ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-        They open Learnova, press Debate, choose <span className="text-ink">A friend</span>, and
+        They open Learnova, press Debate, choose <span className="text-ink">Friend</span>, and
         type it in.
       </p>
 
-      <div className="flex w-fit items-center gap-2.5 rounded-[3px] border border-line bg-sunk/60 px-4 py-3">
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-        </span>
-        <p className="font-sans text-[0.875rem] leading-[1.6] text-ink-soft">
-          Waiting for them. The round starts the moment they join.
-        </p>
-      </div>
+      {/* Still waiting, said with motion instead of a sentence.
+
+          The line beside this used to spell it out — waiting for them, the
+          round starts the moment they join — and the second half of that is
+          not information, it is a description of the only thing that could
+          possibly happen next. The pulse is the part that was doing work: it
+          says the room is live and listening rather than a screen that has
+          stopped. The words are for a screen reader, which cannot see a dot
+          pulse. */}
+      <span className="relative flex h-2 w-2 shrink-0" role="status" aria-label="Waiting for someone to join">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+      </span>
     </div>
   );
 }

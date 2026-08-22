@@ -74,7 +74,7 @@ export default function Landing() {
             sprite="clip"
             tilt="1.4deg"
             name="Debate"
-            line="Pick a side and hold it for four speeches, against the model or against a friend on a four-letter code. Judged ballot at the end."
+            line="Pick a side and hold it for four speeches, against model or against friend on a four-letter code. Judged ballot at the end."
           />
         </div>
 

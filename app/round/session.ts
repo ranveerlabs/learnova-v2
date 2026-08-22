@@ -16,7 +16,6 @@ import { setMusic } from "../music";
 
 import { newSeed } from "./presentations/registry";
 import { bestFor, openConcepts, recordFor, rememberRun, standingsFor } from "./record";
-import { type Book, recordRun } from "../standing";
 import type { Standing } from "./engine";
 import {
   type Answer,
@@ -178,13 +177,6 @@ export function useRoundSession() {
      resets everything else. */
   const runs = useRef<RunRecord[]>([]);
   const [best, setBest] = useState<Best>(null);
-
-  /** The tally this run has just been added to, once it has been added.
-
-      Null everywhere except the results screen. Cleared on a restart, because
-      a tally left lying around would be shown against the next run as though
-      it already included it. */
-  const [tally, setTally] = useState<Book | null>(null);
 
   /** Where every concept on this topic stood BEFORE this run started.
 
@@ -621,20 +613,11 @@ export function useRoundSession() {
     const data = buildReveal(answers, productions, splits);
     rememberRun(topic, data);
 
-    /* This run, counted.
-
-       There was an elo here, moved by `applyRun` against how hard the
-       material was, sharing a ladder with the debate rating. Both are gone;
-       standing.ts says why. What is kept is a count of runs finished and how
-       many of them were strong ones, and "strong" is not decided here — it is
-       the band `buildReveal` already computed for the figure at the top of
-       the results screen, so the tally can never disagree with what the
-       student was just told.
-
-       Guarded by the same `recorded` flag as the record for the same reason:
-       a second pass through here would count one session twice, and unlike a
-       bad question that is not something a student could see happen. */
-    setTally(recordRun(data.rating.band === "strong"));
+    /* There was an elo here too, moved by `applyRun` against how hard the
+       material was and sharing a ladder with the debate rating, and after it
+       a count of runs finished and how many were strong. Both are gone, with
+       lib/elo.ts and app/standing.ts: a run is rated on the screen the
+       student is looking at, and nothing outside it is moved or counted. */
   }, [answers, phase, productions, splits, topic]);
 
   /** The finished run, added to this tab's history.
@@ -669,7 +652,6 @@ export function useRoundSession() {
       the same topic a different set of questions, and it is the one thing here
       that has to outlive the run it came from. */
   const wipe = useCallback(() => {
-    setTally(null);
     setConcepts([]);
     setWarmUp([]);
     setBanks({});
@@ -749,7 +731,6 @@ export function useRoundSession() {
     sampled,
     nextPlayable,
     best,
-    tally,
     previously,
     runCount: runs.current.length,
     banks,

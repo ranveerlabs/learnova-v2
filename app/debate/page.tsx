@@ -6,7 +6,6 @@ import { isBusy, postJSON, postStream } from "../client";
 import { play } from "../tone";
 import { Aside, GhostButton, Leaf, Notice, PrimaryButton, Waiting, Wordmark } from "../ui";
 import { PixelTag } from "../paper";
-import { type Book, recordDebate } from "../standing";
 import { Ballot as BallotCard } from "./ballot";
 import { DEFAULTS, type Defaults, Setup as SetupScreen } from "./setup";
 import { Gavel, Opening, Said, SpeechRail } from "./transcript";
@@ -33,8 +32,8 @@ import {
    pretending they were would have made both of them vaguer.
 
    The shape is: agree what is being argued, argue it for four speeches each,
-   then read the ballot. What the round is worth is a line in the record, in
-   app/standing.ts, and nowhere else.
+   then read the ballot. What the round is worth is the ballot, and nothing
+   outside the round is kept or moved by it.
 
    This file is the shell and the traffic. What the opponent sounds like is
    decided in app/api/debate/route.ts and enforced in the scrub beside it. */
@@ -58,10 +57,6 @@ export default function DebatePage() {
   const [error, setError] = useState<string | null>(null);
   const [wasBusy, setWasBusy] = useState(false);
   const [ballot, setBallot] = useState<Ballot | null>(null);
-  /** The record after this round, for the ballot to print. Read back from
-      `recordDebate` rather than re-read from storage, so what is shown is
-      exactly what was written. */
-  const [book, setBook] = useState<Book | null>(null);
   /** The speech being given right now, as far as it has got. Held apart from
       `turns` because it is not a turn yet: it is not in the transcript, it is
       not in the prompt, and if the stream dies half way through it never
@@ -113,7 +108,6 @@ export default function DebatePage() {
     setTurns([]);
     setDraft("");
     setBallot(null);
-    setBook(null);
     setError(null);
     setPhase("arguing");
   }, []);
@@ -175,13 +169,14 @@ export default function DebatePage() {
     }
   }
 
-  /** Close the round: judge it, then write the result down.
+  /** Close the round: judge it, and show the verdict.
 
-      There used to be arithmetic between those two steps. The judge returned
-      a winner and a margin, `applyRound` turned them into an elo movement
-      against the tier's declared strength, and the ballot printed the new
-      number. All of that is gone with lib/elo.ts — see standing.ts for why.
-      What is left is the judge's own verdict, counted.
+      There used to be arithmetic after the judging, and then a tally after
+      the arithmetic. The judge returned a winner and a margin, `applyRound`
+      turned them into an elo movement against the tier's declared strength,
+      and the ballot printed the new number; later that became a lifetime
+      won/lost/drawn record kept on the device. Both are gone, along with
+      lib/elo.ts and app/standing.ts. A round is judged, read, and over.
 
       The margin still comes back on the ballot and is still used: it is what
       the ballot's own wording and the scoresheet are built from. It simply no
@@ -189,9 +184,8 @@ export default function DebatePage() {
   async function judge() {
     /* The phase check, not just `thinking`, and it is the whole guard. Judging
        does not set `thinking`, so a second click on the ballot button used to
-       start a second judge call, and a second judge call means a second
-       `recordDebate`: the same debate counted twice, off one impatient double
-       tap, with nothing on screen to say it happened. */
+       start a second judge call: two rounds of the model's time and a second
+       verdict landing over the first, off one impatient double tap. */
     if (!setup || phase !== "arguing") return;
 
     setPhase("judging");
@@ -206,7 +200,6 @@ export default function DebatePage() {
       });
 
       setBallot(verdict);
-      setBook(recordDebate(verdict.winner));
       setPhase("ballot");
       /* The gavel. The one moment in the mode that has been earned rather
          than clicked, and it used to land in silence. */
@@ -240,11 +233,11 @@ export default function DebatePage() {
   }
 
   /* ── The ballot ──────────────────────────────────────────────────────── */
-  if (phase === "ballot" && ballot && book && setup) {
+  if (phase === "ballot" && ballot && setup) {
     return (
       <div className={SHELL}>
         {bar}
-        <BallotCard ballot={ballot} book={book} setup={setup} onAgain={() => setPhase("setup")} />
+        <BallotCard ballot={ballot} setup={setup} onAgain={() => setPhase("setup")} />
       </div>
     );
   }

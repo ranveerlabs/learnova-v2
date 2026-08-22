@@ -1,7 +1,5 @@
 "use client";
 
-import type { Book } from "../standing";
-import { Record } from "../tally";
 import { Label, PrimaryButton } from "../ui";
 import {
   type Ballot,
@@ -16,9 +14,9 @@ import {
 /* The ballot.
 
    ── What this screen is for, and what it was doing instead ───────────────
-   Somebody who has just finished a round wants three things, in this order:
-   did I win, what does that make my record, and what do I do differently
-   next time. This screen used to answer all three and then keep going, into ten
+   Somebody who has just finished a round wants two things, in this order:
+   did I win, and what do I do differently next time. This screen used to
+   answer both and then keep going, into ten
    dimension scores across two columns, a speaker points figure, a strongest
    line, a weakest line, and a closing paragraph about the separation between
    what the model judges and what the app computes. Every one of those was
@@ -29,16 +27,16 @@ import {
    equally important, and the fastest way to make something unread is to give
    it the same weight as nine things beside it.
 
-   So the face of the ballot is now the decision, the record, and the fix. The
+   So the face of the ballot is now the decision and the fix. The
    rest is not gone: it is behind one disclosure, which is the same shape
    Round Mode's results screen settled on for the same reason. A competitive
    debater who wants their speaks is exactly the person who will open a fold
    labelled with them.
 
    Nothing on this screen is invented here. Every figure came back from the
-   judge except the record, which is a count of judgements already made. The
-   elo that used to sit under the verdict is gone along with the file that
-   computed it; standing.ts says why. */
+   judge. There is no running record under the verdict and no elo before it:
+   a round is judged, read and done with, and the app keeps no count of how
+   the last one went. */
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
@@ -52,21 +50,12 @@ const LABEL: Record<Dimension, string> = {
 
 export function Ballot({
   ballot,
-  book,
   setup,
   opponentName,
   onAgain,
   againLabel = "Another round",
 }: {
   ballot: Ballot;
-  /** The record this round has just been added to, where it was added to one.
-
-      Absent in a live 1v1 room, and absent on purpose rather than pending.
-      Nothing about a live room is written down anywhere — not the room, not
-      the transcript, not the result — and a record is a thing written down.
-      A live round produces a verdict and counts for nothing, which is the
-      promise the mode is built on rather than a gap in it. */
-  book?: Book;
   setup: Setup;
   /** Who the other side was, for the scoresheet column and the key moments.
 
@@ -165,12 +154,6 @@ export function Ballot({
         >
           {word}
         </h2>
-
-        {/* The record, under the verdict rather than over it: what you have
-            played is a consequence of the round and putting it first would
-            make it the point. Same component the setup screen draws, so the
-            figures somebody leaves with are the figures they come back to. */}
-        {book && <Record book={book} />}
       </div>
 
       {/* The one thing to do differently, and the only piece of the judge's

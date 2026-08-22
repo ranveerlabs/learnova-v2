@@ -47,10 +47,10 @@ export function sideWord(side: Side): "For" | "Against" {
     having tiers at all was that a rating means nothing unless the opposition
     has a declared strength.
 
-    There is no rating now, so there is nothing to declare a strength to. See
-    app/standing.ts for why it went. What is left is the half a student could
-    always actually feel: how hard this opponent argues, and the brief that
-    says so, which is what reaches the prompt in app/api/debate/route.ts.
+    There is no rating now, and no record either, so there is nothing to
+    declare a strength to. What is left is the half a student could always
+    actually feel: how hard this opponent argues, and the brief that says so,
+    which is what reaches the prompt in app/api/debate/route.ts.
 
     The tiers are not a lesser thing for having lost the number. Choosing an
     opponent who will punish a dropped argument is why somebody preparing for

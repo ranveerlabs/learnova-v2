@@ -760,7 +760,8 @@ body {
   100% { transform: translateX(0); opacity: 1; }
 }
 
-.btn:not(:disabled):hover .thrown {
+.btn:not(:disabled):hover .thrown,
+.btn:not(:disabled):active .thrown {
   animation: throw 0.55s cubic-bezier(0.35, 0, 0.2, 1);
 }
 
@@ -781,7 +782,8 @@ body {
   transform-origin: 88% 88%;
 }
 
-.btn:not(:disabled):hover .gavel {
+.btn:not(:disabled):hover .gavel,
+.btn:not(:disabled):active .gavel {
   animation: knock 0.5s cubic-bezier(0.3, 0.9, 0.35, 1);
 }
 
@@ -791,7 +793,8 @@ body {
   to { transform: rotate(-360deg); }
 }
 
-.btn:not(:disabled):hover .rewound {
+.btn:not(:disabled):hover .rewound,
+.btn:not(:disabled):active .rewound {
   animation: rewind 0.6s cubic-bezier(0.45, 0, 0.25, 1);
 }
 
@@ -802,7 +805,8 @@ body {
   100% { transform: translateY(0); }
 }
 
-.btn:not(:disabled):hover .slotted {
+.btn:not(:disabled):hover .slotted,
+.btn:not(:disabled):active .slotted {
   animation: slot 0.4s cubic-bezier(0.3, 0.9, 0.35, 1);
 }
 
@@ -811,6 +815,36 @@ body {
 .rewound,
 .slotted {
   display: inline-block;
+}
+
+/* ── The toggles in debate mode answer the press, not just the pointer ────
+   Model/Friend, the two tabs, the formats and the tiers are all drawn as
+   keycaps: a two-pixel hard shadow under an unpressed one, and the chosen
+   one sitting two pixels lower with the shadow gone. That reads correctly
+   once the choice is made and read as nothing at all while it was being
+   made, because the only thing between the two states was `.btn`, whose
+   entire press is a one-pixel undo of its own hover lift.
+
+   On a touch screen there is no hover to undo, so those buttons
+   acknowledged the finger with nothing whatsoever.
+
+   So the press borrows the selected state rather than inventing a gesture:
+   holding a key down puts it exactly where choosing it will leave it.
+   There is nothing new to learn, and the button stops being the only
+   control in the mode that does not move when you use it. */
+.key {
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.key:not(:disabled):active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 0 rgb(20 26 38 / 0.18);
+  transition-duration: 0.04s;
 }
 
 /* The verdict, stamped rather than faded in.
@@ -936,8 +970,20 @@ body {
   .btn:not(:disabled):hover .gavel,
   .btn:not(:disabled):hover .rewound,
   .btn:not(:disabled):hover .slotted,
+  .btn:not(:disabled):active .thrown,
+  .btn:not(:disabled):active .gavel,
+  .btn:not(:disabled):active .rewound,
+  .btn:not(:disabled):active .slotted,
   .stamp {
     animation: none;
+  }
+
+  /* The keycap press stays. It is a two-pixel state change on a control
+     being held down, not travel across the screen, and taking it away would
+     leave a touch user back where this started: pressing something that
+     never admits it was pressed. Only the easing goes. */
+  .key {
+    transition-duration: 0.01ms;
   }
 
   /* The resting tilt stays. A scrap lying at an angle is a static design

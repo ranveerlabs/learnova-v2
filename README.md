@@ -99,42 +99,39 @@ a round where all eight speeches were already given — that
 transcript is complete, so whoever opened the room can still
 send it to the judge after the other person has gone.
 
-Two consequences worth knowing before you use it. A live round
-**is not counted** — nothing about a live room is written
-down anywhere, and a record is a thing written down. And a hard
+Two consequences worth knowing before you use it. Nothing
+about a live room is written down anywhere — not the room,
+not the transcript, not the result. And a hard
 reload of a room URL ends that room rather than rejoining it,
 because the connection that was the room went down with the
 page. The screen says so and offers a new one.
 
-**Won and lost, and nothing cleverer.** A judged debate goes
-on a record: how many you have won, lost and drawn on this
-device. That is the whole of it. There is no rating, no rung,
-no ladder and no number to climb.
+**Won and lost, and nothing kept.** A judged debate ends on a
+verdict — you won it, a draw, you lost it — and that is the
+whole of it. Nothing counts up across rounds. There is no
+lifetime record, no rating, no rung, no ladder and no number
+to climb, in either mode.
 
-There used to be. A single elo covered both modes, moved by
-different arithmetic for each, across seven rungs from Fresh
-to Legend, with study runs capped below the upper half so the
-easier activity could not out-climb the harder one. It was
-carefully built and it was measuring nothing. An elo is a
-relative figure and only means something against a field;
-there is no field here, just one person on one device playing
-three declared difficulty tiers of the same model, with
-nothing synced and nobody to be relative to. So the number had
-the shape of a competitive rating and the content of a private
-guess, which is the failure this whole app is built to avoid.
+There have been two goes at one. First an elo: a single figure
+covering both modes, moved by different arithmetic for each,
+across seven rungs from Fresh to Legend, with study runs
+capped below the upper half so the easier activity could not
+out-climb the harder one. It was carefully built and it was
+measuring nothing. An elo is a relative figure and only means
+something against a field; there is no field here, just one
+person on one device playing three declared difficulty tiers
+of the same model, with nothing synced and nobody to be
+relative to. So the number had the shape of a competitive
+rating and the content of a private guess, which is the
+failure this whole app is built to avoid.
 
-A record cannot drift away from what happened, needs no scale
-to read, and can be checked against your own memory of the
-rounds you played. It is a smaller claim and it is true.
-
-**Round Mode runs are counted, and not as wins.** A study run
-has no opponent, so it cannot be won, and picking a threshold
-to call one a win would put back exactly what was taken out.
-Round Mode already has its own three words for how a run went
-— a strong run, some of it landed, worth another run — and
-the results screen keeps a count of how many of your finished
-runs landed in the strong band. Same threshold as the figure
-at the top of that screen, so the two can never disagree.
+Then a plain won-lost-drawn record, plus a count of how many
+Round Mode runs landed in the strong band. Truer than the elo,
+and still a running total sitting on two screens that had a
+result of their own to show. It is gone as well. The ballot
+says what happened in the round you just argued, the results
+screen rates the run you just played, and neither of them
+carries a scoreboard for everything before it.
 
 The judge still never returns a number about you. It returns a
 winner, a margin and per-dimension scores, and the winner is
@@ -198,7 +195,7 @@ commit.**
 
 ### What is stored, and where
 
-Three keys in your browser's `localStorage`, on the device you
+One key in your browser's `localStorage`, on the device you
 are using. There are no accounts and there is no server-side
 database.
 
@@ -209,23 +206,21 @@ for each concept its name, its standing, the highest round you
 ever answered it correctly in, how many runs asked about it,
 and when it was last seen.
 
-`learnova.standing.v1` — six counts and nothing else: debates
-judged, won, lost, drawn, Round Mode runs finished, and how
-many of those runs were strong ones. No rating, because there
-is no longer one. A book written by an older build is read for
-these counts and rewritten without its rating the first time
-you open the app; the old figure is dropped rather than
-converted, because there is no honest scale to convert it to.
+That is the only key this build touches. Debates are not
+stored at all: no result, no won-lost record, no count of
+rounds played.
 
-`learnova.debate.v1` — a legacy key from when debate kept two
-separate rating pools. Read once for its win counts and left
-alone; nothing writes it any more.
+Two keys from older builds may still exist on your device:
+`learnova.standing.v1` (a won-lost-drawn record and a count of
+strong runs) and `learnova.debate.v1` (older still, two rating
+pools). **This build neither reads nor writes them, and it
+does not delete them.** If you used an earlier version, that
+data is sitting in your browser until you clear site data —
+nothing in the app shows it to you and nothing in the app
+removes it.
 
 **Live debate adds no key and writes nothing.** Not a room
-list, not a transcript, not a result. A live round does not
-touch `learnova.standing.v1` either: it produces a ballot and
-is counted nowhere, so there is nothing about it to write
-down. It does not appear in your won-lost record.
+list, not a transcript, not a result.
 
 The motion you type when opening a room is held in a plain
 JavaScript variable (`app/debate/live/handoff.ts`) for the one
@@ -258,9 +253,10 @@ Clearing site data for this domain erases all of it and there
 is no way to get it back.
 
 The results screen offers **Forget this topic**, which removes
-that topic's record. There is currently **no in-app way to
-reset your won-lost record** — clearing site data is the only
-route.
+that topic's record. That is the only thing there is to
+reset, and the only in-app way to reset anything; the two
+orphaned keys above can be removed only by clearing site
+data.
 
 ### What leaves your device
 

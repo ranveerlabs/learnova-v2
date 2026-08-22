@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Record } from "../tally";
 import { PixelSprite } from "../paper";
-import { type Book, standing } from "../standing";
 import { Label, PrimaryButton, useAutoGrow } from "../ui";
 import { handOff } from "./live/handoff";
 import { ALPHABET, CODE_LENGTH, makeCode, readCode } from "./live/room";
@@ -147,14 +145,6 @@ export function Setup({
      chips feel like handwriting; with nothing left to write, the interval,
      its ref and the two `stopWriting` calls that guarded it are all gone. */
 
-  /* Read after mount for the same reason the study record is: local storage
-     does not exist on the server, and rendering a rating during the server
-     pass would make the first client render disagree with the HTML. */
-  const [book, setBook] = useState<Book | null>(null);
-  useEffect(() => {
-    setBook(standing());
-  }, []);
-
   const ready = motion.trim().length > 0;
 
   /** One press, two destinations.
@@ -271,24 +261,10 @@ export function Setup({
         />
       </div>
 
-      {/* The one line of prose on this screen, and only in the live case.
-
-          It is here because the side slabs answer a different question in a
-          room than they do in a round: pressing "Against it" alone decides
-          what the other person is doing too, and they are not here to be
-          asked. Finding that out after reading somebody a code is finding it
-          out too late. */}
-      {live && (
-        <p className="max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-          Whoever joins takes the other side, and you both write four speeches before it goes to the
-          judge. Nothing is saved and nothing about it is counted.
-        </p>
-      )}
-
       {/* The other half of playing a person: joining one.
 
-          Beneath the note rather than beside it, because the two are not
-          alternatives of equal weight on this screen. Somebody who has been
+          Beneath the side slabs rather than beside them, because the two are
+          not alternatives of equal weight on this screen. Somebody who has been
           given a code is not going to miss a box with their code's shape in
           it; somebody opening a room should not have to read past a join
           field to reach the thing they came for.
@@ -296,18 +272,6 @@ export function Setup({
           Only in friend mode. In model mode there is no room to join and a
           code box would be a control for a feature that is not switched on. */}
       {live && <Join />}
-
-      {/* What you have played.
-
-          It was an elo with a rung, a rail and a ladder behind it, and it is
-          a record now: see standing.ts for why the number went. Round Mode's
-          runs are not in it, because they are not debates and this is the
-          debate screen; they are counted in Round Mode's own words on Round
-          Mode's own results screen.
-
-          Not in a live room. A live round is counted nowhere, and a record
-          shown on the way in is a record the reader assumes is at stake. */}
-      {book && !live && <Record book={book} />}
 
       {/* Open already if anything in it has been changed from the default,
           so a returning tournament debater can see their format is still set
@@ -372,14 +336,14 @@ function Opponent({ value, onPick }: { value: Against; onPick: (v: Against) => v
   const options: { id: Against; name: string; sprite: "clip" | "star"; title: string }[] = [
     {
       id: "model",
-      name: "The model",
+      name: "Model",
       sprite: "clip",
       title:
-        "Four speeches against an opponent that argues to win. Judged ballot, and the result goes on your record.",
+        "Four speeches against an opponent that argues to win. Judged ballot at the end.",
     },
     {
       id: "friend",
-      name: "A friend",
+      name: "Friend",
       sprite: "star",
       title:
         "Opens a room with a short code. They type the code, take the other side, and the round is judged the same way.",
@@ -396,7 +360,7 @@ function Opponent({ value, onPick }: { value: Against; onPick: (v: Against) => v
             onClick={() => onPick(o.id)}
             aria-pressed={on}
             title={o.title}
-            className={`btn inline-flex items-center gap-2 rounded-[3px] border-2 px-3 py-2 font-pixel text-[0.625rem] leading-none transition-colors ${
+            className={`key inline-flex items-center gap-2 rounded-[3px] border-2 px-3 py-2 font-pixel text-[0.625rem] leading-none ${
               on
                 ? "translate-y-[2px] border-sheet-ink bg-accent-wash text-ink shadow-[inset_0_2px_0_rgb(20_26_38/0.18)]"
                 : "border-line-strong text-ink-soft shadow-[0_2px_0_var(--line-strong)] hover:border-accent hover:text-ink"
@@ -619,7 +583,7 @@ function Choice({
             onClick={() => onPick(o.id)}
             aria-pressed={value === o.id}
             title={o.title}
-            className={`btn inline-flex min-h-[2.5rem] items-center rounded-[3px] border-2 px-3.5 py-1.5 font-sans text-[0.875rem] font-medium transition-colors ${
+            className={`key inline-flex min-h-[2.5rem] items-center rounded-[3px] border-2 px-3.5 py-1.5 font-sans text-[0.875rem] font-medium ${
               value === o.id
                 ? "translate-y-[2px] border-sheet-ink bg-accent-wash text-ink shadow-[inset_0_2px_0_rgb(20_26_38/0.18)]"
                 : "border-line-strong text-ink-soft shadow-[0_2px_0_var(--line-strong)] hover:border-accent hover:text-ink"

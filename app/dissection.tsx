@@ -59,7 +59,7 @@ const NOTE_KIND: Record<Flagged, { word: string; mark: string; ink: string; tint
 
     So the mark says who is actually disagreeing. */
 function wrongWord(grounded: boolean): string {
-  return grounded ? NOTE_KIND.wrong.word : "The model disagrees";
+  return grounded ? NOTE_KIND.wrong.word : "Model disagrees";
 }
 
 export type Segment =
