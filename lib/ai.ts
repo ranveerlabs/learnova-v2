@@ -47,7 +47,7 @@ export const BUSY =
    Nothing in this repository can fix it, which is exactly why the message
    below does not ask the student to do anything about it. */
 export const UNAVAILABLE =
-  "Oops! We cannot reach our marker right now :( That one is on us, not on anything you wrote, and nothing you typed has been lost.";
+  "Oops! We cannot reach our marker right now, this one is on us :(";
 
 /** Whether this status is a standing condition rather than a passing one. */
 function spent(status: number): boolean {
