@@ -75,18 +75,34 @@
   --on-accent: #ffffff;
 
   /* marks: meaning only, never chrome.
-     `mark` draws (rules, rails, glyphs); `ink` sets type; `tint` washes. */
-  --solid-mark: #0c6739;
-  --solid-ink: #0a5730;
-  --solid-tint: #dfeee6;
+     `mark` draws (rules, rails, glyphs); `ink` sets type; `tint` washes.
 
-  --shaky-mark: #ab7509;
-  --shaky-ink: #7a5406;
-  --shaky-tint: #f6ecd8;
+     ── One set of three hues, not two ──────────────────────────────────────
+     These were their own greens, ambers and magentas, chosen for contrast on
+     each page and nothing else, so the app had a green for a right answer
+     and a different green on the music toggle, an amber for a shaky one and
+     a different yellow on the stars. Two palettes both claiming to be the
+     app's green is how a screen stops looking designed and starts looking
+     assembled.
 
-  --broken-mark: #b02f86;
-  --broken-ink: #8f2069;
-  --broken-tint: #f9e3f0;
+     So there is one set of three: the mint, the gold and the pink from the
+     stationery below. Marks and inks are steps along those hues rather than
+     new colours, dark enough here to sit on a near-white page and left at
+     full strength on the dark one, where the supply colours are already what
+     they are. The meaning rule is unchanged and still the important half:
+     these say something about a student's work, and nothing else in the app
+     may borrow them. */
+  --solid-mark: #3e9c76;
+  --solid-ink: #27664c;
+  --solid-tint: #e6f4ed;
+
+  --shaky-mark: #d0a025;
+  --shaky-ink: #7d6011;
+  --shaky-tint: #fbf1d9;
+
+  --broken-mark: #dd6784;
+  --broken-ink: #9c3450;
+  --broken-tint: #fceaef;
 
   --gap-mark: #616161;
   --gap-ink: #464646;
@@ -151,19 +167,24 @@
     --accent-wash: #2c2c2c;
     --on-accent: #141414;
 
-    /* Dark steps are selected against the dark page, not flipped: marks stay
-       inside the dark lightness band, inks climb for text contrast. */
-    --solid-mark: #12804d;
-    --solid-ink: #56c894;
-    --solid-tint: #10281d;
+    /* On the dark page the three marking hues ARE the stationery colours,
+       unmodified: mint, gold, pink, at the values the music toggle and the
+       stars use. That is the whole point of putting them on one set of hues
+       — against #1d1d1d all three clear 7:1 as type, so there is no step to
+       take and no second green to explain. Only the tints are built, and
+       they are the same hues dropped into the page rather than mixed with
+       it. */
+    --solid-mark: var(--supply-mint);
+    --solid-ink: var(--supply-mint);
+    --solid-tint: #16281f;
 
-    --shaky-mark: #bd8a22;
-    --shaky-ink: #dcaa4e;
-    --shaky-tint: #2b2110;
+    --shaky-mark: var(--supply-gold);
+    --shaky-ink: var(--supply-gold);
+    --shaky-tint: #2b2410;
 
-    --broken-mark: #d95ea6;
-    --broken-ink: #ef8fc4;
-    --broken-tint: #2e1526;
+    --broken-mark: var(--supply-pink);
+    --broken-ink: var(--supply-pink);
+    --broken-tint: #2e1a20;
 
     --gap-mark: #777777;
     --gap-ink: #a4a4a4;
@@ -743,8 +764,10 @@ body {
 
    So each of these is the gesture the control's own job already suggests, and
    none of them is decoration you could swap between buttons: a speech is
-   thrown, a round is gavelled shut, a rematch winds back, a code drops into a
-   slot. The rule they all obey is that the movement happens to the GLYPH
+   thrown, a rematch winds back, a code drops into a slot. (There was a fourth,
+   a gavel knocking on the button that closed a round. The ballot sends itself
+   now, and the one button left was not a vocabulary.) The rule they all obey
+   is that the movement happens to the GLYPH
    rather than to the button. `.btn` owns the button's transform, and an
    animation on the same element wins while it plays and then snaps back to
    the hover rule the moment it stops.
@@ -763,28 +786,6 @@ body {
 .btn:not(:disabled):hover .thrown,
 .btn:not(:disabled):active .thrown {
   animation: throw 0.55s cubic-bezier(0.35, 0, 0.2, 1);
-}
-
-/* End the round, and get the ballot: the gavel falls. Pivoting near the
-   handle, not the head, so it swings rather than spinning, and it bounces
-   once because a gavel that lands dead reads as a dropped object. */
-@keyframes knock {
-  0% { transform: rotate(0deg); }
-  34% { transform: rotate(-24deg); }
-  58% { transform: rotate(6deg); }
-  76% { transform: rotate(-8deg); }
-  100% { transform: rotate(0deg); }
-}
-
-.gavel {
-  /* The hand, not the middle. The sprite is drawn head-up and handle-down-
-     right, so this is the corner a person would be holding. */
-  transform-origin: 88% 88%;
-}
-
-.btn:not(:disabled):hover .gavel,
-.btn:not(:disabled):active .gavel {
-  animation: knock 0.5s cubic-bezier(0.3, 0.9, 0.35, 1);
 }
 
 /* Another round: back to the top. Anticlockwise, because the one thing this
@@ -811,7 +812,6 @@ body {
 }
 
 .thrown,
-.gavel,
 .rewound,
 .slotted {
   display: inline-block;
@@ -967,11 +967,9 @@ body {
      keyframe, so cancelling the animation leaves the mark off-square instead
      of quietly handing reduced-motion users a straight heading. */
   .btn:not(:disabled):hover .thrown,
-  .btn:not(:disabled):hover .gavel,
   .btn:not(:disabled):hover .rewound,
   .btn:not(:disabled):hover .slotted,
   .btn:not(:disabled):active .thrown,
-  .btn:not(:disabled):active .gavel,
   .btn:not(:disabled):active .rewound,
   .btn:not(:disabled):active .slotted,
   .stamp {
@@ -1108,6 +1106,76 @@ body {
   .working-bar {
     transform: scaleY(0.7);
     opacity: 0.8;
+  }
+}
+
+/* ── The fold on the front door ──────────────────────────────────────────
+   "I have notes to paste" was a link that swapped itself for a panel, then a
+   bare <summary> with a chevron in front of it. The second was honest about
+   being a fold and looked like nothing: underlined accent text, a glyph
+   beside it, and a full sheet of ruled paper arriving underneath in one
+   frame with no relationship to the thing that had just been pressed.
+
+   Three things fix that and none of them is decoration.
+
+   It is shaped like a control. A bordered chip with the app's own keycap
+   press, so the one optional thing on the front door reads as something you
+   can press rather than as a sentence that happens to be clickable, and so
+   a finger on a phone gets the same acknowledgement every other control in
+   the app gives.
+
+   It says which way it is going. Closed it sits in the accent and offers;
+   open it goes quiet and its border firms up, because an open fold is a
+   close control and should not keep advertising. The chevron turns with it.
+
+   The sheet arrives instead of appearing. `details[open]` is what fires the
+   animation, so it plays on every open and never on a close, and it comes
+   from just above with the paper's own slight rotation — the same gesture
+   `.drop-in` uses for a sheet landing on a desk. Height is deliberately not
+   animated: the panel is a full ruled leaf and easing its height would
+   reflow the page under the reader's cursor for a third of a second. */
+.fold-key {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+.fold-key::-webkit-details-marker {
+  display: none;
+}
+
+.fold-key:hover {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.fold-key:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 0 rgb(20 26 38 / 0.18);
+  transition-duration: 0.04s;
+}
+
+@keyframes fold-open {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) rotate(0.5deg);
+  }
+}
+
+details[open] > .fold-body {
+  animation: fold-open 0.42s cubic-bezier(0.2, 0.75, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  details[open] > .fold-body {
+    animation: none;
+  }
+
+  .fold-key {
+    transition-duration: 0.01ms;
   }
 }
 

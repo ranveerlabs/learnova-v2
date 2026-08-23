@@ -140,6 +140,31 @@ function keptVerb(negation: string): string {
   return FLIP_VERB.re;
 }
 
+/* ── Why the third person is not fixed here ───────────────────────────────
+   A reply is spoken to somebody standing there, and the model kept writing
+   about them to a spectator who is not in the room: "they're saying kids can
+   cash out", "my opponent's framework". VOICE bans it in as many words now,
+   and one line of VOICE had been quietly teaching it — the signposting
+   example read "on their jobs point", which is the habit in miniature.
+
+   A rule was written here and taken out again, and what killed it is worth
+   recording so nobody writes it a second time. Swapping the naming looks
+   safe: "my opponent", "the opposition" and "the other side" can only mean
+   the person across the table. But the words in front of them are conjugated
+   for a third person, so "my opponent says" comes out as "you says". Fixing
+   that means conjugating says, argues, claims, wants, has, is, was, doesn't,
+   hasn't and the rest, which is rewriting the sentence rather than removing
+   packaging, and a miss ships a broken sentence into a speech somebody is
+   reading.
+
+   The pronoun half is worse still. A debate is full of third parties who own
+   "they" honestly — parents, players, a company, a government — and nothing
+   here can tell "they're saying kids can cash out" from "they're spending
+   their pocket money on it".
+
+   So this one belongs to the prompt, which is the right owner anyway: the
+   model knows which "they" it meant and a regex never will. */
+
 /** The word count it was told not to write, alone or trailing. */
 const WORD_COUNT = /[([{]\s*(?:approx\.?\s*|~\s*)?\d+\s*words?\s*[)\]}]\s*$/i;
 const WORD_COUNT_ONLY = /^\s*[([{]?\s*(?:approx\.?\s*|~\s*)?\d+\s*words?\s*[)\]}]?\s*$/i;
@@ -152,6 +177,39 @@ const WORD_COUNT_ONLY = /^\s*[([{]?\s*(?:approx\.?\s*|~\s*)?\d+\s*words?\s*[)\]}
     line becomes a unit this can throw away, and it is what keeps a paragraph
     break from waiting on the next full stop. */
 const UNIT_END = /[.!?]["')\]]?(?=\s)|\n/;
+
+/* ── The full stop in "1." is not the end of a sentence ───────────────────
+   A speech that lists its points arrives as
+
+     1. Their cost turn never got an answer.
+     2. The framework was conceded in cross.
+
+   and `UNIT_END` matched the stop after the 1, because it is a full stop
+   with a space behind it. That did two things to the list, and the second
+   is the one a reader sees. The marker was split off as a sentence of its
+   own, which is survivable by itself, because it rejoins the item in front
+   of it with a space. Then the newline between the items was consumed as
+   ordinary whitespace after that sentence — one newline, not two, so not a
+   paragraph — and the whole list came out on one line:
+
+     1. Their cost turn never got an answer. 2. The framework was conceded.
+
+   which reads as a sentence with stray digits in it. On a longer list the
+   numbers stop looking like numbering at all.
+
+   So a stop belonging to a line-leading marker is not a boundary, and a
+   single newline in front of one is kept as a line break rather than
+   flattened to a space. Both halves are needed: fixing only the first still
+   runs the items together, and fixing only the second leaves the marker
+   floating as a unit of its own. */
+const ENUMERATOR = /^\s*(?:\d{1,3}|[a-z])[.)](?=\s)/i;
+
+/** Whether the stop that ends `unit` is a list marker rather than a
+    terminator, decided from the last line of the unit only. */
+function isMarker(unit: string): boolean {
+  const line = unit.slice(unit.lastIndexOf("\n") + 1);
+  return /^\s*(?:\d{1,3}|[a-z])[.)]$/i.test(line);
+}
 
 function words(text: string): number {
   const trimmed = text.trim();
@@ -233,23 +291,40 @@ export function createSpeechFilter(cap: number): SpeechFilter {
   let said = 0;
   let first = true;
   let stopped = false;
-  /** What goes between the last thing emitted and the next: a space, or a
-      blank line where the model left a paragraph break. Held rather than
-      written eagerly so a dropped unit does not leave a gap behind it. */
-  let gap = "";
+  /** How many newlines the model left between the last thing emitted and
+      whatever comes next, or -1 when nothing has been emitted yet.
 
-  function take(unit: string, paragraph: boolean): string {
+      A count rather than the separator itself, and that is the whole of the
+      list fix. Whether one newline is a line inside a paragraph or the break
+      between two list items depends on what the NEXT unit turns out to be,
+      and at the moment the gap is measured that unit is still arriving one
+      character at a time: the "2" of "2." has landed and the "." has not.
+      Deciding then means deciding against a single digit. Kept as a count,
+      the decision waits until the unit is in hand.
+
+      Held rather than written eagerly for the reason it always was, too: a
+      dropped unit must not leave a gap behind it. */
+  let gap = -1;
+
+  function take(unit: string, breaks: number): string {
     if (stopped) return "";
 
     const text = clean(unit, first);
     if (!text) return "";
 
-    const out = gap + text;
+    const out = separator(text) + text;
     first = false;
-    gap = paragraph ? "\n\n" : " ";
+    gap = breaks;
     said += words(text);
     if (said >= limit) stopped = true;
     return out;
+  }
+
+  /** What goes in front of `text`, given the whitespace behind it. */
+  function separator(text: string): string {
+    if (gap < 0) return "";
+    if (gap >= 2) return "\n\n";
+    return gap === 1 && ENUMERATOR.test(text) ? "\n" : " ";
   }
 
   /** Split off every complete unit sitting in `pending` and clean each one.
@@ -261,7 +336,21 @@ export function createSpeechFilter(cap: number): SpeechFilter {
     let out = "";
 
     while (!stopped) {
-      const at = pending.search(UNIT_END);
+      /* Searched from an offset rather than from the front, because a stop
+         that turns out to be a list marker is stepped over and the next
+         candidate has to be found behind it. */
+      let at = -1;
+      for (let from = 0; ; ) {
+        const rel = pending.slice(from).search(UNIT_END);
+        if (rel === -1) break;
+        const found = from + rel;
+        if (pending[found] !== "\n" && isMarker(pending.slice(0, found + 1))) {
+          from = found + 1;
+          continue;
+        }
+        at = found;
+        break;
+      }
       if (at === -1) break;
 
       /* `search` finds where the match starts. For terminal punctuation that
@@ -286,7 +375,7 @@ export function createSpeechFilter(cap: number): SpeechFilter {
       if (!final && space.length === rest.length) break;
 
       pending = rest.slice(space.length);
-      out += take(unit, (space.match(/\n/g)?.length ?? 0) >= 2);
+      out += take(unit, space.match(/\n/g)?.length ?? 0);
     }
 
     return out;
@@ -303,7 +392,7 @@ export function createSpeechFilter(cap: number): SpeechFilter {
       const out = drain(true);
       const last = pending;
       pending = "";
-      return out + take(last, false);
+      return out + take(last, 0);
     },
     finished() {
       return stopped;

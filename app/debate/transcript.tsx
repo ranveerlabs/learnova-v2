@@ -1,6 +1,5 @@
 "use client";
 
-import { PixelSprite } from "../paper";
 import { Working } from "../ui";
 import { SPEECH_ORDER, type Speech, type Turn } from "./types";
 
@@ -141,23 +140,12 @@ export function Opening({ said }: { said: string }) {
   );
 }
 
-/** The gavel, on the buttons that close a round.
-
-    Every button that ends the arguing and sends the transcript to the judge
-    carries it, in both the single-player screen and the live room, and no
-    other button in the mode does. They do the same irreversible thing and
-    were told apart from "Send" only by their words. It rocks on hover and
-    knocks once, which is the event tone.ts has always played when the ballot
-    lands and had nothing on screen to go with.
-
-    Deliberately not on "Send". A speech is not a verdict, and one mark
-    meaning both is the drift this app keeps having to undo. */
-export function Gavel() {
-  return (
-    <span aria-hidden className="gavel">
-      <PixelSprite name="gavel" scale={2} />
-    </span>
-  );
-}
+/* There was a gavel here, and the argument for it was that every button
+   which ends the arguing carries it and no other button in the mode does.
+   That was true of two buttons. Then the ballot started sending itself and
+   there was one left — "End the round", the shortcut — and a mark that
+   appears on exactly one control is not a vocabulary, it is an ornament on
+   that control. The sound stays: `gavel` in tone.ts still lands with the
+   verdict, which is the moment that was always worth marking. */
 
 export type { Speech };

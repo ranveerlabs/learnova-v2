@@ -98,7 +98,9 @@ const VOICE = `HOW YOU SOUND. You are speaking out loud to somebody standing acr
 - Never write any of these: "Firstly", "Secondly", "Moreover", "Furthermore", "Additionally", "In addition", "In conclusion", "Ultimately", "It is important to note", "Let me be clear", "That said", "At its core", "The reality is", "make no mistake".
 - NEVER set up a claim by denying a different one first. This is the single most recognisable habit in machine prose, you will reach for it in every speech, and it has more shapes than you think. All of these are banned: "it isn't just X, it's Y", "it's not X, it's Y", "that's not a feature, it's a loophole", "the fun is the hook, not the point", "it is not only X but Y", "X is more than Y", "this is less about X than about Y". Say what the thing IS, in one clause, and stop. If you have written the word "not" and there is a comma later in the sentence, you have almost certainly just done it: delete the negative half and keep the positive one.
 - Do not answer your own sentence. "That's not a feature. It's a loophole." is the same habit with a full stop in the middle of it, and so is any pair of short sentences where the first exists only to be corrected by the second.
-- Signpost by naming the argument you are answering, as in "on their jobs point". Never by counting off "first, second, third".
+- Signpost by naming the argument you are answering, as in "on your jobs point". Never by counting off "first, second, third".
+- SPEAK TO THEM, NOT ABOUT THEM. There is one other person here and you are looking at them, so they are "you" and their case is "your case". Never "they", "them", "their", "my opponent", "the opposition", or "the other side" for the person you are arguing with. "They're saying kids can cash out" is you describing the round to a spectator who is not in it. Write "you're saying kids can cash out". This is the easiest rule in this list to break without noticing, because writing about a debate is the shape you know best, and it is the one that makes a reply stop sounding like a reply.
+- "They" is still the right word for anybody who is not in this room: parents, players, a government, a company. Those keep their pronouns. The rule is about the person across from you and nobody else.
 - Use contractions. They're, doesn't, won't, that's.
 - Vary your sentence length. At least one sentence under six words.
 - Never appeal to a source you cannot name. "Studies show", "research suggests", "experts agree", "it has been proven" are all banned outright. Either say whose finding it is, or drop the appeal and argue why the thing is true. A debater who says "studies show" gets asked which study, and has nothing.
@@ -239,7 +241,9 @@ const BALLOT_VOICE = `HOW THE WRITTEN COMMENTS READ. You are a judge scribbling 
 
 No praise sandwiches, no encouragement filler, no "overall". Say the thing.
 
-WHO EVERY "YOU" REFERS TO. In "feedback", Debater A and nobody else: all three lines there are about what A did. In "feedback_opponent" you write the same three lines about Debater B, addressed to B as "you" in exactly the same voice. Two separate ballots, one for each chair.
+NEVER WRITE THE LETTERS. "A" and "B" are how this prompt tells the two of you apart and they are not words the person reading the ballot has ever seen. "A flaw in A's hanging out point" is you reading out your own notation. The person you are writing to is "you" and "your"; the other one is "they" and "their". No "Debater A", no "A's", no "Debater B", no "the opponent" by letter.
+
+WHO EVERY "YOU" REFERS TO. In "feedback", Debater A and nobody else: all three lines there are about what A did, written to A as "you". In "feedback_opponent" you write the same three lines about Debater B, addressed to B as "you" in exactly the same voice. Two separate ballots, one for each chair, and neither of them contains a letter.
 
 The two must not be the same ballot twice. If A's weakness was dropping the cost turn, that is A's weakness, and B's ballot says what B did — very likely that B pressed the cost turn and never got an answer. Writing one debater's comments into both fields tells the losing debater they made the winner's arguments, and the person reading it has no way to know it happened.
 
@@ -388,18 +392,85 @@ function tidy(raw: Record<string, unknown>): Ballot {
         why_it_mattered: said(m.why_it_mattered, ""),
       }))
       .filter((m) => m.quote_paraphrase && m.why_it_mattered),
-    feedback: readFeedback(raw.feedback),
+    feedback: readFeedback(raw.feedback, "A"),
     /* Absent is survivable and is not filled in from the other side. A
        ballot that quietly reused A's comments for B is the exact failure
        this field was added to stop, so a judge that skipped it says so. */
-    feedback_opponent: readFeedback(raw.feedback_opponent),
+    feedback_opponent: readFeedback(raw.feedback_opponent, "B"),
   };
 }
 
-function readFeedback(v: unknown): Ballot["feedback"] {
+/* ── The judge's own notation, taken back off ─────────────────────────────
+   "A" and "B" are how the transcript is labelled and how the prompt talks
+   about the two chairs. They are not words the student has ever seen, so a
+   comment reading "a flaw in A's hanging out point" is the ballot reading
+   out its own bookkeeping at somebody who does not have the key.
+
+   BALLOT_VOICE bans the letters outright and this is the net under it. It is
+   deliberately narrower than the first version of it, which was tested
+   against the live judge and broke a sentence: matching a bare letter
+   case-insensitively made `\bA\b` match the English article, and "you
+   answered it with a cheaper alternative" came back as "with they cheaper
+   alternative". A net that mangles ordinary prose is worse than the notation
+   it was catching.
+
+   So only two shapes are touched, and neither can be anything else:
+
+   - a possessive on a capital letter, "A's", "Debater B's". The article "a"
+     never takes an apostrophe-s, so there is nothing here to collide with.
+   - the letter with the word "Debater" in front of it, where the word
+     removes all doubt. The auxiliary behind it is conjugated, because "you
+     is" is not a sentence; a past tense needs nothing and is left alone.
+
+   A bare capital letter on its own is NOT touched. "A flaw in the hanging
+   out point" opens with an article, and no regex can tell it from a letter.
+   That case belongs to the prompt, which knows which it meant.
+
+   Which letter is the reader depends on the chair the comment is written to,
+   so it is a parameter: in `feedback` A is the reader, in
+   `feedback_opponent` B is. */
+const AUXILIARY: Record<string, string> = {
+  is: "are",
+  was: "were",
+  has: "have",
+  does: "do",
+  "isn't": "aren't",
+  "wasn't": "weren't",
+  "hasn't": "haven't",
+  "doesn't": "don't",
+};
+
+function deletter(text: string, me: "A" | "B"): string {
+  const them = me === "A" ? "B" : "A";
+  const aux = Object.keys(AUXILIARY)
+    .map((v) => v.replace("'", "['’]"))
+    .join("|");
+
+  let out = text;
+
+  /* Possessives first, so "Debater A's" is spent before the rule below can
+     take the "Debater A" out of the front of it. */
+  out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${me}['’]s\\b`, "g"), "your");
+  out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${them}['’]s\\b`, "g"), "their");
+
+  const named = (letter: string) =>
+    new RegExp(`\\bDebater\\s+${letter}\\b(\\s+(?:${aux}))?`, "g");
+
+  out = out.replace(named(me), (_m, verb?: string) =>
+    verb ? `you ${AUXILIARY[verb.trim().toLowerCase().replace(/[’]/g, "'")]}` : "you"
+  );
+  out = out.replace(named(them), (_m, verb?: string) =>
+    verb ? `they ${AUXILIARY[verb.trim().toLowerCase().replace(/[’]/g, "'")]}` : "they"
+  );
+
+  /* A comment that began with one of those now begins with a lowercase word. */
+  return out.charAt(0).toUpperCase() + out.slice(1);
+}
+
+function readFeedback(v: unknown, me: "A" | "B"): Ballot["feedback"] {
   const f = (v ?? {}) as Record<string, unknown>;
   const said = (x: unknown) =>
-    typeof x === "string" && x.trim() ? x.trim() : "Not given.";
+    typeof x === "string" && x.trim() ? deletter(x.trim(), me) : "Not given.";
   return {
     biggest_strength: said(f.biggest_strength),
     biggest_weakness: said(f.biggest_weakness),

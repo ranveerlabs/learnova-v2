@@ -8,7 +8,7 @@ import { Aside, GhostButton, Leaf, Notice, PrimaryButton, Waiting, Working, Word
 import { PixelTag } from "../paper";
 import { Ballot as BallotCard } from "./ballot";
 import { DEFAULTS, type Defaults, Setup as SetupScreen } from "./setup";
-import { Gavel, Opening, Said, SpeechRail } from "./transcript";
+import { Opening, Said, SpeechRail } from "./transcript";
 import {
   type Ballot,
   MIN_WORDS_TO_JUDGE,
@@ -417,7 +417,7 @@ export default function DebatePage() {
                   which is how an app teaches people it is broken. */}
               {turns.length >= 2 && judgeable && (
                 <GhostButton onClick={judge} disabled={thinking}>
-                  End the round <Gavel />
+                  End the round
                 </GhostButton>
               )}
             </div>

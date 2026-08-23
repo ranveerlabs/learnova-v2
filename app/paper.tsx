@@ -48,7 +48,7 @@ const PENCIL: Sprite = {
     P: "var(--supply-pink)",
     M: "var(--supply-metal)",
     Y: "var(--supply-gold)",
-    d: "#d9a125",
+    d: "color-mix(in srgb, var(--supply-gold) 76%, #000)",
     W: "var(--supply-wood)",
     k: "var(--supply-graphite)",
   },
@@ -80,7 +80,7 @@ const ERASER: Sprite = {
     ".RRRRRRRRR.",
     "..RRRRRRR..",
   ],
-  palette: { R: "var(--supply-pink)", W: "#fdf6ea" },
+  palette: { R: "var(--supply-pink)", W: "color-mix(in srgb, var(--supply-gold) 14%, #fff)" },
 };
 
 const CLIP: Sprite = {
@@ -101,29 +101,7 @@ const CLIP: Sprite = {
   palette: { C: "var(--supply-metal)" },
 };
 
-/* The gavel, for the two buttons that close a round.
-
-   It is the object debate mode is actually about and the app already had a
-   sound for it — `gavel` in tone.ts, the two low knocks the ballot lands on —
-   with nothing on screen to go with it. Drawn head-up and handle-down-right
-   so it pivots at the hand: see the `knock` keyframes in globals.css, which
-   swing it about that corner rather than spinning it about its middle. */
-const GAVEL: Sprite = {
-  rows: [
-    "WWWWWWW..",
-    "WkWWWkW..",
-    "WkWWWkW..",
-    "WWWWWWW..",
-    "...WW....",
-    "....WW...",
-    ".....WW..",
-    "......WW.",
-    ".......WW",
-  ],
-  palette: { W: "var(--supply-wood)", k: "var(--supply-graphite)" },
-};
-
-export const SPRITES = { pencil: PENCIL, star: STAR, eraser: ERASER, clip: CLIP, gavel: GAVEL };
+export const SPRITES = { pencil: PENCIL, star: STAR, eraser: ERASER, clip: CLIP };
 
 export function PixelSprite({
   name,

@@ -228,14 +228,17 @@ export function Entry({
         className="rise group flex flex-col gap-3"
         style={{ ["--i" as string]: 2 }}
       >
-        <summary className="inline-flex w-fit cursor-pointer list-none items-center gap-1.5 font-sans text-[0.875rem] font-medium text-accent underline decoration-accent/30 decoration-1 underline-offset-4 transition-colors hover:decoration-accent">
-          <span aria-hidden className="inline-block no-underline transition-transform group-open:rotate-90">
+        <summary className="fold-key inline-flex w-fit cursor-pointer list-none items-center gap-2 rounded-[3px] border border-line-strong px-3 py-2 font-sans text-[0.875rem] font-medium text-accent group-open:border-line-strong group-open:text-ink-soft">
+          <span
+            aria-hidden
+            className="inline-block text-[0.75rem] leading-none transition-transform duration-200 group-open:rotate-90"
+          >
             ›
           </span>
           I have notes to paste
         </summary>
 
-        <div className="flex flex-col gap-3 pt-3">
+        <div className="fold-body flex flex-col gap-3 pt-4">
           <Looseleaf
             value={notes}
             onChange={(v) => {
