@@ -358,26 +358,29 @@ generously:
   after pressing Join, and each speech reached the other
   window in 423–1039ms. No "room full" and no "nobody is in
   that room" on a good join.
-  What was *not* exercised is the live judge call: the shared
-  key is out of credit and `POST /api/debate` answers 402, so
-  the round could not actually be marked. The ballot was
-  checked against a stubbed response instead, which does
-  verify the part this mode owns — the host is told they won,
-  the guest is told they lost, the scoresheet columns are
-  swapped rather than copied, and the key moments change
-  chairs. It does not verify that the real judge returns a
-  ballot of that shape. Top the key up and ask for one.
-- **The disconnect endings have now been triggered, and
-  timed.** Closing one tab mid-round moved the other side onto
-  the unfinished screen — transcript kept, no ballot, no
-  rejoin — and closing the host's tab after all eight speeches
-  told the guest there would be no ballot rather than leaving
-  them on a meter. Ably's presence `leave` does arrive, and it
-  is not quick: **15.2 seconds** in both cases, measured from
-  the tab closing to the screen changing. That is a long time
-  to watch a "waiting for their rebuttal" meter for a speech
-  nobody is writing, and it is the first thing to shorten if
-  it can be shortened.
+  The judge was stubbed on that run, because the shared key was
+  out of credit at the time.
+- **The judge has since been exercised against the real
+  model,** on 22 August 2026, once the key had balance again.
+  Two `POST /api/debate` judge calls on a full eight-speech
+  transcript returned two different ballots — one addressed to
+  each chair — with no `A`/`B` notation left in them, and two
+  streaming `reply` calls came back in the second person with
+  no third-person naming, no em dashes and no markdown. What
+  that does *not* cover is a judge call made from inside a live
+  room by the host and mirrored to the guest: the mirroring is
+  verified against a stubbed ballot only.
+- **The disconnect timing was measured, and the behaviour it
+  was measured against has since changed.** Ably's presence
+  `leave` took **15.2 seconds** to arrive, from a tab closing
+  to the other screen reacting. That number should still hold,
+  because it is Ably's and not ours. What it now causes is
+  different: a room no longer ends when one side goes, so the
+  15 seconds is the delay before the remaining person is told
+  the other chair is empty rather than the delay before they
+  are thrown out of the room. The endings themselves have not
+  been re-triggered with two real browsers since that change,
+  and should be before anyone leans on them.
 - Browser testing has been done on one machine: headless
   Chrome on Windows, with mobile viewports emulated rather
   than run on a physical phone. Layout has been checked down
