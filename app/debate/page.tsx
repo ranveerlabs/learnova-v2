@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AudioControls } from "../audio-controls";
 import { isBusy, postJSON, postStream } from "../client";
 import { play } from "../tone";
-import { Aside, GhostButton, Leaf, Notice, PrimaryButton, Waiting, Wordmark } from "../ui";
+import { Aside, GhostButton, Leaf, Notice, PrimaryButton, Waiting, Working, Wordmark } from "../ui";
 import { PixelTag } from "../paper";
 import { Ballot as BallotCard } from "./ballot";
 import { DEFAULTS, type Defaults, Setup as SetupScreen } from "./setup";
@@ -79,6 +79,30 @@ export default function DebatePage() {
     transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "smooth" });
   }, [turns, thinking, live]);
 
+  /* The eighth speech lands and the round goes to the judge.
+
+     There was a "Get the ballot" button here. Every round in the mode ended
+     the same way: the last speech arrives, there is nothing left to write,
+     nothing left to decide, and the screen asks one more time whether you
+     would like the thing you have been working towards for eight speeches.
+     A button is a question, and the only answer anybody was ever going to
+     give is yes.
+
+     A real round does not work that way either. The final focus ends and the
+     judge starts writing; nobody in the room is asked to confirm it.
+
+     Guarded by a ref rather than by `phase`, because `judge` sets the phase
+     asynchronously and a re-render in between would fire it twice. Ending
+     early still has its own button: that one IS a decision, and it is the
+     one place a person is choosing something. */
+  const sent = useRef(false);
+  useEffect(() => {
+    if (!finished || sent.current || phase !== "arguing" || thinking) return;
+    if (!worthJudging(turns)) return;
+    sent.current = true;
+    void judge();
+  });
+
   /** What the last round was set up as.
 
       Kept here rather than in the setup screen, because the setup screen is
@@ -109,6 +133,8 @@ export default function DebatePage() {
     setDraft("");
     setBallot(null);
     setError(null);
+    /* A new round has its own eighth speech to send. */
+    sent.current = false;
     setPhase("arguing");
   }, []);
 
@@ -397,9 +423,11 @@ export default function DebatePage() {
             </div>
           </>
         ) : judgeable ? (
-          <PrimaryButton onClick={judge}>
-            Get the ballot <Gavel />
-          </PrimaryButton>
+          /* Nothing to press. The round is over and it has already gone to
+             the judge; what is on screen while it does is `judging`, above.
+             This branch is what a full round looks like in the instant
+             between the last speech landing and the effect firing. */
+          <Working label="Sending it to the judge" />
         ) : (
           /* The round is over and there is not enough in it to mark.
 

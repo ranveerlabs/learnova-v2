@@ -632,7 +632,7 @@ export function useRoundSession() {
     if (data.splits.length === 0) return;
 
     const record: RunRecord = {
-      rating: data.rating.earned,
+      rating: data.rating.score,
       runTime: data.runTime,
       openCorrect: data.open?.correct ?? 0,
       openAnswered: data.open?.answered ?? 0,

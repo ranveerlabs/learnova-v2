@@ -1054,12 +1054,24 @@ body {
    A level meter rather than a throb. Scaling on Y from the bottom is what
    makes it read as something being processed rather than a dot with a
    heartbeat, and it is the same accent bar Round Mode's waiting screen uses,
-   which is what stops it being a second idea. */
+   which is what stops it being a second idea.
+
+   ── It was too still ────────────────────────────────────────────────────
+   The first pass ran 0.3 to 1 over 0.85s, and four bars a tenth of a cycle
+   apart. That is a wave, but a shallow one moving slowly: at any moment the
+   four bars are nearly the same height, so what a glance sees is a block
+   that shimmers rather than a meter that is running. A wait indicator is
+   looked at in glances, and it has to read as motion in every one of them.
+
+   So the travel is most of the bar rather than two thirds of it, the cycle
+   is faster, and the stagger is a bigger share of that cycle: the bars are
+   now visibly at different heights at every instant, which is what makes it
+   a wave instead of a pulse. */
 @keyframes working-bar {
   0%,
   100% {
-    transform: scaleY(0.3);
-    opacity: 0.5;
+    transform: scaleY(0.14);
+    opacity: 0.45;
   }
   50% {
     transform: scaleY(1);
@@ -1069,7 +1081,7 @@ body {
 
 .working-bar {
   transform-origin: bottom;
-  animation: working-bar 0.85s ease-in-out infinite;
+  animation: working-bar 0.62s ease-in-out infinite;
 }
 
 

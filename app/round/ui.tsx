@@ -43,7 +43,21 @@ const RUNGS: { key: 0 | Round; label: string }[] = [
     Leaving the last rung drawn as the current one told a student who had just
     completed the whole session that they were still standing on it, with one
     square unfilled, which is the one moment the rail should be saying the
-    opposite. A cleared ladder is the reward for clearing it. */
+    opposite. A cleared ladder is the reward for clearing it.
+
+    ── The colours are the app's, not the marker's ──────────────────────────
+    A cleared rung was --solid-mark and the word under it --solid-ink, which
+    are marking colours: the green that means an answer was right. Progress
+    through five stages is not an answer being right. It says nothing about
+    whether the student got anything correct, only that they walked past it,
+    and borrowing the mark's green for that spends the one colour in the app
+    that is supposed to mean something specific on something that means
+    nothing of the kind.
+
+    So the rail uses the stationery pair the rest of the chrome uses — the
+    mint of the music toggle for a rung behind you, the star's gold for the
+    rung you are standing on. The same swap the audio toggles already made,
+    and for the same reason. */
 export function LadderRail({ stage, finished = false }: { stage: 0 | Round; finished?: boolean }) {
   const here = RUNGS.find((r) => r.key === stage);
 
@@ -64,9 +78,9 @@ export function LadderRail({ stage, finished = false }: { stage: 0 | Round; fini
               className="grid h-2.5 w-2.5 place-items-center"
             >
               {done ? (
-                <span className="block h-2.5 w-2.5 rounded-[2px] bg-solid-mark" />
+                <span className="block h-2.5 w-2.5 rounded-[2px] bg-supply-mint" />
               ) : current ? (
-                <span className="block h-2.5 w-2.5 rounded-full border-[2px] border-accent" />
+                <span className="block h-2.5 w-2.5 rounded-full border-[2px] border-supply-gold" />
               ) : (
                 <span className="block h-1.5 w-1.5 rounded-full bg-line-strong" />
               )}
@@ -81,7 +95,7 @@ export function LadderRail({ stage, finished = false }: { stage: 0 | Round; fini
         <span
           style={NARROW}
           className={`truncate font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
-            finished ? "text-solid-ink" : "text-ink-soft"
+            finished ? "text-supply-mint" : "text-ink-soft"
           }`}
         >
           {finished ? "Finished" : here?.label}

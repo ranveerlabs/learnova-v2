@@ -166,9 +166,14 @@ export function asTranscript(turns: LiveTurn[], mine: Side): Turn[] {
     round they lost, in the largest type on the screen, with a scoresheet
     agreeing.
 
-    Three fields carry the sides and all three turn over. `draw` is its own
+    Four fields carry the sides and all four turn over. `draw` is its own
     case and is left alone, which is why this is spelled out rather than
-    written as a flip somebody would later simplify wrongly. */
+    written as a flip somebody would later simplify wrongly.
+
+    `feedback` was the one that got missed, and it was the worst one to
+    miss: the scoresheet being upside down is something a debater notices,
+    and being told in the second person that your rebuttal was gibberish
+    when it was the other person's rebuttal is not. */
 export function mirror(ballot: Ballot): Ballot {
   return {
     ...ballot,
@@ -179,6 +184,8 @@ export function mirror(ballot: Ballot): Ballot {
       ...m,
       speaker: m.speaker === "user" ? "opponent" : "user",
     })),
+    feedback: ballot.feedback_opponent,
+    feedback_opponent: ballot.feedback,
   };
 }
 
@@ -236,4 +243,11 @@ export type Wire =
     Being told the wrong one is worse than being told neither, because a
     student whose partner's train went into a tunnel should not spend the
     evening thinking they were walked out on. */
-export type Closed = "left" | "gone" | "idle" | "done";
+/** Why a room ended, for the person looking at the screen when it does.
+
+    There used to be a "gone" here, for the other side dropping out of
+    presence. That does not end a room any more — see `onLeave` in
+    channel.ts — so the only ways out are the two decisions and the timer:
+    you left, the round finished and was closed, or nothing happened in it
+    for ten minutes. */
+export type Closed = "left" | "idle" | "done";

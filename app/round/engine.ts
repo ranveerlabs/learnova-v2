@@ -416,7 +416,21 @@ export function splitTotal(splits: Split[]): number {
    concepts actually asked for. It is what makes the number mean something
    without a leaderboard, and what the colour band is computed from, since a
    raw total says nothing on its own when a short session and a long one are
-   scored on different denominators. */
+   scored on different denominators.
+
+   ── Why the screen shows a score out of ten ──────────────────────────────
+   The results screen used to lead with the raw pair: "+1,380" over "of
+   2,280". Both numbers are honest and the denominator was there precisely
+   because the numerator means nothing alone — but four digits over four
+   digits is arithmetic handed to somebody to do, at the exact moment they
+   want to know one thing. Nobody reads 1,380 of 2,280 as a proportion; they
+   read it as a big number and then have to work.
+
+   `score` is that division already done, on a scale everybody has used
+   since school. It throws away nothing the reader was going to use: the
+   weights still decide it, `share` still drives the colour band, and a 6 is
+   a 6 whether the session ran eight questions or thirty, which is the one
+   thing the raw pair could never say without being read twice. */
 
 const STAGE_WEIGHT: Record<number, number> = {
   0: 1, // warm up, before studying
@@ -441,12 +455,24 @@ const PRODUCTION_VALUE: Record<Production["outcome"], number> = {
 const PRODUCTION_BEST = PRODUCTION_VALUE.solid;
 
 export type Rating = {
-  /** The number the student is shown. */
+  /** The weighted total. Not shown any more; `score` is what the screen
+      leads with. Kept because it is what `possible` is a denominator of,
+      and dropping it would leave `share` a bare fraction with nothing
+      behind it. */
   earned: number;
   /** What this session was worth if nothing had been missed. */
   possible: number;
   /** `earned / possible`, 0 when there was nothing to earn. Drives the band. */
   share: number;
+  /** `share` out of ten, whole. The one number the student is shown.
+
+      Rounded rather than floored, so a run that got nearly everything does
+      not read as a 9, and a run that got almost nothing does not read as a
+      1. It is also what is kept as the best on a topic, which only works
+      because it is a proportion: two runs of different lengths on the same
+      topic are comparable on this scale and were not comparable on the raw
+      total the record used to keep. */
+  score: number;
   /** Which of the three colour bands `share` falls in. */
   band: "strong" | "fair" | "weak";
 };
@@ -476,7 +502,7 @@ export function rating(answers: Answer[], productions: Production[]): Rating {
   const share = possible > 0 ? earned / possible : 0;
   const band = share >= 0.75 ? "strong" : share >= 0.45 ? "fair" : "weak";
 
-  return { earned, possible, share, band };
+  return { earned, possible, share, score: Math.round(share * 10), band };
 }
 
 /** The quickest correct answer so far. Only correct ones count: the fastest

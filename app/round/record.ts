@@ -52,7 +52,9 @@ export type TopicRecord = {
   /** Normalised, and what everything is keyed on. */
   key: string;
   runs: number;
-  /** Best rating on this topic. Topic scoped on purpose: see `bestFor`. */
+  /** Best score out of ten on this topic. Topic scoped on purpose: see
+      `bestFor`, and `score` in engine.ts for why it is a proportion rather
+      than the weighted total this used to hold. */
   bestRating: number;
   lastRun: number;
   concepts: ConceptRecord[];
@@ -165,16 +167,24 @@ export function openConcepts(record: TopicRecord | null): string[] {
   return record.concepts.filter((c) => isOpen(c.standing)).map((c) => c.concept);
 }
 
-/** The best rating to beat on a topic.
+/** The best score to beat on a topic.
 
     Topic scoped, which is a correction rather than a feature. The best was
     held in a ref for the tab and compared across whatever the student had
     played, so a strong run on supply and demand set the bar for their next run
     on the French Revolution. Those are different question sets with different
-    totals and the comparison never meant anything. */
+    totals and the comparison never meant anything.
+
+    Anything above ten was written by a build that kept the weighted total
+    here, and it is dropped rather than converted. There is no honest way to
+    turn 1,380 into a score without the denominator it was earned against,
+    and that was never stored. A student who studied on an older build keeps
+    every concept standing in this record and loses only the bar, which the
+    next run they finish sets again. */
 export function bestFor(topic: string): number | null {
   const record = recordFor(topic);
-  return record && record.runs > 0 ? record.bestRating : null;
+  if (!record || record.runs === 0) return null;
+  return record.bestRating > 10 ? null : record.bestRating;
 }
 
 /* ── Writing a finished run back ─────────────────────────────────────────── */
@@ -229,7 +239,12 @@ export function rememberRun(topic: string, data: Reveal): void {
     topic: topic.trim(),
     key,
     runs: (existing?.runs ?? 0) + 1,
-    bestRating: Math.max(existing?.bestRating ?? 0, data.rating.earned),
+    /* An older build's weighted total is not a bar this run has to clear, so
+       it is replaced rather than maxed against. See `bestFor`. */
+    bestRating: Math.max(
+      (existing?.bestRating ?? 0) > 10 ? 0 : (existing?.bestRating ?? 0),
+      data.rating.score
+    ),
     lastRun: now,
     concepts: [...merged.values()],
   };

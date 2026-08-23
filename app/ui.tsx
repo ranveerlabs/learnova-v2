@@ -375,7 +375,8 @@ function Meter({ small = false }: { small?: boolean }) {
         <span
           key={i}
           className={`working-bar block rounded-[1px] bg-accent ${small ? "w-[3px]" : "w-2"}`}
-          style={{ height, animationDelay: `${i * 120}ms` }}
+          /* A fifth of the cycle apart, so the four bars are never level. */
+          style={{ height, animationDelay: `${i * 125}ms` }}
         />
       ))}
     </span>

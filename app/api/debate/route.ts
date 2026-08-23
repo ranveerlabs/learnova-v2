@@ -239,7 +239,9 @@ const BALLOT_VOICE = `HOW THE WRITTEN COMMENTS READ. You are a judge scribbling 
 
 No praise sandwiches, no encouragement filler, no "overall". Say the thing.
 
-WHO EVERY "YOU" REFERS TO. Debater A, and nobody else. All three feedback lines are about what A did.
+WHO EVERY "YOU" REFERS TO. In "feedback", Debater A and nobody else: all three lines there are about what A did. In "feedback_opponent" you write the same three lines about Debater B, addressed to B as "you" in exactly the same voice. Two separate ballots, one for each chair.
+
+The two must not be the same ballot twice. If A's weakness was dropping the cost turn, that is A's weakness, and B's ballot says what B did — very likely that B pressed the cost turn and never got an answer. Writing one debater's comments into both fields tells the losing debater they made the winner's arguments, and the person reading it has no way to know it happened.
 
 Before you write a line of praise, find the speech it came from and check whose it is. Crediting A with an argument B made is the worst thing you can do on this ballot: it is the one error the student cannot catch, because it tells them they made a point they never thought of, and they will walk into the next round believing it. If the good argument in this round was B's, that belongs in "biggest_weakness" as something A failed to answer, or in a key moment with "speaker": "opponent". It never belongs in "biggest_strength".
 
@@ -260,6 +262,11 @@ const CONTRACT = `Output ONLY valid JSON, no markdown fences, no preamble, match
     { "speaker": "user" | "opponent", "quote_paraphrase": "string, under 18 words", "why_it_mattered": "string, under 20 words" }
   ],
   "feedback": {
+    "biggest_strength": "string, under 25 words",
+    "biggest_weakness": "string, under 25 words",
+    "one_fix_for_next_round": "string, under 25 words"
+  },
+  "feedback_opponent": {
     "biggest_strength": "string, under 25 words",
     "biggest_weakness": "string, under 25 words",
     "one_fix_for_next_round": "string, under 25 words"
@@ -363,7 +370,6 @@ function isBallotish(v: unknown): v is Record<string, unknown> {
 
 function tidy(raw: Record<string, unknown>): Ballot {
   const scores = (raw.scores ?? {}) as Record<string, unknown>;
-  const feedback = (raw.feedback ?? {}) as Record<string, unknown>;
   const said = (v: unknown, fallback: string) =>
     typeof v === "string" && v.trim() ? v.trim() : fallback;
 
@@ -382,11 +388,22 @@ function tidy(raw: Record<string, unknown>): Ballot {
         why_it_mattered: said(m.why_it_mattered, ""),
       }))
       .filter((m) => m.quote_paraphrase && m.why_it_mattered),
-    feedback: {
-      biggest_strength: said(feedback.biggest_strength, "Not given."),
-      biggest_weakness: said(feedback.biggest_weakness, "Not given."),
-      one_fix_for_next_round: said(feedback.one_fix_for_next_round, "Not given."),
-    },
+    feedback: readFeedback(raw.feedback),
+    /* Absent is survivable and is not filled in from the other side. A
+       ballot that quietly reused A's comments for B is the exact failure
+       this field was added to stop, so a judge that skipped it says so. */
+    feedback_opponent: readFeedback(raw.feedback_opponent),
+  };
+}
+
+function readFeedback(v: unknown): Ballot["feedback"] {
+  const f = (v ?? {}) as Record<string, unknown>;
+  const said = (x: unknown) =>
+    typeof x === "string" && x.trim() ? x.trim() : "Not given.";
+  return {
+    biggest_strength: said(f.biggest_strength),
+    biggest_weakness: said(f.biggest_weakness),
+    one_fix_for_next_round: said(f.one_fix_for_next_round),
   };
 }
 

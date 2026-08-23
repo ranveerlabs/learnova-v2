@@ -14,11 +14,12 @@ import {
   Notice,
   PrimaryButton,
   Waiting,
+  Working,
   Wordmark,
 } from "@/app/ui";
 import { PixelTag } from "@/app/paper";
 import { Ballot as BallotCard } from "../../ballot";
-import { Gavel, Opening, Said, SpeechRail } from "../../transcript";
+import { Opening, Said, SpeechRail } from "../../transcript";
 import {
   type Ballot,
   MIN_WORDS_TO_JUDGE,
@@ -212,6 +213,29 @@ function Room({ code }: { code: string }) {
     }
   }
 
+  /* The eighth speech lands and the host sends it, without being asked.
+
+     Same change as the single-player mode and for the same reason: a button
+     is a question, and after eight speeches there is only one answer. Here
+     it also removes a wait that was somebody else's — the guest used to sit
+     on "waiting for the ballot" for as long as the host took to notice the
+     round was over and press a button.
+
+     Host only, which is the same rule the button obeyed: one API call, one
+     caller. The guard is a ref because `judge` sets its state
+     asynchronously, and `judgeable` is checked here for the same reason the
+     button checked it — a round nobody really argued is not sent. */
+  const sent = useRef(false);
+  useEffect(() => {
+    if (role !== "host" || room.stage !== "open") return;
+    if (sent.current || judging || room.ballot) return;
+    if (toSpeak(room.turns) !== null) return;
+    const mine = wordsSpoken(asTranscript(room.turns, setup?.side ?? "Pro"));
+    if (mine === 0) return;
+    sent.current = true;
+    void judge();
+  });
+
   /* ── Everything that is not a debate ──────────────────────────────────── */
 
   if (room.stage === "connecting") {
@@ -297,7 +321,7 @@ function Room({ code }: { code: string }) {
                null and the screen must not print "undefined left the room".
                An unexplained ending is a vanished opponent, which is the
                one that happens without anybody sending a reason. */
-            reason={room.closed ?? "gone"}
+            reason={room.closed ?? "left"}
             departed={room.departed}
           />
         </div>
@@ -314,9 +338,7 @@ function Room({ code }: { code: string }) {
               ? "Nothing happened in it for ten minutes, so it let go. That is what stops abandoned tabs holding rooms open."
               : room.closed === "done"
                 ? "That is the end of the round. Nothing from it was saved anywhere, here or on the server."
-                : room.closed === "gone"
-                  ? "The other person's connection went and did not come back. A room is the two people attached to it, so there is nothing left here to wait in. Nothing was saved anywhere."
-                  : "The other person left."
+                : "You left the room."
           }
         />
       </div>
@@ -559,19 +581,16 @@ function Share({ code }: { code: string }) {
         type it in.
       </p>
 
-      {/* Still waiting, said with motion instead of a sentence.
+      {/* There was a pulsing dot here, and before that a dot with a sentence
+          beside it saying the round starts when they join. The sentence went
+          first because it described the only thing that could happen next.
+          The dot went after it, for the reason the sentence did not survive
+          being alone: a bare pulse with nothing to label it is not an
+          indicator, it is a mark on the page that moves.
 
-          The line beside this used to spell it out — waiting for them, the
-          round starts the moment they join — and the second half of that is
-          not information, it is a description of the only thing that could
-          possibly happen next. The pulse is the part that was doing work: it
-          says the room is live and listening rather than a screen that has
-          stopped. The words are for a screen reader, which cannot see a dot
-          pulse. */}
-      <span className="relative flex h-2 w-2 shrink-0" role="status" aria-label="Waiting for someone to join">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-      </span>
+          Nothing replaces it. The screen is a code the size of a headline
+          and a line telling somebody what to do with it, and a room that is
+          waiting looks exactly like a room that is waiting. */}
     </div>
   );
 }
@@ -670,11 +689,11 @@ function Closing({
     );
   }
 
+  /* The host, with the round already on its way to the judge. There is
+     nothing to press: see the effect in the room screen. */
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <PrimaryButton onClick={onJudge}>
-        Get the ballot <Gavel />
-      </PrimaryButton>
+      <Working label="Sending it to the judge" />
       <Leave onLeave={onLeave} />
     </div>
   );
@@ -709,14 +728,6 @@ function ended(reason: Closed, myRole: Role, departed: Departure | null): string
   const theirs: Role = departed?.role ?? (myRole === "host" ? "guest" : "host");
   const who = theirs === "host" ? "The person who opened the room" : "The person who joined";
   const when = departed ? ` at ${clock(departed.at)}` : "";
-
-  if (reason === "gone") {
-    /* The honest caveat, and it is not pedantry. This timestamp is when Ably
-       declared them gone, which is several seconds after the tab actually
-       shut, and somebody comparing it against "but they messaged me at
-       9:04" deserves to know which of the two numbers is approximate. */
-    return `${who} dropped out${when}. That is the moment the room noticed rather than the moment they closed the tab: a connection is given a few seconds to come back before it counts as gone, so they may have left slightly earlier than that.`;
-  }
 
   /* "left" rather than "left the room", and "closed it" rather than "closed
      the room". Both subjects already end in the word room — the seat is

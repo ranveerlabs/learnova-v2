@@ -86,25 +86,33 @@ channel named after the code, the two people attached to it
 are its entire state, and it stops existing when they both
 close the tab. An idle room lets go after ten minutes.
 
-**A round only survives while both of you do.** If one side
-goes mid-debate — the Leave button, a closed tab, a connection
-that dies — the round ends for the other person there and
-then. What they get is not a dead end: it is a screen showing
-how far it got, which speech never came, every word either of
-you wrote, and who left and when. There is no ballot for it
-and no winner, because a ballot weighs two finished cases and
-an interrupted round has neither. There is also no rejoining,
-because there is nothing left to rejoin. The one exception is
-a round where all eight speeches were already given — that
-transcript is complete, so whoever opened the room can still
-send it to the judge after the other person has gone.
+**A room closes when the last person leaves it, not the
+first.** If one side goes mid-debate — the Leave button, a
+closed tab, a connection that dies — the seat empties and the
+room carries on for whoever is still in it. A host is back to
+their code and can be joined again; a guest is told the other
+chair is empty. Nobody is thrown out of a room they did not
+leave, which is what used to happen, and a dropped phone on a
+train no longer reads as a decision.
+
+What the round cannot do is continue with one person in it.
+There is no ballot for a debate that stopped partway and no
+winner, because a ballot weighs two finished cases and an
+interrupted round has neither. The exception is a round where
+all eight speeches were already given: that transcript is
+complete, so it still goes to the judge.
 
 Two consequences worth knowing before you use it. Nothing
 about a live room is written down anywhere — not the room,
-not the transcript, not the result. And a hard
-reload of a room URL ends that room rather than rejoining it,
-because the connection that was the room went down with the
-page. The screen says so and offers a new one.
+not the transcript, not the result. And a hard reload of a
+room URL ends that room rather than rejoining it, because the
+connection that was the room went down with the page. The
+screen says so and offers a new one.
+
+**Nobody presses "get the ballot".** The eighth speech lands
+and the round goes to the judge, in both modes. There is still
+a button for ending a round early, because that is a decision;
+finishing one is not.
 
 **Won and lost, and nothing kept.** A judged debate ends on a
 verdict — you won it, a draw, you lost it — and that is the
@@ -201,10 +209,17 @@ database.
 
 `learnova.record.v1` — per topic you have studied: the topic
 as you typed it, a normalised key, how many runs you have
-done on it, your best rating on it, when you last ran it, and
-for each concept its name, its standing, the highest round you
-ever answered it correctly in, how many runs asked about it,
-and when it was last seen.
+done on it, your best score out of ten on it, when you last
+ran it, and for each concept its name, its standing, the
+highest round you ever answered it correctly in, how many runs
+asked about it, and when it was last seen.
+
+The best used to be a raw weighted total in the thousands.
+Anything above ten in that field was written by an older build
+and is ignored rather than converted, because converting it
+would need the denominator it was earned against and that was
+never stored. Your concept standings survive; the bar resets
+on the next run you finish.
 
 That is the only key this build touches. Debates are not
 stored at all: no result, no won-lost record, no count of

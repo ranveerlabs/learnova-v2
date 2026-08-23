@@ -313,7 +313,6 @@ export default function Home() {
               provenance={s.provenance}
               best={s.best}
               previously={s.previously}
-              runs={s.runCount}
               droppedTotal={s.droppedTotal}
               sampled={s.sampled}
               onAgain={s.again}

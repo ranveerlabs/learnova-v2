@@ -176,11 +176,29 @@ export type Ballot = {
   /** 1 razor-thin to 10 blowout. Scales how far the rating moves. */
   margin: number;
   key_moments: KeyMoment[];
-  feedback: {
-    biggest_strength: string;
-    biggest_weakness: string;
-    one_fix_for_next_round: string;
-  };
+  /** Written about the person reading it. */
+  feedback: Feedback;
+  /** The same three lines about the other chair.
+
+      Single-player never shows these: there is nobody on the other side who
+      wants coaching, and printing the model's notes on its own performance
+      would be the mode talking about itself. They exist for the live room,
+      where the other chair is a person, only one of the two tabs calls the
+      judge, and `mirror` has to be able to hand each of them their own.
+
+      Before this existed `mirror` turned over the winner, the scores and
+      the key moments and left `feedback` alone, so both players read the
+      host's strength and the host's weakness as though it were theirs. The
+      guest was told they named Studio and limiteds when the host had, and
+      told their own rebuttal was gibberish when it was the host's. That is
+      the one class of error a debater cannot catch from the screen. */
+  feedback_opponent: Feedback;
+};
+
+export type Feedback = {
+  biggest_strength: string;
+  biggest_weakness: string;
+  one_fix_for_next_round: string;
 };
 
 /** How many exchanges a round runs for. Four speeches each way is a real

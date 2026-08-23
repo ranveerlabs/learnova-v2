@@ -334,6 +334,17 @@ export function useRoom({
         }
         case "room_closed": {
           const { reason } = msg.data as { reason: Closed };
+
+          /* "left" is somebody standing up, not the room ending, and it is
+             handled the same way a presence leave is: the seat empties and
+             whoever is still here stays where they are. Only "done" — the
+             round is over and read — and "idle" close a room out from
+             under the person reading it. */
+          if (reason === "left") {
+            setTogether(false);
+            return;
+          }
+
           setClosed(reason);
           setStage("closed");
           return;
@@ -382,30 +393,30 @@ export function useRoom({
         given is a complete transcript, and a complete transcript can still
         be judged; the person left holding it should get their ballot rather
         than a notice about somebody who has no further part to play. That
-        is the `toSpeak` check, which is null exactly when all eight
-        speeches are in.
+        ── One person leaving is not the room ending ────────────────────────
+        This used to close the room outright when the other seat emptied
+        mid-round, on the reasoning that a debate with one person in it
+        cannot continue. That is true of the debate and it was not true of
+        the room: it threw the person still sitting there out of a room they
+        had not left, took the code off the screen, and made a dropped phone
+        on a train indistinguishable from a decision.
 
-        It does not overwrite a reason we already have. Somebody who presses
-        the button publishes `room_closed` while still connected and only
-        drops out of presence later, so both paths fire for one departure
-        and the message is the truthful one — it knows the leaving was a
-        decision, and this handler cannot tell that from a dead router. */
+        So a leave now empties a seat and nothing more. `together` goes
+        false, the screen says so — the host is back to the code, a guest
+        mid-round gets the line about the transcript being complete — and
+        the room goes on existing for as long as somebody is in it. It ends
+        when the last person leaves, which needs no handler at all: a
+        channel with nobody attached is not a room, and the idle timer
+        collects the tab that was left open.
+
+        `departed` is still recorded. It is the only thing carrying a
+        timestamp for when the other seat emptied, and the screen wants to
+        be able to say when. */
     const onLeave = (m: PresenceMessage) => {
       if (m.clientId === clientId) return;
       stir();
       setTogether(false);
-
-      /* Recorded before any of the guards below, and deliberately outside
-         them. Even when the room has already been closed by their
-         `room_closed` message, this presence leave is the only thing
-         carrying a timestamp, and the screen wants to say when. */
       setDeparted({ role: roleOf(m), at: m.timestamp });
-
-      if (stageAt.current !== "open") return;
-      if (toSpeak(round.current) === null) return;
-
-      setClosed((already) => already ?? "gone");
-      setStage("closed");
     };
 
     void (async () => {

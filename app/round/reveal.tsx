@@ -100,7 +100,6 @@ export function Reveal({
   provenance,
   best,
   previously,
-  runs,
   droppedTotal,
   sampled,
   onAgain,
@@ -120,7 +119,6 @@ export function Reveal({
   /** Where each concept stood before this run, keyed as the record keys them.
       Empty on a first visit, which is what makes "moved" sayable at all. */
   previously: Record<string, Standing>;
-  runs: number;
   /** Same topic, new questions. */
   onAgain: () => void;
   /** Back to the entry screen for something else. */
@@ -128,9 +126,9 @@ export function Reveal({
 }) {
   const produced = data.productions.length > 0;
   const demonstrated = data.productions.filter((p) => p.outcome === "solid").length;
-  const { earned, possible } = data.rating;
+  const { score } = data.rating;
   const band = BAND[data.rating.band];
-  const beatBest = best !== null && earned > best.rating;
+  const beatBest = best !== null && score > best.rating;
 
   /* What this run changed, against where the last one left off.
 
@@ -174,9 +172,18 @@ export function Reveal({
         </h2>
       </div>
 
-      {/* The rating, and what it is out of. The denominator is not decoration:
-          a bare "+740" says nothing when a short session and a long one are
-          scored on different totals. */}
+      {/* The score.
+
+          It was the raw pair — "+1,380" with "of 2,280" beside it — and the
+          denominator was there for a good reason: a bare weighted total says
+          nothing when a short session and a long one are scored out of
+          different amounts. The trouble is that it left the reader holding
+          two four-digit numbers and a division, at the one moment they want
+          a single answer to a single question.
+
+          So the division is done. Everything the pair was protecting is
+          still true of the number that replaced it, because it IS the
+          proportion: see `score` in engine.ts. */}
       <div
         className={`stage-in flex w-fit min-w-[16rem] max-w-full flex-col gap-2 rounded-[3px] border-l-[5px] py-4 pl-4 pr-8 ${band.rule} ${band.wash}`}
         style={{ ["--i" as string]: 1 }}
@@ -185,11 +192,9 @@ export function Reveal({
           <span
             className={`font-mono text-[clamp(3rem,2rem+4vw,5rem)] font-bold leading-none tabular-nums ${band.ink}`}
           >
-            +{earned.toLocaleString()}
+            {score}
           </span>
-          <span className="font-mono text-[1.125rem] tabular-nums text-ink-faint">
-            of {possible.toLocaleString()}
-          </span>
+          <span className="font-mono text-[1.125rem] tabular-nums text-ink-faint">out of 10</span>
         </div>
 
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -201,7 +206,7 @@ export function Reveal({
           </span>
           {best !== null && (
             <span className="font-mono text-[0.8125rem] tabular-nums text-ink-faint">
-              {beatBest ? "new best, was" : "best"} +{best.rating.toLocaleString()}
+              {beatBest ? "new best, was" : "best"} {best.rating}
             </span>
           )}
         </p>
@@ -371,24 +376,31 @@ export function Reveal({
             })}
           </ol>
 
+          {/* The control, without the essay that used to surround it.
+
+              Three sentences stood here: how the rating is weighted, that
+              speed is not in it, how many runs this tab had seen, and what
+              local storage keeps. All four were true and all four were read
+              by nobody, because they sat at the bottom of a fold at the
+              bottom of a results screen, which is the last place on the
+              screen anybody looks and the place a footnote goes to be
+              ignored. What is left is the one thing here that DOES
+              something.
+
+              The storage sentence is not lost, it has moved somewhere it can
+              be checked: the Privacy section of the README names the key and
+              says what is in it. That is the right home for a claim somebody
+              might want to hold the app to, and a better one than grey type
+              nobody scrolls to.
+
+              Pressed, it says one word. "Forgotten. This topic starts fresh
+              next time." explained a consequence that is already obvious
+              from the button having said "Forget"; the word on its own is
+              the confirmation, and confirmation is all that was needed. */}
           <p className="font-sans text-[0.75rem] leading-[1.6] text-ink-faint">
-            <span title="Later rounds are worth more than earlier ones because the help comes away as you climb, and Round 4 is worth the most because nothing was on screen at all.">
-              The rating counts every answer, weighted by how little help you had. Speed is not part
-              of it.
-            </span>{" "}
-            {runs > 1 && <>{runs} runs this tab. </>}
-            {/* This used to read "Nothing is saved", and it was true until a
-                run started leaving something behind. What replaced it says
-                exactly what is kept and exactly where, because the difference
-                between "on this device" and "in your account" is the whole of
-                what a student needs to know to predict whether their progress
-                will be there tomorrow, and there is still no account. */}
-            <span title="A concept name and how it went, in this browser's local storage. Your answers and anything you wrote are not kept and never leave the page.">
-              {forgotten
-                ? "Forgotten. This topic starts fresh next time."
-                : "Which concepts you have explained is kept in this browser, so the next run on this topic can open on the ones you have not. Nothing you wrote is kept, and none of it leaves this device."}
-            </span>{" "}
-            {!forgotten && (
+            {forgotten ? (
+              "Forgotten."
+            ) : (
               <button
                 onClick={() => {
                   forget(topic);
