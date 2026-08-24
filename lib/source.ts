@@ -1,42 +1,7 @@
-/* What counts as material worth reading.
-
-   A session is only honest if there was something in the source to extract.
-   Given a word or two, or a handful of mashed keys, the model will still
-   return "concepts": plausible, fluent, and about nothing the student
-   pasted. So the floor is enforced before any request is made, and again on
-   the route, and it is stated in the interface rather than sprung as an
-   error.
-
-   Two gates, in order of cost. Length comes first because it is exact. Then
-   substance, which asks whether the characters look like prose at all.
-
-   Length is one number on purpose. There used to be a word floor beside it,
-   and two floors where clearing one still blocks you is just confusing: real
-   notes cleared 40 words by a margin of zero while the character count was
-   never in doubt. Characters subsume the job anyway, since the substance
-   check is what actually catches 200 characters of nonsense. */
-
-/** About a paragraph. Below this there is nothing to extract concepts from. */
 export const MIN_SOURCE_CHARS = 200;
 
-/** And a ceiling, for the opposite reason.
-
-    Material longer than a prompt can hold is thinned to an even spread of
-    itself before it reaches the model, so length is not by itself a problem
-    and most of a long chapter is handled. This is where that stops being
-    worth doing: past it, the paste is mostly text that will be sampled out,
-    and the whole of it would still cross the wire on each of the four calls
-    a run makes.
-
-    Stated here, in the same place as the floor and for the same reason. The
-    route enforces it too, but a limit a student only meets as a failed
-    request is a limit the interface never told them about. */
 export const MAX_SOURCE_CHARS = 100_000;
 
-/* The everyday words that hold English sentences together. Real prose is
-   roughly a third function words; keyboard mash has almost none. The list is
-   deliberately short and dull: it is a signal of grammar, not of vocabulary,
-   so adding topic words would only weaken it. */
 const COMMON_WORDS = new Set([
   "a", "about", "after", "all", "also", "an", "and", "any", "are", "as", "at",
   "be", "because", "been", "before", "being", "between", "both", "but", "by",
@@ -58,20 +23,12 @@ function tokenize(source: string): string[] {
 }
 
 type Signals = {
-  /** Mean token length. English prose runs near 4.7; mashed keys near 1. */
   avgWordLength: number;
-  /** Share of tokens that are everyday English words. */
   commonRatio: number;
-  /** How many distinct everyday words appear at all. */
   distinctCommon: number;
-  /** Share of tokens that are a single character. */
   singleCharRatio: number;
-  /** Share of letters that immediately repeat the letter before them. */
   repeatedCharRatio: number;
-  /** Share of letters that are vowels. English runs near 0.38. */
   vowelRatio: number;
-  /** Share of letters that are a to z, used to tell whether the English
-      specific signals mean anything for this text at all. */
   latinRatio: number;
 };
 
@@ -93,8 +50,6 @@ function measure(source: string): Signals {
     }
   }
 
-  /* Repeats and vowels are counted over letters within words, so spacing and
-     punctuation cannot dilute either ratio. */
   let letters = 0;
   let latin = 0;
   let vowels = 0;
@@ -125,10 +80,6 @@ function measure(source: string): Signals {
   };
 }
 
-/* Any one signal can misfire on legitimate material: telegraphic bullet notes
-   carry almost no function words, a formula list carries almost no vowels. So
-   nothing is rejected on a single signal. Two independent failures is the bar,
-   and mashed keys trip four. */
 function substanceFailures(source: string): string[] {
   const s = measure(source);
   const english = s.latinRatio >= 0.6;
@@ -153,16 +104,10 @@ function substanceFailures(source: string): string[] {
   return reasons;
 }
 
-/* Everything the interface needs to describe where a source stands, decided
-   in exactly one place. The gauge, the button and the route all read this, so
-   none of them can advertise a threshold that is not the real one. */
 export type SourceStatus =
   | { state: "empty" }
-  /** Short of the character floor. `progress` runs 0 to 1 toward it. */
   | { state: "short"; chars: number; progress: number }
-  /** Past the ceiling. More material than one session can work through. */
   | { state: "too-long"; chars: number }
-  /** Long enough, but it does not read like prose. */
   | { state: "unreadable"; chars: number; reasons: string[] }
   | { state: "ready"; chars: number };
 
@@ -186,7 +131,6 @@ export function sourceStatus(source: string): SourceStatus {
   return { state: "ready", chars };
 }
 
-/** The reason this source cannot start a session, or null if it can. */
 export function sourceProblem(source: string): string | null {
   const status = sourceStatus(source);
 
@@ -209,4 +153,3 @@ export function sourceProblem(source: string): string | null {
       )}. Paste the actual notes or passage you are studying. Learnova can only test you on ideas that are genuinely in the text, so on this it would invent them.`;
   }
 }
-

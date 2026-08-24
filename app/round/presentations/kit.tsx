@@ -4,49 +4,15 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import "./presentations.css";
 import type { PresentationProps } from "./types";
 
-/* The parts every presentation is built from.
-
-   There are a lot of presentations and only one set of rules, so the rules
-   live here rather than in each of them. Keyboard selection, the shape channel
-   that carries right and wrong without colour, the accessible naming and the
-   commit-once discipline are all implemented once, and a presentation that
-   uses this kit gets them whether its author remembered them or not.
-
-   The visual half is deliberately left open. Everything below takes a
-   className and gets out of the way, because the entire point of having twenty
-   presentations is that they do not look like each other. */
-
-/** Number keys, in the order options are laid out. Six is more than any format
-    asks for and leaves room without needing a second row of keys. */
 export const KEYS = ["1", "2", "3", "4", "5", "6"];
 
-/** What has become of one option. Never rendered as colour alone: `Mark`
-    carries the same state as a glyph, and the verdict line carries it as a
-    word. */
 export type Mood = "idle" | "right" | "wrong" | "dimmed";
 
-/* ── Choosing between options ────────────────────────────────────────────── */
-
-/** Everything a presentation of `recognition` or `choice` needs.
-
-    The keyboard handler is bound here and nowhere else, so "1 to n always
-    selects" is a property of the kit rather than a promise each presentation
-    makes separately. */
-/** Shared plumbing for a presentation whose answer is one of the options.
-
-    `keys` is the one thing a presentation may switch off. The number-key
-    shortcut is right for every board where the options are things you press,
-    and wrong for the one where the answer is a gesture: a wire board that also
-    answers to the 2 key is not a wire board, it is a list of buttons with a
-    picture of a cable next to it. See wire.tsx for what that costs and what
-    pays for it. */
 export function useOptions(props: PresentationProps, { keys = true } = {}) {
   const { question, revealed, chosen, onAnswer } = props;
   const options = useMemo(() => question.options ?? [], [question.options]);
   const answer = question.answerIndex ?? -1;
 
-  /* Commit-once, belt and braces. The session also guards this, and a
-     presentation with a stray click handler should not be able to reach it. */
   const spent = useRef(false);
   useEffect(() => {
     spent.current = false;
@@ -89,12 +55,6 @@ export function useOptions(props: PresentationProps, { keys = true } = {}) {
   return { options, answer, chosen, revealed, pick, moodOf };
 }
 
-/* ── The shared visual vocabulary ────────────────────────────────────────── */
-
-/** Border and fill for a mood, as utility classes. Presentations that want a
-    different shape still want the same colours: a student should not have to
-    relearn what right looks like because the round is drawn as doors this
-    time. */
 export function tone(mood: Mood, { hover = true } = {}): string {
   switch (mood) {
     case "right":
@@ -104,15 +64,12 @@ export function tone(mood: Mood, { hover = true } = {}): string {
     case "dimmed":
       return "border-line bg-page opacity-55";
     case "idle":
-      /* The hover lift is an offer to press, so a board where pressing does
-         nothing must not make it. Only the wire board switches it off. */
       return hover
         ? "border-line-strong bg-page hover:border-accent hover:bg-accent-wash/40"
         : "border-line-strong bg-page";
   }
 }
 
-/** Ink for a mood, for the option's own words. */
 export function ink(mood: Mood): string {
   switch (mood) {
     case "right":
@@ -124,11 +81,6 @@ export function ink(mood: Mood): string {
   }
 }
 
-/** The number key before an answer lands, the outcome as a glyph afterwards.
-
-    This is the shape channel. It is not decoration and it is not optional:
-    without it, right and wrong are a green box and a magenta box, which is a
-    coin flip for a student with deuteranopia. */
 export function Mark({
   index,
   mood,
@@ -137,7 +89,6 @@ export function Mark({
 }: {
   index: number;
   mood: Mood;
-  /** Circular rather than square, for presentations whose shapes are round. */
   round?: boolean;
   className?: string;
 }) {
@@ -162,7 +113,6 @@ export function Mark({
   );
 }
 
-/** An option's words. */
 export function Say({
   children,
   mood,
@@ -179,23 +129,12 @@ export function Say({
   );
 }
 
-/** What a screen reader hears when it lands on an option.
-
-    The number is first because the number is how it is selected. The outcome
-    is appended once there is one, so a student using assistive technology
-    learns the result from the option itself rather than only from the verdict
-    line above it. */
 export function label(index: number, option: string, mood: Mood): string {
   const state =
     mood === "right" ? ", the correct answer" : mood === "wrong" ? ", your answer, wrong" : "";
   return `${index + 1}. ${option}${state}`;
 }
 
-/** The button under every selectable thing.
-
-    A real button, always, whatever is drawn inside it: that is what makes tab
-    order, Enter, Space, focus rings and assistive technology work without each
-    presentation arranging it. */
 export function Pick({
   index,
   option,
@@ -210,13 +149,6 @@ export function Pick({
   option: string;
   mood: Mood;
   revealed: boolean;
-  /** Omitted where the option is not pressable.
-
-      Only the wire board does this, where the answer is a gesture rather than
-      a press. It renders the same rectangle with the same classes and the same
-      label, as a plain element instead of a button: a button that ignores its
-      own click is worse than no button, because it invites the one action that
-      does nothing. */
   onPick?: (i: number) => void;
   className?: string;
   style?: React.CSSProperties;
@@ -241,14 +173,6 @@ export function Pick({
       onClick={() => onPick(index)}
       aria-label={label(index, option, mood)}
       style={{ ["--i" as string]: index, ...style }}
-      /* No position utility here on purpose. It used to set `relative` so a
-         presentation could absolutely position something inside, and that
-         quietly broke any presentation that wanted to position the button
-         ITSELF: Tailwind emits `.relative` after `.absolute`, so passing
-         `absolute` in `className` lost to the base class and the option landed
-         in normal flow instead of where it was placed. Constellation's stars
-         stacked in a column for exactly that reason. Presentations that need a
-         positioning context put `relative` on a wrapper inside. */
       className={`pick text-left disabled:cursor-default ${className}`}
     >
       {children}
@@ -256,12 +180,6 @@ export function Pick({
   );
 }
 
-/** The area a presentation draws in.
-
-    Only two jobs: it is the animation entrance every round shares, and it is
-    the hook `prefers-reduced-motion` and the revealed state hang off, so a
-    presentation can stop everything moving with a CSS selector rather than
-    with a state machine of its own. */
 export function Stage({
   revealed,
   className = "",
@@ -278,13 +196,6 @@ export function Stage({
   );
 }
 
-/* ── Filling a gap ───────────────────────────────────────────────────────── */
-
-/** The commit control for a typed gap.
-
-    An arrow, not a sentence. "Lock it in" was four words on screen during a
-    round that is meant to have none, and the arrow says the same thing to
-    anyone who has used a form before. The accessible name still spells it out. */
 export function Commit({
   onSubmit,
   disabled,

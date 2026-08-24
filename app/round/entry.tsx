@@ -8,25 +8,6 @@ import { Notice } from "../ui";
 import { openConcepts, studied, type TopicRecord } from "./record";
 import { STARTERS } from "./starters";
 
-/* The front door.
-
-   One field, no gate, and the fastest possible path from a topic to a
-   question on screen. The old session opened by asking for a wall of pasted
-   notes, which is a real barrier at the exact moment a student has the least
-   patience for one. Notes are still the better session, so they are offered,
-   but they are never the price of entry.
-
-   The desk furniture is kept from the Teach-Back front door on purpose: this
-   is the same app, and the one screen allowed to have a personality is still
-   allowed to have it. */
-
-/* Starting points, for the student who wants to try this before deciding
-   what to study. Tapping one fills the field and leaves the cursor in it, so
-   it is a starting point rather than a menu.
-
-   The list itself lives in starters.ts, because the server warms these same
-   four topics so that tapping one costs no wait. */
-
 export function Entry({
   onStart,
   error,
@@ -40,12 +21,6 @@ export function Entry({
   const [notesProblem, setNotesProblem] = useState<string | null>(null);
   const field = useRef<HTMLInputElement>(null);
 
-  /* What this browser has studied before, read after mount rather than during
-     render. The record lives in local storage, which does not exist on the
-     server, so reading it while rendering would make the first client render
-     disagree with the HTML that arrived and React would throw the whole tree
-     away. An empty list on the first frame is also the honest default: a
-     student with no history sees exactly the front door they saw before. */
   const [history, setHistory] = useState<TopicRecord[]>([]);
   useEffect(() => {
     setHistory(studied());
@@ -55,25 +30,6 @@ export function Entry({
     field.current?.focus();
   }, []);
 
-  /* The one way into this screen that arrives with something already in it.
-
-     /proof makes the case that a session grounded in real material is a
-     different thing from one written out of a model's memory, and then the
-     way on from it used to be this screen, empty, whose default is a bare
-     topic and therefore the ungrounded half. Somebody who had just been shown
-     why grounding matters had to know to open a fold before they could have
-     any. The demonstration sold the thing and then handed over the other one.
-
-     So the link carries `?demo`, and this fills in the same roofing spec the
-     proof page quotes: notes open, topic named, one press from a grounded run
-     with real citations in it. Nothing is hidden by it. The field is still a
-     field, the notes are still editable, and clearing them is still a session
-     about the topic alone.
-
-     Read from `window` after mount rather than through `useSearchParams`,
-     which would make this statically prerendered route dynamic and want a
-     Suspense boundary around it, and the record below already establishes
-     that reading the browser after mount is how this screen does that. */
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has("demo")) return;
     setTopic(DEMO_TOPIC);
@@ -85,10 +41,6 @@ export function Entry({
     const t = topic.trim();
     if (!t) return;
 
-    /* The topic is ungated by design. Notes are not: a grounded session is
-       only honest if there was something real to ground it in, and the same
-       floor the rest of the app uses decides that. Pasting nothing is
-       always fine, and simply means the session is AI-generated and says so. */
     const trimmed = notes.trim();
     if (trimmed) {
       const problem = sourceProblem(trimmed);
@@ -102,11 +54,6 @@ export function Entry({
     onStart(t, trimmed);
   }
 
-  /* The front door has more on it than a round does, because pasting notes
-     opens a textarea ten rows tall. It does not arrange its own scrolling for
-     that: the shell in page.tsx owns the viewport lock and gives every screen
-     that is not a live question a panel to scroll inside. This one just says
-     how wide it is and gets out of the way. */
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2 sm:gap-8">
       <div className="rise flex flex-col gap-5">
@@ -167,15 +114,6 @@ export function Entry({
           </button>
         </form>
 
-        {/* Where the last run got to.
-
-            This is the whole reason the record exists, and it is the first
-            thing a returning student should be able to act on, so it sits
-            directly under the field rather than at the foot of the screen.
-            What each row leads with is not how well they did, it is what is
-            still unsaid: the point of coming back is the three concepts they
-            could recognise and could not explain, and a row that showed a
-            score would be inviting them to admire a number instead. */}
         {history.length > 0 && (
           <div className="flex flex-col gap-2">
             <p
@@ -194,34 +132,9 @@ export function Entry({
           </div>
         )}
 
-        {/* The "or try" chips stood here. They are gone: the question above
-            is already one line long and answerable by anybody, and four
-            worked examples under it turned "name a topic" into "pick one of
-            these", which is the one reading this screen cannot afford.
-
-            `STARTERS` itself stays. It is still what `lib/warm.ts` warms, and
-            those four are the topics most likely to be typed regardless of
-            whether anything on screen suggests them. */}
-
         {error && <Notice>{error}</Notice>}
       </div>
 
-      {/* Debate mode used to be advertised here, first as a footnote and then
-          as a card. It is a door on the landing page now, chosen before this
-          screen is ever reached, which is where a choice between two modes
-          belongs. This screen is back to having one job. */}
-
-      {/* Notes are the better session and are offered as such, not demanded.
-          Closed by default so the front door stays one field.
-
-          It is a fold that opens and closes, rather than a link that swaps
-          itself for a panel with a "Skip this" out of it. Same control both
-          ways: the thing you pressed to open it is the thing you press to
-          shut it, and it is still there to press, which a one-way link is
-          not. The prose that used to sit inside — what a citation check buys
-          you — is gone; somebody opening a box labelled "I have notes to
-          paste" has already decided, and the paragraph was three sentences
-          standing between them and the box. */}
       <details
         open={showNotes}
         onToggle={(e) => setShowNotes((e.currentTarget as HTMLDetailsElement).open)}
@@ -257,12 +170,6 @@ export function Entry({
   );
 }
 
-/** Roughly how long ago, in the words somebody would actually use.
-
-    Rough on purpose. The record keeps a timestamp because ordering needs one,
-    but "today" and "3 days ago" is the entire resolution this screen has any
-    use for, and a precise date would read as a log entry rather than as a
-    memory of having studied. */
 function ago(when: number): string {
   const days = Math.floor((Date.now() - when) / 86_400_000);
   if (days <= 0) return "today";
@@ -273,17 +180,6 @@ function ago(when: number): string {
   return `${Math.floor(days / 30)} months ago`;
 }
 
-/** One topic this browser has studied, and what is still unsaid on it.
-
-    Starting is one tap rather than filling the field, which is the difference
-    between this and the starter chips beside it. A starter is a suggestion
-    about what to study and wants the cursor left in the box; this is a topic
-    the student already chose and already worked on, and asking them to choose
-    it a second time is a step with nothing in it.
-
-    It does not carry their notes back. Nothing they wrote is kept, so a run
-    resumed here is written from the topic and the provenance badge will say
-    so on every screen, the same as any other topic-only session. */
 function Resume({ record, onStart }: { record: TopicRecord; onStart: (topic: string) => void }) {
   const open = openConcepts(record);
   const said =
@@ -311,7 +207,3 @@ function Resume({ record, onStart }: { record: TopicRecord; onStart: (topic: str
     </button>
   );
 }
-
-/* The credit for the background track is in app/ui.tsx now: debate mode plays
-   the same track and owes the same attribution, and one copy of a licence
-   notice is the only number of copies that cannot drift out of agreement. */

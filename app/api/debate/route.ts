@@ -15,43 +15,11 @@ import {
   worthJudging,
 } from "@/app/debate/types";
 
-/* Debate mode's one route. Two jobs, told apart by `action`:
-
-   "reply"  the opponent's next speech, as prose.
-   "judge"  the ballot for a finished round, as strict JSON.
-
-   They are separate calls on purpose, and not only for tidiness. The judge
-   must not be the same conversation that argued one of the sides: a model
-   asked to mark a round it just spoke in is marking its own homework, and
-   even with no intent to favour itself it will prefer arguments phrased the
-   way it phrases things. Every judge call here starts cold, sees a transcript
-   with two anonymous sides, and is told nothing about who wrote which. */
-
-/* ── The opponent ─────────────────────────────────────────────────────────
-   The spec this was built from defined the judge and the rating maths and
-   left the opponent out, which is the part that decides whether a rating
-   means anything: a number earned against one fixed adversary is a win rate
-   wearing a rating's clothes. So the opponent argues at a declared strength,
-   the strength has a rating attached, and the ballot is scored against it.
-
-   It argues to win. An opponent that quietly goes easy is worse than no
-   opponent at all, because the student cannot tell it happened and neither
-   can their rating. What changes between tiers is craft, not effort. */
-
 const OPPONENT_CRAFT: Record<TierId, string> = {
   novice: `You are in your first year of debate. One argument per speech, backed by a plain example anybody would recognise. You sometimes miss one of their points, and that is fine: do not manufacture an answer to everything. No jargon.`,
   varsity: `You are solid varsity. Answer their arguments by name rather than in general, and weigh at least once: even if they win their point, say why yours decides the round anyway. If they dropped something, say so and say what it concedes.`,
   circuit: `You are national circuit. Technical, fast and precise. Go down their case argument by argument, collapse to your strongest offence in the later speeches, and weigh on magnitude, probability and timeframe. If they handed you a framework, argue under it and turn it. Do not simplify for comfort.`,
 };
-
-/* ── What each speech is for ──────────────────────────────────────────────
-   The opponent used to get the same instruction for all four speeches, which
-   is why all four came back the same: a wall of fresh argument with a summary
-   bolted on the end, whatever the round actually needed at that point. A
-   debate has a shape. The first speech builds, the second attacks, the third
-   collapses, the fourth chooses one thing and says it. Getting that wrong is
-   the single most obvious way an opponent stops reading as a debater, and it
-   also teaches the student the wrong shape, which is worse. */
 
 const SPEECH_BRIEF: Record<Speech, string> = {
   Constructive: `Build your own case. Two arguments at most. Each one needs a reason it is true and a reason it matters. You may glance at what they said, but do not spend this speech on them.`,
@@ -60,37 +28,12 @@ const SPEECH_BRIEF: Record<Speech, string> = {
   "Final Focus": `One voter. Say what you are winning, why it outweighs whatever they are winning, and stop. Nothing new and no line-by-line.`,
 };
 
-/** How long a speech runs, by what it is for and who is giving it.
-
-    These are much shorter than they were, and the reason is the medium rather
-    than the format. A real Final Focus is two minutes of speech, which is
-    about three hundred words; three hundred words arriving as a block of text
-    on a screen, after a wait, is not two minutes of speech, it is an essay the
-    student will skim. What a debater has to do to the last speech of a round
-    is choose, and a tight budget is the thing that forces the choice.
-
-    Circuit gets more than novice because it has more to fit, not because it
-    is allowed to ramble. `scrub` enforces these; the prompt only asks. */
 const BUDGET: Record<Speech, Record<TierId, number>> = {
   Constructive: { novice: 85, varsity: 110, circuit: 125 },
   Rebuttal: { novice: 85, varsity: 110, circuit: 125 },
   Summary: { novice: 65, varsity: 80, circuit: 90 },
   "Final Focus": { novice: 45, varsity: 55, circuit: 60 },
 };
-
-/* ── How it sounds ────────────────────────────────────────────────────────
-   The complaint this exists to answer is that the opponent sounded like a
-   model rather than like a person arguing. Almost all of that is one thing:
-   asked for a speech, a model writes an essay. Essays open by announcing what
-   they will do, march through numbered points on connective tissue nobody
-   says out loud, and close by summarising themselves. A debater does none of
-   that, because a debater is speaking to somebody who is standing right there
-   and can interrupt.
-
-   So the instruction is not "sound natural", which means nothing to a model.
-   It is a list of the specific habits, and a ban on the specific phrases. The
-   phrase list is also the list `scrub` cleans up afterwards, because being
-   told not to write "Furthermore" is not the same as not writing it. */
 
 const VOICE = `HOW YOU SOUND. You are speaking out loud to somebody standing across from you. You are not writing an essay.
 
@@ -109,51 +52,6 @@ const VOICE = `HOW YOU SOUND. You are speaking out loud to somebody standing acr
 - Never narrate what you are doing. "I will now rebut" is not a sentence anyone says.
 - Do not reuse a phrase you already used earlier in this round. If a line landed once, saying it again is not emphasis, it is padding.`;
 
-/* ── Not making things up ─────────────────────────────────────────────────
-   The hardest rule to hold, and the one worth the most words.
-
-   What VOICE used to say was "do not invent statistics", plus an instruction
-   to anchor a claim in a real place or year. Together those were close to the
-   worst possible pair. The ban covered numbers and nothing else, so the model
-   obeyed it to the letter and invented everything around them: what a
-   country's policy was, what its data showed, which way its results went. And
-   the anchoring instruction is what sent it looking for a country to do that
-   to in the first place.
-
-   A real example, from a round somebody actually played: "Finland cut
-   homework in the 2010s and their PISA scores didn't climb; they'd never been
-   high." Every clause is wrong. Finland led the PISA rankings for most of a
-   decade, the homework claim is a staple internet myth, and the speech
-   contained no statistic at all, so the old rule had nothing to say about it.
-
-   This is worse than a bad argument. A student practising here is practising
-   against a confident liar, and the specific danger is that a fabricated fact
-   is the most persuasive-sounding thing in the speech: they lose to it, and
-   they may carry it into a real round.
-
-   So the anchoring requirement is gone, the ban now covers claims rather than
-   digits, and the model is told what to do instead, which is the part that
-   makes a prohibition work. The judge is told not to reward specificity it
-   cannot check, so the incentive points the same way.
-
-   ── The hole the first version left ──────────────────────────────────────
-   Covering statistics, studies and named cases still left the most common
-   fabrication untouched, because it contains none of those things. From a
-   real round: "Other games don't let children create and sell content for
-   profit." No digits, no study, no country, and a claim about every other
-   game there has ever been, made by something that has checked none of them.
-   The same speech asserted that a nine-year-old's social standing depends on
-   what their parents spend, which is a survey result nobody ran.
-
-   Claims of that shape are the most dangerous thing in a speech precisely
-   because they sound like reasoning rather than evidence. A student cannot
-   challenge "no other game does this" the way they can challenge a number,
-   and it will not occur to them to try.
-
-   This is prompt-side and stays prompt-side. `scrub` handles what can be
-   decided from the text alone; whether a sentence is a claim about thousands
-   of unchecked cases is a judgement, and a regular expression that guessed at
-   it would delete real arguments to catch invented ones. */
 const HONESTY = `WHAT YOU MAY ASSERT. You have no sources in this round. Argue like it.
 
 - Never invent a statistic, a percentage, a date, a study, a poll or a quotation. Not one, not approximately, not "around 40%".
@@ -165,13 +63,6 @@ const HONESTY = `WHAT YOU MAY ASSERT. You have no sources in this round. Argue l
 - A hypothetical is honest if you mark it as one. "Take a student working an evening shift" is fine. "A study of students working evening shifts found" is not.
 - If they challenge a fact you cannot actually support, drop it and argue the mechanism. Do not defend it, do not add detail to it, and do not produce a second invented fact to prop up the first. Dropping a bad card and winning on warrant is what a good debater does.`;
 
-/* The tier arrives beside the setup rather than inside it.
-
-   `Setup.tierId` is optional now, because a live 1v1 round has no tier and
-   putting a plausible one in the payload would be a number describing an
-   opponent who does not exist. This function cannot run without one, so it
-   asks for one outright, and its only caller is the branch that has already
-   refused the request without it. */
 function opponentSystem(setup: Setup, speech: Speech, tierId: TierId): string {
   const side: Side = setup.side === "Pro" ? "Con" : "Pro";
   const cap = BUDGET[speech][tierId];
@@ -217,23 +108,6 @@ const FORMAT_NOTE: Record<Format, string> = {
     "argue from logic and common knowledge rather than cited evidence, and frame the round rhetorically.",
 };
 
-/* ── The judge ────────────────────────────────────────────────────────────
-   Two rubrics, and the tab picks one. They differ in the bar and in what
-   counts as a foul, and they agree on everything else, including the one
-   instruction that carries the most weight in either: polish never stands in
-   for substance. A well-spoken weak argument does not beat a clumsy strong
-   one, and a judge that forgets it rewards exactly the fluency this rewards
-   nothing else for. */
-
-/** How the written half of the ballot has to read.
-
-    A judge writing a ballot has three more rounds to get through and writes
-    like it: short, second person, about this round and no other. What a model
-    writes unprompted is a performance review. "The debater demonstrated strong
-    analytical capabilities" is true of every debater who ever spoke and tells
-    this one nothing, and it is also the exact register that made the whole
-    mode read as machine output. Every line has to name something that
-    actually happened in the transcript above. */
 const BALLOT_VOICE = `HOW THE WRITTEN COMMENTS READ. You are a judge scribbling on a ballot with the next round waiting. Clipped. Second person, addressed to Debater A. Every comment must name a specific argument from this round.
 
 "You never answered the cost turn, so it sat there conceded" is a ballot comment.
@@ -342,14 +216,6 @@ Keep it honest and keep it kind. This is practice, not a pile-on. If a debater i
 ${CONTRACT}`;
 }
 
-/* ── Validation ───────────────────────────────────────────────────────────
-   The schema is nested and has a variable-length array in it, which is the
-   most fragile thing you can ask a small fast model for. Everything is
-   checked, and anything out of range is pulled into range rather than thrown
-   away: a judge that returns a margin of 12 has still judged the round, and
-   losing a student's whole debate over one clamped integer would be a worse
-   answer than clamping it. Only a genuinely unreadable ballot is rejected. */
-
 function clamp(n: unknown, lo: number, hi: number, fallback: number): number {
   const value = typeof n === "number" && Number.isFinite(n) ? n : fallback;
   return Math.min(hi, Math.max(lo, Math.round(value)));
@@ -393,42 +259,10 @@ function tidy(raw: Record<string, unknown>): Ballot {
       }))
       .filter((m) => m.quote_paraphrase && m.why_it_mattered),
     feedback: readFeedback(raw.feedback, "A"),
-    /* Absent is survivable and is not filled in from the other side. A
-       ballot that quietly reused A's comments for B is the exact failure
-       this field was added to stop, so a judge that skipped it says so. */
     feedback_opponent: readFeedback(raw.feedback_opponent, "B"),
   };
 }
 
-/* ── The judge's own notation, taken back off ─────────────────────────────
-   "A" and "B" are how the transcript is labelled and how the prompt talks
-   about the two chairs. They are not words the student has ever seen, so a
-   comment reading "a flaw in A's hanging out point" is the ballot reading
-   out its own bookkeeping at somebody who does not have the key.
-
-   BALLOT_VOICE bans the letters outright and this is the net under it. It is
-   deliberately narrower than the first version of it, which was tested
-   against the live judge and broke a sentence: matching a bare letter
-   case-insensitively made `\bA\b` match the English article, and "you
-   answered it with a cheaper alternative" came back as "with they cheaper
-   alternative". A net that mangles ordinary prose is worse than the notation
-   it was catching.
-
-   So only two shapes are touched, and neither can be anything else:
-
-   - a possessive on a capital letter, "A's", "Debater B's". The article "a"
-     never takes an apostrophe-s, so there is nothing here to collide with.
-   - the letter with the word "Debater" in front of it, where the word
-     removes all doubt. The auxiliary behind it is conjugated, because "you
-     is" is not a sentence; a past tense needs nothing and is left alone.
-
-   A bare capital letter on its own is NOT touched. "A flaw in the hanging
-   out point" opens with an article, and no regex can tell it from a letter.
-   That case belongs to the prompt, which knows which it meant.
-
-   Which letter is the reader depends on the chair the comment is written to,
-   so it is a parameter: in `feedback` A is the reader, in
-   `feedback_opponent` B is. */
 const AUXILIARY: Record<string, string> = {
   is: "are",
   was: "were",
@@ -448,8 +282,7 @@ function deletter(text: string, me: "A" | "B"): string {
 
   let out = text;
 
-  /* Possessives first, so "Debater A's" is spent before the rule below can
-     take the "Debater A" out of the front of it. */
+  // possessives first, or the plain-name rule below eats the "A" out of "Debater A's"
   out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${me}['’]s\\b`, "g"), "your");
   out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${them}['’]s\\b`, "g"), "their");
 
@@ -463,7 +296,6 @@ function deletter(text: string, me: "A" | "B"): string {
     verb ? `they ${AUXILIARY[verb.trim().toLowerCase().replace(/[’]/g, "'")]}` : "they"
   );
 
-  /* A comment that began with one of those now begins with a lowercase word. */
   return out.charAt(0).toUpperCase() + out.slice(1);
 }
 
@@ -478,31 +310,12 @@ function readFeedback(v: unknown, me: "A" | "B"): Ballot["feedback"] {
   };
 }
 
-/** The transcript as the judge sees it.
-
-    Both sides are anonymous and neither is named as the human. A judge told
-    which side a person wrote has a thumb on the scale before it reads a word,
-    and the point of the ballot is that it does not. `A` is always the side
-    the setup says the user is arguing, so the caller can read the result
-    back without the judge ever having been told why. */
 function render(turns: Turn[]): string {
   return turns
     .map((t) => `[${t.speaker === "user" ? "A" : "B"} · ${t.speech}]\n${t.text.trim()}`)
     .join("\n\n");
 }
 
-/** The transcript as the OPPONENT sees it, which is the opposite problem.
-
-    The judge must not know who wrote which side. The opponent must know
-    nothing else, and for a while it did not: this used `render` too, so the
-    speech it was about to answer arrived labelled `A` and `B` with no line
-    anywhere saying which one it had written. It had to infer that, and the
-    tell it inferred from was substance. A student who opens with three words
-    against a full case leaves exactly one real argument in the transcript, so
-    the model read its own Constructive as the case to attack and spent the
-    Rebuttal demolishing itself, side and all.
-
-    Naming the speakers by role costs two words a turn and removes the guess. */
 function renderForOpponent(turns: Turn[]): string {
   return turns
     .map((t) => `[${t.speaker === "user" ? "THEM" : "YOU"} · ${t.speech}]\n${t.text.trim()}`)
@@ -516,13 +329,6 @@ function readSetup(v: unknown): Setup | null {
   if (!tab) return null;
   if (typeof s.motion !== "string" || !s.motion.trim()) return null;
   if (s.side !== "Pro" && s.side !== "Con") return null;
-  /* Absent is allowed, wrong is not.
-
-     A live 1v1 round has no tier — the opponent is a person — and it still
-     needs the judge, which never looked at the tier anyway: both judge
-     prompts read the motion, the side and the format and nothing else. What
-     is refused is a tier that is present and is not one of the three, which
-     is a request that has been tampered with rather than a live round. */
   const tierId = s.tierId;
   if (tierId !== undefined && tierId !== "novice" && tierId !== "varsity" && tierId !== "circuit") {
     return null;
@@ -538,11 +344,6 @@ function readSetup(v: unknown): Setup | null {
   };
 }
 
-/** Which speech this is, kept to the four that exist.
-
-    Anything else falls back rather than being passed through. The speech name
-    reaches the prompt and indexes the length budget, and neither of those is a
-    thing an arbitrary string from a request body gets to decide. */
 function readSpeech(v: unknown): Speech {
   return SPEECHES.includes(v as Speech) ? (v as Speech) : "Constructive";
 }
@@ -558,8 +359,6 @@ function readTurns(v: unknown): Turn[] | null {
     turns.push({
       speaker: turn.speaker,
       speech: readSpeech(turn.speech),
-      /* A cap, because the transcript is the prompt and an unbounded one is
-         an unbounded bill on a key everybody shares. */
       text: turn.text.trim().slice(0, 4000),
     });
   }
@@ -582,11 +381,6 @@ export async function POST(req: Request) {
 
   try {
     if (body.action === "reply") {
-      /* The one branch that genuinely needs a tier: it picks how the model
-         argues and how long it may run. A live 1v1 round has no tier and no
-         business here either — the opponent in that room is a person, and
-         asking this route for their next speech would be asking the model to
-         argue for them. */
       if (!setup.tierId) {
         return NextResponse.json(
           { error: "An opponent strength is required to write a reply." },
@@ -595,15 +389,6 @@ export async function POST(req: Request) {
       }
       const speech = readSpeech(body.speech);
 
-      /* The nudge at the end is speech-specific, and it has to be.
-
-         It used to be "answer what they just said" on all four, which was the
-         right instruction three times out of four and quietly wrong on the
-         first: the student always opens, so the opponent's Constructive is
-         written having already heard a case, and a blanket instruction to
-         answer it produced a rebuttal where a case should have been. The
-         speech briefs said otherwise and lost, because this line is the last
-         thing the model reads. */
       const nudge =
         speech === "Constructive"
           ? `Write your Constructive. They have spoken, so you may open by taking one line off them, but this speech is where you put YOUR case on the table. Most of it should be your own argument.`
@@ -617,33 +402,13 @@ export async function POST(req: Request) {
           )}\n\n${nudge}`
         : `Open the round. Write your ${speech}.`;
 
-      /* Warmer than the app's default, because the same three sentence
-         patterns every round is its own kind of tell. The filter is what keeps
-         the extra temperature from costing length discipline.
-
-         It was 0.75 and came down, because the cost of the extra warmth is
-         paid in invented facts before it is paid anywhere else: a hotter
-         sample reaches further for a vivid specific, and a vivid specific this
-         model does not know is a fabrication. 0.6 still varies the phrasing
-         round to round, which is all the warmth was ever for. */
       const stream = chatStream(opponentSystem(setup, speech, setup.tierId), said, 0.6);
 
-      /* Ask for the first chunk here, inside the try, rather than inside the
-         stream below. Everything that can fail with a status a student should
-         see fails on that first read: a busy key, a bad model id, no key at
-         all. Pulling it now means those are still an ordinary JSON error with
-         an ordinary status code, and the catch at the bottom of this function
-         handles them exactly as it always did. After this line the response is
-         committed and a failure can only end the speech early. */
       const opening = await stream.next();
 
       const filter = createSpeechFilter(BUDGET[speech][setup.tierId]);
       const encode = new TextEncoder();
 
-      /* Plain text rather than server-sent events. There is one kind of thing
-         on this stream, it is the words of a speech in order, and wrapping
-         each of them in a JSON envelope with an event name would be a
-         protocol for a problem nobody has. */
       return new Response(
         new ReadableStream<Uint8Array>({
           async start(controller) {
@@ -655,18 +420,6 @@ export async function POST(req: Request) {
               controller.enqueue(encode.encode(text));
             };
 
-            /* A kilobyte of nothing, first.
-
-               WebKit holds a streamed response until it has received 1024
-               bytes and only then starts handing it to the page. A speech is
-               about six hundred bytes, so without this the entire feature is
-               invisible on Safari and on every browser on iOS: the speech
-               would arrive in one piece at the end, which is exactly what
-               this replaced. Next's own streaming guide names the threshold.
-
-               The client drops leading whitespace before it shows anything,
-               so this never reaches the transcript. It costs one kilobyte per
-               speech, four per round. */
             controller.enqueue(encode.encode(" ".repeat(1024)));
 
             try {
@@ -675,23 +428,14 @@ export async function POST(req: Request) {
               if (!filter.finished()) {
                 for await (const delta of stream) {
                   write(filter.push(delta));
-                  /* The speech has run its length. Breaking here also ends the
-                     generation: the loop's return runs the generator's finally,
-                     which cancels the upstream read. */
                   if (filter.finished()) break;
                 }
               }
 
               write(filter.end());
 
-              /* Nothing survived. The whole reply was packaging, or the model
-                 returned an empty completion. The status is long since sent, so
-                 this is the only way left to say so, and the client reads an
-                 empty body as the failure it is. */
               if (!said.trim()) console.error("Debate reply produced no speech.");
             } catch (err) {
-              /* Mid-stream failure. Whatever was already read is already on
-                 screen and stays there; there is no status left to change. */
               console.error("Debate reply stream failed:", err);
             } finally {
               controller.close();
@@ -703,9 +447,6 @@ export async function POST(req: Request) {
             "content-type": "text/plain; charset=utf-8",
             "x-content-type-options": "nosniff",
             "cache-control": "no-store",
-            /* Tells a reverse proxy not to sit on the body until it is
-               complete, which would turn the whole point of this back into a
-               wait followed by a wall of text. */
             "x-accel-buffering": "no",
           },
         }
@@ -720,9 +461,6 @@ export async function POST(req: Request) {
         );
       }
 
-      /* Nobody argued. Refused before the call rather than after it, and the
-         message says what is missing rather than that something went wrong,
-         because nothing did: see `worthJudging` in app/debate/types.ts. */
       if (!worthJudging(turns)) {
         return NextResponse.json(
           {

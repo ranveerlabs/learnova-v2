@@ -17,18 +17,8 @@ import {
   WARM_UP_COUNT,
 } from "@/app/round/types";
 
-// TODO: prompt-injection hardening: the topic and any pasted notes are
-// untrusted input fed straight into prompts, same as the rest of the app.
-// TODO: per-user abuse and rate limits before this is exposed beyond local use.
-
-/* ── Citation checking ────────────────────────────────────────────────────
-   A deliberate copy of the checks in app/api/grade/route.ts rather than a
-   shared import. Grading is load-bearing and was fenced off from this work,
-   and reaching into it to extract a helper would have meant editing it. The
-   two must stay in step: change one, change the other.
-
-   Everything below only ever admits a quote whose characters all appear in
-   the source, in order, so it cannot let a fabricated citation through. */
+// TODO: topics and pasted notes go straight into prompts. untrusted, no hardening yet.
+// TODO: rate limits before this is open to anyone but me.
 
 function flatten(s: string): string {
   return s
@@ -43,23 +33,12 @@ function deflate(s: string): string {
   return flatten(s).replace(/\s+/g, "");
 }
 
-/** Whether a quote really appears in the student's own material. */
 function citationHolds(quote: string, source: string): boolean {
   if (!quote.trim()) return false;
   const q = flatten(quote);
   const tight = deflate(quote);
   return flatten(source).includes(q) || deflate(source).includes(tight);
 }
-
-/* ── What the model is asked for ─────────────────────────────────────────
-
-   One thing this prompt deliberately does NOT ask for: a random position for
-   the correct answer. Models are poor at it, and asking would produce output
-   that looks placed without being placed, which is worse than not asking
-   because it invites everyone downstream to trust it. Placement happens after
-   generation, in shuffle.ts, where it can be measured. The shapes below still
-   show varied answer indices, because an example that always says
-   "answerIndex": 0 is a demonstration of where to put the answer. */
 
 const HOUSE_RULES = `
 Hard rules for every question you write:
@@ -84,12 +63,6 @@ This session has no pasted material: the student gave a topic only. Write questi
 - Leave "citation" as an empty string. Do not invent one.
 - Stay on widely agreed, mainstream material for the topic. Do not test contested details, niche trivia, or anything you are unsure of.`;
 
-/** What the student has already been asked, given to the model so it writes
-    something new rather than the same question in other words.
-
-    Capped, because this rides on every round call and a session accumulates
-    upwards of fifty questions. The most recent are the ones a rephrasing is
-    most likely to collide with, so those are the ones that fit. */
 function alreadyAsked(asked: Asked[]): string {
   if (asked.length === 0) return "";
   const recent = asked.slice(-40);
@@ -102,12 +75,6 @@ The student has ALREADY been asked the questions below, in earlier rounds of thi
 ${lines.join("\n")}`;
 }
 
-/** The instruction added when a first attempt came back mostly repeats.
-
-    Deliberately not "try again". A generator that has said everything it has
-    to say about a narrow topic will say it again if asked the same way, so the
-    second attempt asks for something different in kind rather than for another
-    draw from the same pool. */
 const ESCALATE = `
 IMPORTANT: your previous reply for this round was almost entirely questions the student has already answered, so it was discarded. The plain version of this topic is used up.
 
@@ -117,33 +84,6 @@ Do not write easier or more general questions to get around this. Go the other w
 - Ask about the boundary of a rule: where it stops applying, and what happens then.
 - Prefer "hard" and "medium" over "easy" throughout. If you cannot write a genuinely new easy question, write a medium one instead and label it honestly.`;
 
-/* The warm up is the only call a student ever waits on, and the whole mode
-   is built on them answering something within about ten seconds of naming a
-   topic. So this prompt is kept deliberately short and asks for deliberately
-   short output: the round prompts can afford to be thorough because they are
-   generated while the student is busy, and this one cannot. Every clause here
-   has to earn the milliseconds it costs.
-
-   ── Two fields this deliberately does not ask for ────────────────────────
-   The wait here is dominated by how many tokens have to come back, so a field
-   nobody reads is not free: it is the student watching the loading screen
-   while it is written.
-
-   "because" is the one line saying why an answer is right. The ROUNDS still
-   ask for it and still need it, so it is only removed here: in a topic-only
-   session Round 4 marks the student's explanation against the questions they
-   saw and those one-line reasons, and that is real. The warm up's copy goes
-   nowhere. Round 4 is handed `banks`, which is rounds 1 to 3; the warm up is
-   held separately and never reaches it, and no screen has shown a why line
-   since the disclosure came off the verdict. Five sentences were being
-   written, waited for, and dropped, on the one call where the waiting is the
-   whole problem.
-
-   "citation" is asked for only when there is something to cite. With no
-   pasted notes the rules already say to leave it empty, so it was five empty
-   strings and the sentence explaining them. A grounded session still asks for
-   it and still drops any question whose citation is not found verbatim in the
-   notes: that check is the guarantee of a grounded session and is untouched. */
 function openSystem(provenance: Provenance): string {
   const cite = provenance === "grounded" ? ',"citation":"..."' : "";
 
@@ -211,8 +151,6 @@ Respond with JSON in exactly this shape:
 "prompt" here is the instruction line, at most 10 words, for example "Build the sentence about what enzymes do to activation energy."`;
 }
 
-/* ── Shapes coming back ──────────────────────────────────────────────── */
-
 type RawQuestion = {
   concept?: unknown;
   difficulty?: unknown;
@@ -249,10 +187,6 @@ function isRoundPayload(v: unknown): v is RoundPayload {
   return Array.isArray(p.questions) && p.questions.every(isRawQuestion);
 }
 
-/** A question the session has already generated, as the client reports it
-    back. Only the four fields that decide whether something is a repeat: the
-    rest of a Question is presentation and would be pointless to ship back and
-    forth. */
 type Asked = { concept: string; answer: string; prompt: string; format: Format };
 
 const FORMATS: Format[] = ["recognition", "choice", "blank", "assemble", "open"];
@@ -274,17 +208,10 @@ function readAsked(v: unknown): Asked[] {
   });
 }
 
-/* ── Turning raw output into questions we will actually serve ─────────── */
-
 function asDifficulty(v: unknown, fallback: Difficulty): Difficulty {
   return TIERS.includes(v as Difficulty) ? (v as Difficulty) : fallback;
 }
 
-/** Reject anything malformed rather than serving a broken question.
-
-    A question that cannot be answered correctly is worse than a shorter
-    round: the student loses a streak to our bug and has no way to know that
-    is what happened. */
 function usable(q: Question): boolean {
   if (!q.prompt.trim() || !q.answer.trim()) return false;
 
@@ -303,8 +230,6 @@ function usable(q: Question): boolean {
     return chips.every((c) => c.trim().length > 0);
   }
 
-  /* blank: the gap has to actually be in the sentence, or there is nothing
-     to fill. Models occasionally return the completed sentence instead. */
   return q.prompt.includes("_");
 }
 
@@ -340,19 +265,10 @@ function shape(
   };
 }
 
-/** Drop every question whose citation is not really in the student's notes.
-
-    In a grounded session the citation is the whole guarantee: it is what
-    makes this the student's own material rather than the model's impression
-    of it. A question that cannot produce one is not downgraded to uncited,
-    it is dropped. A short round is honest. A round quietly padded with
-    invented material is not. */
 function keepGrounded(questions: Question[], source: string): { kept: Question[]; dropped: number } {
   const kept = questions.filter((q) => q.citation && citationHolds(q.citation, source));
   return { kept, dropped: questions.length - kept.length };
 }
-
-/* ── The route ───────────────────────────────────────────────────────── */
 
 export async function POST(req: Request) {
   let body: {
@@ -387,31 +303,11 @@ export async function POST(req: Request) {
   const provenance: Provenance = notes ? "grounded" : "generated";
   const rules = provenance === "grounded" ? GROUNDED_RULES : GENERATED_RULES;
 
-  /* What the model is shown, which is not always all of what was pasted.
-
-     Long material is thinned to an even spread of itself so that a run covers
-     the whole document rather than its opening pages. See lib/chunk.ts for why
-     every call in a session gets the SAME spread rather than a slice each.
-
-     Note what this is not used for. `notes` stays the full text everywhere it
-     matters: `keepGrounded` below checks every citation against it, and the
-     cache key hashes it. A citation is therefore still checked against
-     everything the student pasted, so thinning the prompt can only make the
-     check stricter than the model's view, never looser. */
   const shown = sampleForPrompt(notes);
 
   const asked = readAsked(body.asked);
   const seen: Signature[] = asked.map(signature);
 
-  /* Whether this request's bank may be shared with anyone else.
-
-     Only a request that has asked nothing yet. A session on its second run
-     through a topic sends everything it has already served, so the generator
-     can write around it and the sift can drop what it writes anyway. Serving
-     that request from the cache would hand back the very questions the
-     history was sent to avoid, and it would do it silently. So the cache is
-     read and written on first requests only, which is exactly the case it was
-     asked for: two students arriving at the same topic. */
   const shareable = asked.length === 0;
 
   const material =
@@ -424,17 +320,11 @@ export async function POST(req: Request) {
       : `The student is studying: ${topic}`;
 
   try {
-    /* ── The warm up, and the concepts the whole session runs on ───── */
     if (body.stage === "open") {
       const key = bankKey({ stage: "open", topic, notes });
 
       if (shareable) {
         const hit = recall(key);
-        /* The key carries a hash of the notes, so a hit is already material
-           this student pasted themselves. Running the citation check over it
-           again anyway costs nothing and means a bug in the key could only
-           ever cost a cache miss, never a question citing somebody else's
-           notes. Citations are the whole guarantee of a grounded session. */
         const questions =
           hit && provenance === "grounded" ? keepGrounded(hit.questions, notes).kept : hit?.questions;
 
@@ -446,9 +336,6 @@ export async function POST(req: Request) {
             dropped: 0,
             repeats: 0,
             exhausted: false,
-            /* A cache hit is the same material sampled the same way, since the
-               key hashes the notes and the spread is a pure function of them.
-               So this is still true of what the student is about to be served. */
             sampled: provenance === "grounded" && shown.sampled,
             chunksKept: shown.kept,
             chunksTotal: shown.total,
@@ -485,8 +372,6 @@ export async function POST(req: Request) {
         dropped = checked.dropped;
       }
 
-      /* The warm up sifts against itself, and against anything a previous run
-         in this tab already asked on the same topic. */
       const sifted = sift(questions, seen);
       questions = sifted.kept.slice(0, WARM_UP_COUNT);
 
@@ -518,15 +403,12 @@ export async function POST(req: Request) {
         dropped,
         repeats: sifted.repeats,
         exhausted: false,
-        /* Said once, on the call that opens the session, because it is a fact
-           about the material rather than about any one round. */
         sampled: provenance === "grounded" && shown.sampled,
         chunksKept: shown.kept,
         chunksTotal: shown.total,
       });
     }
 
-    /* ── One round's bank ──────────────────────────────────────────── */
     const round = body.round;
     if (round !== 1 && round !== 2 && round !== 3) {
       return NextResponse.json({ error: "Unknown round." }, { status: 400 });
@@ -557,8 +439,6 @@ export async function POST(req: Request) {
       }
     }
 
-    /** One generation, validated, cited, and sifted against everything the
-        session has already used. */
     const draw = async (extra: string, idPrefix: string, against: Signature[]) => {
       const payload = await chatJSON(
         `${roundSystem(round, concepts)}\n${rules}${alreadyAsked(asked)}${extra}`,
@@ -587,12 +467,6 @@ export async function POST(req: Request) {
     let dropped = first.dropped;
     let exhausted = false;
 
-    /* Running dry is detected, not predicted: it is the share of a freshly
-       written bank that turned out to be something the student has already
-       answered. One retry, and the retry is not a retry of the same request.
-       It asks for harder questions and different angles, because a generator
-       that has exhausted the plain version of a topic will produce the plain
-       version again if asked the same way. */
     if (runningDry(kept.length, wanted)) {
       console.warn(
         `Round ${round}: only ${kept.length} of ${wanted} were new. Escalating rather than repeating.`
@@ -631,8 +505,6 @@ export async function POST(req: Request) {
       provenance,
       dropped,
       repeats,
-      /* The session raises the floor on difficulty when this is true, rather
-         than serving anything twice. */
       exhausted,
     });
   } catch (err) {

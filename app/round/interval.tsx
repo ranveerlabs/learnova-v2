@@ -4,24 +4,9 @@ import { formatClock } from "./engine";
 import type { RoundSummary } from "./engine";
 import type { Round } from "./types";
 
-/* The beat between rounds.
-
-   Two jobs, and they pull against each other. It has to feel like clearing a
-   level, and it has to be true. So everything on it is counted from this
-   session's answers: the split is a real elapsed time, a turnaround is a
-   concept the student actually got wrong earlier and right just now, and when
-   nothing turned around it says so instead of finding something flattering.
-
-   What makes it feel like a level is not an invented number, it is the next
-   line: being told exactly what help is about to be taken away. */
-
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
-/** What the next round takes away. Written as a loss on purpose: the student
-    should feel the scaffolding going, because that is the mechanic. */
 const NEXT: Record<Round, { name: string; taken: string; asks: string }> = {
-  /* The warm up offers two options; Round 1 offers four, so three of them
-     are wrong rather than one. This line used to say the opposite. */
   1: { name: "Round 1", taken: "Four options now, not two.", asks: "Pick the right one." },
   2: { name: "Round 2", taken: "No options.", asks: "Type the missing term." },
   3: { name: "Round 3", taken: "No sentence. Just its pieces, shuffled.", asks: "Build it." },
@@ -60,9 +45,6 @@ export function Interval({
   next: Round;
   splitMs: number;
   runMs: number;
-  /** Whether this browser has a record of studying this topic before. Changes
-      only what the warm up is called, which is the one thing on this screen
-      that stops being true the second time somebody plays. */
   returning: boolean;
   onContinue: () => void;
 }) {
@@ -89,16 +71,6 @@ export function Interval({
         </h2>
       </div>
 
-      {/* The numbers, all of them real. The warm up deliberately shows no
-          count at all: it is a baseline taken before any studying, and putting
-          a mark on it would tell a student they had failed something they were
-          never meant to pass.
-
-          The line here used to say "Not scored, on purpose", which outlived
-          the scoring by a version: nothing in the session is scored any more,
-          so singling the warm up out as the unscored one implied a score
-          everywhere else. What it actually needs to say is why these questions
-          are coming back. */}
       {summary.stage === 0 ? (
         <p
           className="stage-in max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft"
@@ -130,8 +102,6 @@ export function Interval({
         </div>
       )}
 
-      {/* Real movement, named. This is the single most motivating true thing
-          the session can say, so it gets the most room. */}
       {summary.turnedAround.length > 0 && (
         <div
           className="stage-in flex flex-col gap-2.5 rounded-[3px] border-l-[3px] border-solid-mark bg-solid-tint py-3.5 pl-4 pr-4"
@@ -171,7 +141,6 @@ export function Interval({
         </div>
       )}
 
-      {/* The hook into the next round: what is being taken away. */}
       <div
         className="stage-in flex flex-col gap-3 rounded-[3px] border border-line bg-sunk/60 p-5"
         style={{ ["--i" as string]: 4 }}

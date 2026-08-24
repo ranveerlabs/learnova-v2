@@ -9,25 +9,6 @@ import type { Production, Provenance, Question } from "./types";
 import { play } from "../tone";
 import { useSpeech } from "./voice";
 
-/* Round 4. The whole point of the other four stages.
-
-   Everything has been taken away by now: no options, no sentence, no chips.
-   The student says the thing in their own words or they do not, and what
-   comes back is the honest answer either way. This is the only stage that is
-   graded by a model rather than checked locally, and the only one with no
-   timer on it, because rushing the one moment that produces real evidence
-   would be the single most self-defeating thing this mode could do. */
-
-/* ── What the grade is measured against ───────────────────────────────────
-   The grader marks an explanation against source material and nothing else,
-   which is what stops it inventing a rubric out of its own knowledge.
-
-   A grounded session has real material to give it. A topic-only session does
-   not, and there is no honest way to conjure one, so it is given exactly what
-   the student was actually taught during the session: the questions they saw,
-   their answers, and the one-line reasons. That is a true record of the
-   material this session presented, and the screen says plainly that it was
-   written by a model rather than drawn from the student's own notes. */
 function materialFrom(concept: string, questions: Question[]): string {
   const mine = questions.filter((q) => q.concept === concept);
   const lines = mine.map((q) => {
@@ -43,13 +24,6 @@ function materialFrom(concept: string, questions: Question[]): string {
   ].join("\n");
 }
 
-/** The scrolling box this element actually sits in.
-
-    Which one that is belongs to the shell rather than to this file: `page.tsx`
-    owns the viewport lock and hands every screen that is not a live question a
-    panel to scroll inside. Walking up to find it keeps that arrangement in one
-    place, instead of reaching for a panel by name from down here and breaking
-    quietly the day the shell moves it. */
 function closestScroller(from: HTMLElement | null): HTMLElement | null {
   for (let el = from?.parentElement ?? null; el; el = el.parentElement) {
     const overflow = getComputedStyle(el).overflowY;
@@ -60,16 +34,12 @@ function closestScroller(from: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
-/* ── The marking apparatus, kept from the Teach-Back session ───────────── */
-
 const OUTCOME: Record<Outcome, { word: string; mark: string; ink: string }> = {
   solid: { word: "Demonstrated", mark: "var(--solid-mark)", ink: "var(--solid-ink)" },
   shaky: { word: "Nearly there", mark: "var(--shaky-mark)", ink: "var(--shaky-ink)" },
   "not-yet": { word: "Not yet", mark: "var(--broken-mark)", ink: "var(--broken-ink)" },
 };
 
-/** The call and the reason for it, together, so the outcome word is never
-    left to carry meaning by colour alone. */
 function OutcomeLine({ outcome, verdict }: { outcome: Outcome; verdict: string }) {
   const o = OUTCOME[outcome];
   return (
@@ -88,8 +58,6 @@ function OutcomeLine({ outcome, verdict }: { outcome: Outcome; verdict: string }
   );
 }
 
-/** Points the concept required that never appear in the student's text. They
-    have no span to mark, so they get their own block rather than a siglum. */
 function LeftOut({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
@@ -114,8 +82,6 @@ function LeftOut({ items }: { items: string[] }) {
   );
 }
 
-/* ── The round ──────────────────────────────────────────────────────────── */
-
 export function TeachBack({
   concept,
   notes,
@@ -128,19 +94,13 @@ export function TeachBack({
   onStop,
 }: {
   concept: string;
-  /** The student's own material, when they pasted any. */
   notes: string;
-  /** Everything the session asked about this concept, for a topic-only run. */
   questions: Question[];
   provenance: Provenance;
   index: number;
   total: number;
-  /** Records the graded production the moment it comes back, so a student who
-      walks away after reading their result still has it counted. */
   onDone: (production: Production) => void;
-  /** Move on to the next concept in the round. */
   onNext: () => void;
-  /** End Round 4 here and go to the results. */
   onStop: () => void;
 }) {
   const [explanation, setExplanation] = useState("");
@@ -148,37 +108,13 @@ export function TeachBack({
   const [grade, setGrade] = useState<Grade | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** Whether that error was the shared key being busy rather than a fault.
-      Changes the register it is said in, not what the student can do next. */
   const [wasBusy, setWasBusy] = useState(false);
   const [active, setActive] = useState<number | null>(null);
 
-  /* The marked-up explanation, and the reason it has a handle.
-
-     Producing and being marked are two screens inside one phase, so the shell
-     never resets the scrolling panel between them: it only does that when the
-     phase itself changes. On a laptop the produce screen fits and there is no
-     scroll position to inherit, so nothing was ever wrong. On a phone that
-     screen is taller than the frame, a student who scrolled down to reach the
-     Submit button is a student who scrolled, and their grade then arrived
-     already scrolled past its own heading, its verdict and the outcome word.
-     The one screen in the run that says how they actually did opened halfway
-     down itself. */
   const marked = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!grade) return;
 
-    /* The panel is put back to its top, rather than the section being asked to
-       scroll itself into view. `scrollIntoView` aligns against whatever the
-       browser decides the scrollport is and lands a little differently
-       depending on what else moved that frame; this names the thing to scroll
-       and the place to put it, and there is nothing left to be approximate
-       about.
-
-       Twice, for the same reason the shell does it twice: this screen arrives
-       with entrance animations on it and a block of marked-up prose that
-       settles a frame late, and either can move the scroll after an effect has
-       already run. */
     const scroller = closestScroller(marked.current);
     const top = () => scroller?.scrollTo({ top: 0 });
     top();
@@ -187,16 +123,10 @@ export function TeachBack({
   }, [grade]);
 
   const speech = useSpeech();
-  /* Whether there is any real material behind this session. It decides both
-     what is sent as the source and how the grader is told to treat it, so it
-     is one value rather than the same condition written twice. */
   const usesNotes = provenance === "grounded" && Boolean(notes);
   const source = usesNotes ? notes : materialFrom(concept, questions);
   const dissection = useDissection(explanation, grade?.annotations ?? []);
 
-  /* Whatever the recogniser has settled on, plus whatever it is still
-     revising, so the student watches their sentence arrive rather than
-     wondering whether the microphone is doing anything. */
   const heard = [speech.transcript, speech.interim].filter(Boolean).join(" ").trim();
 
   function takeTranscript() {
@@ -217,16 +147,8 @@ export function TeachBack({
         source,
         concept,
         explanation: said,
-        /* Round 4 asks for a sentence or two, possibly spoken. The rubric
-           needs to know that, or it marks brevity as a gap. */
         brief: true,
         via: usedVoice ? "voice" : "typed",
-        /* And whether `source` is anything a student actually wrote. In a
-           topic-only session it is a list of the questions they were asked,
-           which is a record of what was covered and not a passage. Grading
-           against it produced the case this was fixed for: a sound plain
-           definition marked imprecise, with a multiple choice question quoted
-           back underneath it as the "Source". */
         grounded: usesNotes,
       });
       setGrade(result);
@@ -245,7 +167,6 @@ export function TeachBack({
     }
   }
 
-  /* ── Marked ──────────────────────────────────────────────────────────── */
   if (grade) {
     const more = index + 1 < total;
     return (
@@ -262,27 +183,6 @@ export function TeachBack({
           </div>
           <OutcomeLine outcome={grade.outcome} verdict={grade.verdict} />
 
-          {/* What this mark actually is, when it is not a mark against
-              anything.
-
-              This is the screen the whole run builds to and the one a student
-              is most likely to take on trust: it is long, it is written in the
-              register of a marked essay, and it tells them in their own words
-              where they were wrong. In a grounded session it has earned that,
-              because every claim behind it was traced to a line they pasted.
-              In a topic-only session it has earned none of it, and the student
-              has no way to tell the two apart.
-
-              So the difference is stated, once, at the top, in the place they
-              are already reading. It ends by telling them what to do about it,
-              which is the part a person who already knows the answer needs and
-              never got: trust yourself.
-
-              It does not name the concept. Interpolating it put a sentence
-              fragment in the middle of a sentence, "one AI model's account of
-              What Tritoflex is made of", and the concept is already set as the
-              heading two lines above this. Saying it twice cost the sentence
-              its grammar and bought nothing. */}
           {!usesNotes && (
             <p className="max-w-[62ch] font-sans text-[0.8125rem] leading-[1.6] text-ink-faint">
               Nothing here was checked against a source. You pasted no material, so these marks are
@@ -292,29 +192,6 @@ export function TeachBack({
           )}
         </div>
 
-        {/* The marking, behind one click.
-
-            ── Why this is folded and the verdict is not ────────────────────
-            What was here was the whole apparatus, open: the student's own
-            explanation with every span underlined, a column of margin notes
-            beside it, and the list of what they left out underneath. All of
-            it is worth reading and none of it is what the screen is for. The
-            first question at the end of Round 4 is "did I get it", and that
-            is answered two lines above this by one word and one sentence.
-            "Which clause did that", which is this, is the second question,
-            and a second question drawn at the size of the first buries the
-            first.
-
-            So the panel keeps every part it had and simply starts closed.
-            Nothing is summarised, nothing is dropped, and the counts stay on
-            the headings inside where they were: a fold that abbreviates its
-            own contents is a fold you have to open to find out whether it was
-            worth opening.
-
-            A `details` rather than state, for the reason the scoresheet on
-            the debate ballot is one: the browser already knows how to do
-            this, it works before the JavaScript settles, and "see why" is a
-            disclosure rather than a mode the screen can be in. */}
         <details className="group flex flex-col border-t border-line pt-4">
           <summary
             style={{ fontVariationSettings: '"wdth" 88' }}
@@ -354,26 +231,12 @@ export function TeachBack({
               </div>
             )}
 
-            {/* "Ask about a mark" sat here: a box that took a question about
-                the grade and sent it back to the model for a written answer.
-                It is gone, and so are the component and the route behind it.
-                This is the screen at the end of a run that a room is watching,
-                and a free-text conversation with the marker is the opposite of
-                what that moment wants. */}
             <div className="min-w-0 xl:col-start-1">
               <LeftOut items={grade.missed} />
             </div>
           </div>
         </details>
 
-        {/* One way forward, and it is forward.
-
-            There used to be a "Stop here and see the results" beside this,
-            offered after every graded concept. It was the last thing standing
-            between a student and their results, which is exactly where the
-            temptation to bail is highest, and a rating that claims to measure
-            the whole session cannot mean much if the last third of it is
-            optional. The concepts are already capped at three. */}
         <div className="rise flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 4 }}>
           {more ? (
             <PrimaryButton onClick={onNext}>
@@ -389,15 +252,9 @@ export function TeachBack({
     );
   }
 
-  /* ── Producing ───────────────────────────────────────────────────────── */
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-5 py-4 sm:gap-7 sm:py-6">
       <div className="rise flex flex-col gap-4">
-        {/* There was a "No timer" badge here. It stopped being true when the
-            run clock moved into the header and stayed on every screen: this
-            round has no per-question countdown, but there is very much a
-            clock, and it is running while you read this. A badge that says the
-            opposite of the thing next to it is worse than no badge. */}
         <div className="flex flex-wrap items-center gap-3">
           <Label>Round 4 {total > 1 ? `· ${index + 1} of ${total}` : ""}</Label>
         </div>
@@ -410,16 +267,6 @@ export function TeachBack({
         </p>
       </div>
 
-      {/* An answer that could not be MARKED must not be a dead end.
-
-          This is the one escape hatch left in Round 4, and it is deliberately
-          not the same thing as the voluntary skip that was just removed: it
-          only exists when the grader has actually failed, which is a fault at
-          our end rather than a choice at theirs. Without it a student whose
-          last explanation cannot be marked is stuck on the final screen of the
-          run with nothing to do but press a button that is going to fail
-          again. Everything they typed is still in the box, so Submit is a real
-          retry and this is the second way out rather than the first. */}
       {error && (
         <div className="flex flex-col gap-3.5">
           {wasBusy ? <Aside>{error}</Aside> : <Notice>{error}</Notice>}
@@ -432,10 +279,6 @@ export function TeachBack({
         </div>
       )}
 
-      {/* Voice, when the browser has it. The typed field below is always
-          present regardless: speech is an alternative way in, never the only
-          one, and it is never the thing standing between a student and the
-          round. */}
       {speech.supported && (
         <div className="rise flex flex-col gap-3" style={{ ["--i" as string]: 1 }}>
           <div className="flex flex-wrap items-center gap-3">
@@ -474,9 +317,6 @@ export function TeachBack({
             )}
           </div>
 
-          {/* Nothing is ever submitted from audio. What was heard is shown
-              here, and it only becomes an answer when the student puts it in
-              the box below and sends it themselves. */}
           {(heard || speech.listening) && (
             <div
               className={`rounded-[3px] border border-l-[3px] border-line bg-sunk/60 p-3.5 ${
@@ -512,9 +352,6 @@ export function TeachBack({
           autoFocus={!speech.supported}
           minRows={5}
           placeholder="In your own words…"
-          /* Enter sends, the same as it does everywhere else in a round.
-             Guarded here rather than in the leaf so the key can never do
-             something the button next to it would refuse to do. */
           onSubmit={() => {
             if (!loading && explanation.trim()) submit();
           }}
@@ -525,36 +362,7 @@ export function TeachBack({
             {loading ? "Marking…" : "Submit"} {!loading && <Arrow />}
           </PrimaryButton>
 
-          {/* The longest wait in a round, and it used to be announced by a
-              disabled button whose label had changed. A button that does not
-              move is a caption.
-
-              Nothing takes the screen here on purpose. What is being marked
-              is the student's own explanation, sitting in the box directly
-              above, and covering it would take away the one thing worth
-              looking at while a rubric is applied to it. So the signal goes
-              beside the button and the words stay put.
-
-              No label on it. The button an inch to the left already says
-              "Marking…", and a meter captioned "Marking what you wrote" next
-              to it was the same word twice. The meter supplies the movement,
-              which is the half the button cannot do. */}
           {loading && <Working />}
-          {/* Keyboard instructions, for people with a keyboard. On a phone
-              this was three key names and a plus sign describing a device the
-              student is not holding.
-
-              There is no "tap" wording to put in its place here, the way the
-              verdict has one: what a touch screen does instead is press the
-              Submit button immediately to its left, and a line of text telling
-              you to press the button next to it is not an instruction, it is
-              furniture. Off by pointer rather than by width, so a laptop in a
-              narrow window keeps a hint it can still act on.
-
-              Also off while the answer is being marked. It tells you how to
-              send something you have already sent, and leaving it there put
-              two lines of small grey text either side of the one thing on
-              that row worth reading. */}
           {!loading && (
             <span
               style={{ fontVariationSettings: '"wdth" 88' }}

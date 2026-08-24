@@ -1,27 +1,7 @@
-/* Motion for the presentations.
-
-   One stylesheet rather than a style tag in each file, so the reduced-motion
-   rule has one place to be kept rather than one place per presentation to be
-   forgotten. The rule is not a nicety: a study tool that cannot be used by
-   someone who gets motion sick is a study tool with a demographic filter on
-   it. Every animation named here is switched off in one block at the bottom,
-   and the presentation is fully playable with all of them off.
-
-   The other rule these obey is the one that cannot bend. Nothing selectable
-   moves. Not "moves slowly", not "moves predictably": a student reaching for
-   an answer is never reaching for a moving thing. What is here happens on the
-   way in, before there is anything to reach for.
-
-   This carried the motion for twenty presentations. Nineteen of them are
-   gone, and so is theirs. Wire connect draws its wire as an SVG path with the
-   geometry computed in the component, so it needs almost nothing from here.
-------------------------------------------------------------------------- */
-
 .stage {
   position: relative;
 }
 
-/* Every selectable thing, whatever it is drawn as. */
 .pick {
   transition:
     border-color 140ms ease,
@@ -39,10 +19,6 @@
   transform: translateY(0);
 }
 
-/* ── Arrivals ─────────────────────────────────────────────────────────────
-   Candidates entering the screen, staggered by --i, which `Pick` sets from
-   the option index. */
-
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -58,17 +34,6 @@
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-/* ── The wire, at rest ────────────────────────────────────────────────────
-   A stub of wire hangs off the plug and points at the options, and its dashes
-   march along it. This is the whole instruction: a loose end travelling in a
-   direction is what makes a plug read as a plug rather than as a blue dot.
-
-   It marches rather than moving, which matters. The path itself never shifts
-   by a pixel and neither does anything under it, so the rule at the top of
-   this file holds: nothing selectable moves, and here nothing at all moves,
-   only the dashes drawn along a stationary line. It stops the instant the
-   student takes hold of the wire, because by then it has said its piece. */
-
 @keyframes wire-march {
   to {
     stroke-dashoffset: -24px;
@@ -78,11 +43,6 @@
 .wire-hint {
   animation: wire-march 0.9s linear infinite;
 }
-
-/* ── The plug ─────────────────────────────────────────────────────────────
-   Breathes, gently, so the one thing on screen you are meant to grab is the
-   one thing advertising itself. Scale only, on a decorative ring rather than
-   on the plug body, so the grab target itself is exactly where it looks. */
 
 @keyframes plug-ready {
   0%,
@@ -100,8 +60,6 @@
   animation: plug-ready 1.9s ease-in-out infinite;
 }
 
-/* ── Everything above, off ──────────────────────────────────────────────── */
-
 @media (prefers-reduced-motion: reduce) {
   .rise-in {
     animation: none !important;
@@ -110,9 +68,6 @@
   .pick:not(:disabled):hover {
     transform: none;
   }
-  /* The hint wire keeps its dashes and its arrowhead, and stops travelling.
-     A dashed line ending in an arrow pointed at the options still says which
-     way this goes without anything on screen moving. */
   .wire-hint {
     animation: none;
   }

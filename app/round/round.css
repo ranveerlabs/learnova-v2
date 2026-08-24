@@ -1,24 +1,3 @@
-/* ═══ Round Mode: the feel ════════════════════════════════════════════════
-   Everything here is scoped to the round screens and leans on the tokens
-   already declared in globals.css, so a round is unmistakably the same app
-   with the tempo turned up rather than a second design.
-
-   One rule governs the whole file: no cue is ever carried by colour alone.
-   Every correct answer arrives as green AND a check AND the word "Correct",
-   and every miss as plum AND a cross AND "Not quite". The mark hues are the
-   pair already validated for deuteranopia in globals.css, so the colour
-   channel is doing real work for the people it works for, and doing no
-   necessary work for anyone else.
-
-   Every animation here is switched off under prefers-reduced-motion at the
-   foot of the file, and the interface still says everything it needs to
-   without them.
-------------------------------------------------------------------------- */
-
-/* ── The question card ──────────────────────────────────────────────────
-   Questions replace each other quickly, so each one arrives with a small
-   forward motion. It reads as the next card being dealt rather than as the
-   page redrawing. */
 @keyframes deal-in {
   from {
     opacity: 0;
@@ -30,17 +9,11 @@
   animation: deal-in 0.26s cubic-bezier(0.16, 0.9, 0.3, 1) both;
 }
 
-/* Answers land staggered, in reading order, so the eye is pulled down the
-   options instead of meeting four at once. Fast enough to be felt, not
-   waited on: the last option is in place inside a fifth of a second. */
 .deal-in-stagger {
   animation: deal-in 0.24s cubic-bezier(0.16, 0.9, 0.3, 1) both;
   animation-delay: calc(var(--i, 0) * 42ms);
 }
 
-/* ── Getting it right ───────────────────────────────────────────────────
-   The reward has to land in the same instant as the tap, so this is short,
-   bright and completely over before the next question arrives. */
 @keyframes right-flash {
   0% {
     background-color: transparent;
@@ -60,8 +33,6 @@
   animation: right-flash 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
-/* A ring that expands out of the chosen answer and dissolves. The whole
-   gesture is one push outward from where the finger was. */
 @keyframes right-ring {
   from {
     opacity: 0.55;
@@ -77,10 +48,6 @@
   animation: right-ring 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
-/* ── Getting it wrong ───────────────────────────────────────────────────
-   Deliberately smaller than the reward. A miss is information, not a
-   punishment, and a violent failure animation teaches students to fear the
-   thing they are here to do. Two small shakes, no red screen, no noise. */
 @keyframes miss-shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-4px); }
@@ -103,25 +70,6 @@
   animation: miss-mark 0.34s ease-out both;
 }
 
-/* The combo and points styles that used to live here are gone with the
-   numbers they animated: `combo`, `combo-bump`, `points-fly` and
-   `score-tick`. There is no score and no multiplier any more, so there is
-   nothing for a glowing number to say. What replaced them is above: the
-   reward is now the answer itself lighting up, which is the thing the student
-   is already looking at. */
-
-/* ── The payoff ─────────────────────────────────────────────────────────
-   A correct answer is the moment the whole round exists for, and it used to
-   be marked by a colour change and a tick. These make it land harder without
-   breaking the one rule that cannot bend: nothing selectable moves. Every
-   animation here runs on an element that is either not a target at all, or
-   has already been answered and is disabled.
-
-   All of them are short. The round advances 600ms after a correct answer, so
-   anything that has not finished by then is a thing the student never sees
-   the end of. */
-
-/* The chosen answer takes a beat: a quick swell and settle. */
 @keyframes right-pop {
   0% { transform: scale(1); }
   35% { transform: scale(1.035); }
@@ -132,9 +80,6 @@
   animation: right-pop 0.42s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
-/* A sweep of light across the correct row, left to right, once. Pure
-   decoration over the top of the answer: it is drawn in an overlay with
-   pointer events off, so it cannot come between a finger and anything. */
 @keyframes right-sheen {
   from { transform: translateX(-110%); }
   to { transform: translateX(110%); }
@@ -157,7 +102,6 @@
   animation: right-sheen 0.62s cubic-bezier(0.3, 0.5, 0.4, 1) both;
 }
 
-/* The verdict word arriving. Overshoots once, then holds. */
 @keyframes verdict-in {
   0% { opacity: 0; transform: translateY(8px) scale(0.94); }
   60% { opacity: 1; transform: translateY(0) scale(1.03); }
@@ -168,9 +112,6 @@
   animation: verdict-in 0.34s cubic-bezier(0.2, 1.3, 0.4, 1) both;
 }
 
-/* The timer ring, when an answer lands with time to spare. One pulse of the
-   correct-answer green through the ring, so the reward reaches the one piece
-   of chrome the whole room is already staring at. */
 @keyframes clock-cheer {
   0%, 100% { transform: scale(1); }
   45% { transform: scale(1.14); }
@@ -180,11 +121,6 @@
   animation: clock-cheer 0.4s cubic-bezier(0.2, 1.3, 0.4, 1) both;
 }
 
-/* ── The per-question timer ─────────────────────────────────────────────
-   A ring drawn with a conic gradient, driven by `--t` (1 full, 0 empty)
-   which the component updates from a monotonic clock. Not a CSS animation:
-   the ring has to agree exactly with the timer that decides the question is
-   over, and two clocks would drift apart. */
 .ring {
   --t: 1;
   background:
@@ -196,8 +132,6 @@
   transition: background 0.12s linear;
 }
 
-/* Under the last few seconds the ring changes colour AND starts pulsing, so
-   the warning is not colour alone. */
 @keyframes urgent-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.09); opacity: 0.82; }
@@ -208,16 +142,11 @@
   animation: urgent-pulse 0.62s ease-in-out infinite;
 }
 
-/* ── The speedrun clock ─────────────────────────────────────────────────
-   Runs across the cold open and Rounds 1 to 3. Monospaced and tabular so the
-   digits do not jitter as they change, which is what makes a run timer feel
-   like a run timer rather than like text being rewritten. */
 .run-clock {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
 
-/* A split landing on the between-rounds screen. */
 @keyframes split-land {
   from {
     opacity: 0;
@@ -230,12 +159,6 @@
   animation-delay: calc(var(--i, 0) * 90ms);
 }
 
-/* ── Chips ──────────────────────────────────────────────────────────────
-   The chip itself, the pick-up and the press, moved to globals.css: debate
-   mode uses the same object for its topic suggestions and does not load this
-   file. What stays here is the part that is only true of Round 3. */
-
-/* A chip arriving in the sentence line. */
 @keyframes chip-snap {
   0% { transform: scale(0.82); opacity: 0; }
   65% { transform: scale(1.06); opacity: 1; }
@@ -246,16 +169,11 @@
   animation: chip-snap 0.22s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
-/* The gap a chip leaves behind in the tray, so the tray does not reflow out
-   from under the finger mid-tap. */
 .chip-spent {
   opacity: 0.22;
   pointer-events: none;
 }
 
-/* ── Stage transitions ──────────────────────────────────────────────────
-   The moment between rounds. The card comes in with weight, because this is
-   the beat where the student is told what just changed. */
 @keyframes stage-in {
   from {
     opacity: 0;
@@ -268,22 +186,10 @@
   animation-delay: calc(var(--i, 0) * 80ms);
 }
 
-/* ── Round 4 ────────────────────────────────────────────────────────────
-   The recording indicator is `.listening`, in globals.css, because a debate
-   opponent writing a speech is the same idea and the debate route does not
-   load this file.
-
-   Live transcript arriving. No motion on the text itself, which would make
-   it unreadable while it is being written. */
 .transcript-live {
   border-left-color: var(--accent);
 }
 
-/* ── Reduced motion ─────────────────────────────────────────────────────
-   Everything above is decoration on top of an interface that already says
-   what it means in words and shapes. Under reduced motion the words and
-   shapes stay and the movement stops, including the infinite ones, which are
-   the ones that actually hurt. */
 @media (prefers-reduced-motion: reduce) {
   .deal-in,
   .deal-in-stagger,
@@ -302,23 +208,15 @@
     animation: none;
   }
 
-  /* The sheen is drawn by a pseudo-element, so it has to be switched off by
-     one: removing the animation alone would leave the highlight parked over
-     the answer at whatever position it started from. */
   .right-sheen::after {
     animation: none;
     content: none;
   }
 
-
-  /* `.chip` is handled where it is now defined, in globals.css. */
   .ring {
     transition-duration: 0.01ms;
   }
 
-  /* The urgent ring still has to warn. Without the pulse it keeps the colour
-     change, and the component keeps the number of seconds on screen, so the
-     warning survives the animation being removed. */
   .urgent {
     --ring-ink: var(--shaky-mark);
   }

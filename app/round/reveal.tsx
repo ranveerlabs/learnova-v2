@@ -6,37 +6,8 @@ import { Arrow, GhostButton, PrimaryButton } from "../ui";
 import { conceptKey, forget } from "./record";
 import type { Provenance } from "./types";
 
-/* Where the session lands.
-
-   The honest shape of this screen took more deciding than anything else in the
-   mode. The obvious version compares the warm up to Round 4 and prints the
-   difference as a percentage, and it would be a lie: the warm up is a
-   two-option guess taken before any studying, Round 4 is an explanation
-   produced from nothing and marked on a rubric. There is no arithmetic that
-   turns one into the other.
-
-   ── One number, then a door ──────────────────────────────────────────────
-   What the screen leads with is the rating, and the reasoning is in
-   `rating()` in engine.ts. The short version: this used to lead with the run
-   time, and time is not a measure of how well you did. The quickest way
-   through a round is to answer everything wrong immediately.
-
-   Everything else, including the clock, is behind one disclosure. A student
-   who wants the breakdown opens it and gets more than the old screen showed;
-   a student who wants to know how they did reads one number and goes again. */
-
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
-/* ── How a concept ended up, in words a person would use ──────────────────
-   The old table reported "got to Round 2" and "not yet right", which asks the
-   reader to remember what Round 2 was before it means anything. These say
-   what happened instead, and each carries a colour and a shape so the state
-   is never colour alone. */
-
-/** How each standing is drawn. The classification itself is `conceptStanding`
-    in engine.ts, because the record keeps the same vocabulary between runs and
-    two copies of that judgement would eventually disagree about what a student
-    had achieved. This table is only the words and the colours. */
 const SHOWN: Record<Standing, { word: string; ink: string; mark: string }> = {
   explained: { word: "Explained it", ink: "text-solid-ink", mark: "bg-solid-mark" },
   almost: { word: "Almost", ink: "text-shaky-ink", mark: "bg-shaky-mark" },
@@ -45,7 +16,6 @@ const SHOWN: Record<Standing, { word: string; ink: string; mark: string }> = {
   missed: { word: "Not yet", ink: "text-broken-ink", mark: "bg-broken-mark" },
 };
 
-/** One small labelled fact, inside the disclosure. */
 function Figure({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col gap-1">
@@ -62,14 +32,6 @@ function Figure({ value, label }: { value: string; label: string }) {
   );
 }
 
-/* The rating's three bands.
-
-   Colour is the fast channel and the word beside it is the one that survives
-   not being able to see the colour. The wash and the rule are new: the number
-   used to be coloured type on the page background, which is a lot of weight
-   to hang on the hue of a glyph. It sits in a card of its own now, in its own
-   colour, and it is the only figure on the screen. Same treatment as the
-   verdict on the debate ballot, on purpose. */
 const BAND: Record<
   RevealData["rating"]["band"],
   { ink: string; rule: string; wash: string; note: string }
@@ -108,20 +70,11 @@ export function Reveal({
   data: RevealData;
   topic: string;
   provenance: Provenance;
-  /** Questions this run lost to citation checking. Always 0 when ungrounded,
-      because there is nothing for a citation to be checked against. */
   droppedTotal: number;
-  /** Set when the pasted material was too long to show the model whole, and
-      the session was written from an even spread of it. */
   sampled: { kept: number; total: number } | null;
-  /** The best rating on THIS topic, from the record, when there is one. */
   best: { rating: number } | null;
-  /** Where each concept stood before this run, keyed as the record keys them.
-      Empty on a first visit, which is what makes "moved" sayable at all. */
   previously: Record<string, Standing>;
-  /** Same topic, new questions. */
   onAgain: () => void;
-  /** Back to the entry screen for something else. */
   onRestart: () => void;
 }) {
   const produced = data.productions.length > 0;
@@ -130,13 +83,6 @@ export function Reveal({
   const band = BAND[data.rating.band];
   const beatBest = best !== null && score > best.rating;
 
-  /* What this run changed, against where the last one left off.
-
-     Only in one direction and only over the line that matters: a concept the
-     student could not say before and just said. Recognition improving is not
-     in here, and neither is anything sliding backwards. This is the sentence
-     the whole record exists to make sayable, and it is worth exactly as much
-     as it is rare, so it is not padded out with movement that did not happen. */
   const nowExplained = data.concepts.filter((line) => {
     if (conceptStanding(line) !== "explained") return false;
     const before = previously[conceptKey(line.concept)];
@@ -147,16 +93,6 @@ export function Reveal({
 
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2">
-      {/* The topic, on the note it was written on.
-
-          It was an uppercase grey label, which is how you tag a section and
-          not how you name the thing a person just spent ten minutes on. Same
-          argument as the motion on the debate ballot, and deliberately the
-          same object: the topic is what the student brought and typed
-          themselves, it is neither a judgement nor a number, and it is the
-          one piece of colour on this screen that does not mean anything. That
-          is what keeps it clear of the marks below, where colour is the whole
-          vocabulary. */}
       <div className="stage-in flex flex-col gap-4">
         <div
           className="sticky flex min-h-[6.5rem] w-fit min-w-[10rem] max-w-[18rem] items-start self-start rounded-[2px] pb-5 pl-4 pr-6 pt-4"
@@ -172,18 +108,6 @@ export function Reveal({
         </h2>
       </div>
 
-      {/* The score.
-
-          It was the raw pair — "+1,380" with "of 2,280" beside it — and the
-          denominator was there for a good reason: a bare weighted total says
-          nothing when a short session and a long one are scored out of
-          different amounts. The trouble is that it left the reader holding
-          two four-digit numbers and a division, at the one moment they want
-          a single answer to a single question.
-
-          So the division is done. Everything the pair was protecting is
-          still true of the number that replaced it, because it IS the
-          proportion: see `score` in engine.ts. */}
       <div
         className={`stage-in flex w-fit min-w-[16rem] max-w-full flex-col gap-2 rounded-[3px] border-l-[5px] py-4 pl-4 pr-8 ${band.rule} ${band.wash}`}
         style={{ ["--i" as string]: 1 }}
@@ -212,23 +136,6 @@ export function Reveal({
         </p>
       </div>
 
-      {/* What the rating above is a rating of.
-
-          This sentence used to live inside the disclosure at the foot of the
-          screen, as a clause in the middle of a grey paragraph about how the
-          rating is weighted and what local storage keeps. Everything in that
-          paragraph is a footnote except this, which is a condition on every
-          other claim the screen makes: the number, the headline that says you
-          finished by explaining, and the list of concepts marked "explained".
-          A student who never opens the fold, which is most of them, read a
-          scored, graded, colour-coded report on how well they know something
-          with nothing anywhere on it to say that none of it was checked.
-
-          So it comes out of the fold and sits under the number it qualifies.
-          It is one line and it is small, because the screen is already busy
-          and the point is not to alarm anybody: it is to make sure that the
-          sentence exists somewhere a person actually reads before they walk
-          away believing they have learned something. */}
       {provenance === "generated" ? (
         <p
           className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
@@ -239,20 +146,6 @@ export function Reveal({
           the questions and marked the answers from its own knowledge.
         </p>
       ) : (
-        /* The other half of the same sentence, for the run that did have
-           something to check against.
-
-           This is the only place in the app that can show what grounding is
-           worth, and it can only show it with a number. "Every question came
-           from your notes" is a claim; "eleven questions were written for you
-           and four were thrown away because they were not really in there" is
-           the check being seen to work, and it is the difference between
-           trusting the badge and having a reason to.
-
-           Shown only when something was actually dropped. A run where the
-           generator cited honestly throughout has nothing to report here, and
-           padding that out with a reassurance nobody asked for is how the line
-           would stop being read on the runs that do have news. */
         (droppedTotal > 0 || sampled) && (
           <p
             className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
@@ -268,10 +161,6 @@ export function Reveal({
                 could not be found in your material.{" "}
               </>
             )}
-            {/* Said plainly rather than buried, because it is the one thing on
-                this screen a student could not have worked out for themselves
-                and would care about: they pasted a document and only part of
-                it was ever asked about. */}
             {sampled && (
               <>
                 Your material was long, so the questions were written from an even spread of it:{" "}
@@ -282,13 +171,6 @@ export function Reveal({
         )
       )}
 
-      {/* The one thing a returning student came back to find out.
-
-          It sits above the buttons rather than inside the disclosure, because
-          it is the only claim on this screen that could not be made at all
-          before a run left anything behind, and because "you could not say
-          this last week and you just did" is worth more to somebody than any
-          number on the page. It appears when it is true and not otherwise. */}
       {nowExplained.length > 0 && (
         <div
           className="stage-in flex flex-col gap-2 rounded-[3px] border-l-[3px] border-solid-mark bg-solid-tint py-3 pl-4 pr-4"
@@ -314,13 +196,6 @@ export function Reveal({
         </div>
       )}
 
-      {/* Two ways out, and now they do two different things.
-
-          They were both wired to the one reset, which banked the run and
-          dropped the student on the entry screen with an empty field, so the
-          button that said it would repeat the topic was the button that threw
-          it away. `again` in session.ts is the behaviour that label always
-          claimed: same topic, new questions, straight into the warm up. */}
       <div className="stage-in flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 4 }}>
         <PrimaryButton onClick={onAgain}>
           Run it again <Arrow />
@@ -328,7 +203,6 @@ export function Reveal({
         <GhostButton onClick={onRestart}>Study something else</GhostButton>
       </div>
 
-      {/* The door. Closed on arrival, and it names what is behind it. */}
       <details className="stage-in group" style={{ ["--i" as string]: 5 }}>
         <summary
           style={NARROW}
@@ -376,27 +250,6 @@ export function Reveal({
             })}
           </ol>
 
-          {/* The control, without the essay that used to surround it.
-
-              Three sentences stood here: how the rating is weighted, that
-              speed is not in it, how many runs this tab had seen, and what
-              local storage keeps. All four were true and all four were read
-              by nobody, because they sat at the bottom of a fold at the
-              bottom of a results screen, which is the last place on the
-              screen anybody looks and the place a footnote goes to be
-              ignored. What is left is the one thing here that DOES
-              something.
-
-              The storage sentence is not lost, it has moved somewhere it can
-              be checked: the Privacy section of the README names the key and
-              says what is in it. That is the right home for a claim somebody
-              might want to hold the app to, and a better one than grey type
-              nobody scrolls to.
-
-              Pressed, it says one word. "Forgotten. This topic starts fresh
-              next time." explained a consequence that is already obvious
-              from the button having said "Forget"; the word on its own is
-              the confirmation, and confirmation is all that was needed. */}
           <p className="font-sans text-[0.75rem] leading-[1.6] text-ink-faint">
             {forgotten ? (
               "Forgotten."

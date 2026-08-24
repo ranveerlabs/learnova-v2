@@ -11,33 +11,6 @@ import {
   tier,
 } from "./types";
 
-/* The ballot.
-
-   ── What this screen is for, and what it was doing instead ───────────────
-   Somebody who has just finished a round wants two things, in this order:
-   did I win, and what do I do differently next time. This screen used to
-   answer both and then keep going, into ten
-   dimension scores across two columns, a speaker points figure, a strongest
-   line, a weakest line, and a closing paragraph about the separation between
-   what the model judges and what the app computes. Every one of those was
-   accurate. Together they turned the end of a debate into a report.
-
-   The cost was not the scrolling. It was that the one line worth acting on,
-   the fix for the next round, sat fifth in a stack of things that all looked
-   equally important, and the fastest way to make something unread is to give
-   it the same weight as nine things beside it.
-
-   So the face of the ballot is now the decision and the fix. The
-   rest is not gone: it is behind one disclosure, which is the same shape
-   Round Mode's results screen settled on for the same reason. A competitive
-   debater who wants their speaks is exactly the person who will open a fold
-   labelled with them.
-
-   Nothing on this screen is invented here. Every figure came back from the
-   judge. There is no running record under the verdict and no elo before it:
-   a round is judged, read and done with, and the app keeps no count of how
-   the last one went. */
-
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
 const LABEL: Record<Dimension, string> = {
@@ -57,11 +30,6 @@ export function Ballot({
 }: {
   ballot: Ballot;
   setup: Setup;
-  /** Who the other side was, for the scoresheet column and the key moments.
-
-      Defaults to the tier's name, which is right for every single-player
-      round and wrong for a live one, where the opponent is a person and the
-      column should say so. */
   opponentName?: string;
   onAgain: () => void;
   againLabel?: string;
@@ -70,13 +38,6 @@ export function Ballot({
   const drew = ballot.winner === "draw";
   const opponent = { name: opponentName ?? tier(setup.tierId).name };
 
-  /* The decision, in three channels rather than one.
-
-     It was a coloured heading beside a plain left rule, which is colour doing
-     the whole job on the loudest line of the screen. Now the block it sits in
-     is washed in the same hue, so the result is legible from the far side of
-     a room and from the corner of an eye, and the words still say it on their
-     own for anybody the colour does not reach. */
   const word = won ? "You won it" : drew ? "A draw" : "You lost it";
   const ink = won ? "text-solid-ink" : drew ? "text-shaky-ink" : "text-broken-ink";
   const rule = won ? "border-solid-mark" : drew ? "border-shaky-mark" : "border-broken-mark";
@@ -84,28 +45,7 @@ export function Ballot({
 
   return (
     <section className="flex w-full flex-col gap-6 pb-4">
-      {/* What was argued, on the note it was written on.
-
-          It was a line of grey prose under a label, which is how you set a
-          caption and not how you set the subject of the round. The motion is
-          the one thing on this screen that is neither a judgement nor a
-          number: it is what the student brought, in their own words, and a
-          sticky note is exactly the object for a thing somebody wrote down
-          before any of this started. It is also the only colour on the screen
-          that does not mean anything, which is what keeps it from competing
-          with the marks below it. */}
       <div className="flex flex-col gap-3">
-        {/* Who you played is only named when it is a tier.
-
-            The line is "Open debate · Novice · For", and it survives the
-            opponent's name being swapped for anything except a pronoun. In a
-            live room the opponent is "Them", and "Open debate · Them · For"
-            reads on sight as *they* were arguing For — a middle dot is not a
-            strong enough separator to stop it, and this sits directly above
-            the verdict, which is the worst place in the app to leave a
-            question about which side was whose. A live round drops the
-            segment: there is no tier to name, and the two things left are
-            the two things that matter. */}
         <Label>
           {setup.tab === "competitive" ? setup.format : "Open debate"}
           {setup.tierId ? ` · ${opponent.name}` : ""} · {sideWord(setup.side)}
@@ -118,37 +58,9 @@ export function Ballot({
         </div>
       </div>
 
-      {/* The decision, and what it makes your record.
-
-          There was a phrase after the verdict saying how decisively it went,
-          "comfortably" or "on the narrowest of margins". It came from the
-          judge's own margin, so it was true, and it was also a second verdict
-          sitting beside the first in smaller type, inviting the reader to work
-          out how the two related. The margin is still on the ballot, in the
-          scoresheet, where a number belongs.
-
-          On a live round there is no record under the verdict, and nothing
-          takes its place. The block is the verdict on its own, which is what
-          a live round actually produced: see `book` above for why there is
-          nothing to count. A greyed-out record, or a "not counted" caption,
-          would both be a space set aside for something that is never coming. */}
-      {/* Width fits the content rather than the column. Run full bleed, the
-          wash was mostly empty colour with a verdict in the corner of it,
-          which reads as a banner nobody filled in. */}
       <div
         className={`flex w-fit min-w-[18rem] max-w-full flex-col gap-4 rounded-[3px] border-l-[5px] py-4 pl-4 pr-8 ${rule} ${wash}`}
       >
-        {/* Stamped, not set.
-
-            It was the app's own sans at its largest weight, which is a
-            heading: correct, legible, and the same object as every other
-            heading in the app, on the one line in the mode that is not a
-            heading at all. A verdict is a thing pressed onto a ballot at the
-            end of a round, so it is drawn as one — the pixel face inside a
-            hard ruled box, off-square, arriving from above the screen with a
-            bounce. The colour and the wash behind it are unchanged, and the
-            words still say it on their own for anybody the colour does not
-            reach. See the `stamp` keyframes in globals.css. */}
         <h2
           className={`stamp self-start border-[3px] px-3.5 py-2.5 font-pixel text-[clamp(1.125rem,0.85rem+1.1vw,1.75rem)] leading-none ${rule} ${ink}`}
         >
@@ -156,13 +68,6 @@ export function Ballot({
         </h2>
       </div>
 
-      {/* The one thing to do differently, and the only piece of the judge's
-          written feedback on the face of the screen. It is here rather than in
-          the fold because it is the only line that changes what happens next,
-          and it is washed for the same reason: on a screen where the verdict
-          is a block of colour, an instruction drawn as plain text with a hair
-          rule beside it is the quietest thing present and the one thing worth
-          acting on. */}
       <div className="flex flex-col gap-1 rounded-[3px] border-l-[4px] border-accent bg-accent-wash py-3 pl-4 pr-4">
         <span
           style={NARROW}
@@ -175,21 +80,6 @@ export function Ballot({
         </p>
       </div>
 
-      {/* Where it turned, told apart by who said it.
-
-          Both speakers used to be the same grey card with the same grey rule,
-          separated only by which name the second line opened with, so a
-          screen showing three moments read as three quotes from one voice.
-          Whose line it was is the first thing you need here: two of your own
-          moments is a round you controlled, two of theirs is a round that
-          happened to you.
-
-          Yours takes the accent, which is the app's colour for the student's
-          own side and is already what marks your speech in the transcript.
-          Theirs takes the grey mark family, which is the app's colour for
-          absence and is not one of the three judgement hues, so nothing here
-          can be misread as a mark on your words. The name still leads the
-          second line, so the colour is never carrying it alone. */}
       {ballot.key_moments.length > 0 && (
         <div className="flex flex-col gap-3">
           <Label>Where it turned</Label>
@@ -224,9 +114,6 @@ export function Ballot({
         </div>
       )}
 
-      {/* Back to the top, and it says so anticlockwise. The one thing this
-          button must not look like is "next": it goes back to the screen the
-          round started on, not on to another part of this one. */}
       <div className="flex flex-wrap items-center gap-3">
         <PrimaryButton onClick={onAgain}>
           {againLabel}
@@ -241,13 +128,6 @@ export function Ballot({
   );
 }
 
-/** Everything a real ballot has that a person does not need to see to know
-    how the round went.
-
-    Closed by default and named by what is inside it, so the two people who
-    open it can tell from the summary that it is their door: a competitive
-    debater looking for their speaks, and anybody who wants to know which
-    dimension actually lost them the round. */
 function Detail({
   ballot,
   setup,
@@ -271,21 +151,6 @@ function Detail({
 
       <div className="mt-4 flex flex-col gap-5">
         <div className="flex flex-col gap-3">
-          {/* No "How it was scored" heading over this. The fold it is inside
-              is called "the full scoresheet" and opening it is what put the
-              scoresheet on screen; a heading repeating the word is a line to
-              read that says nothing the click did not. */}
-          {/* Speaker points, on the tournament ballot only.
-
-              They are the most recognisable thing on a real ballot and the
-              first number a competitive debater looks for. They are worked
-              out here from the five dimension scores the judge already gave,
-              in the spirit the rest of this file works in: the model is
-              asked for the judgements it can actually make and never for a
-              number on a scale it has no feel for. A model asked directly for speaker
-              points returns 28.5 almost every time, because 28.5 is what the
-              internet says the average is, and a figure that never moves is
-              not a measurement. */}
           {setup.tab === "competitive" && (
             <span
               className="self-end font-mono text-[0.8125rem] tabular-nums text-ink-soft"
@@ -310,13 +175,6 @@ function Detail({
   );
 }
 
-/** Speaker points, on the 25 to 30 scale a real ballot uses.
-
-    The mean of the five dimensions, mapped so that 50 out of 100 lands on
-    27.5, which is what an average round is actually given, and reported to
-    the nearest half point because that is the resolution tournaments use.
-    Arithmetic on judgements already made: nothing here is a call the model
-    was not already asked for. */
 function speakerPoints(scores: Scores): number {
   const mean = DIMENSIONS.reduce((sum, d) => sum + scores[d], 0) / DIMENSIONS.length;
   return Math.round((25 + mean / 20) * 2) / 2;
@@ -346,9 +204,6 @@ function Table({
         >
           You
         </span>
-        {/* Wide enough for the longest tier name at this tracking. It was
-            twelve and clipped "Varsity" to "Varsi…", which named the column
-            after nothing. */}
         <span
           style={NARROW}
           className="w-[4.5rem] text-right font-sans text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-ink-faint"

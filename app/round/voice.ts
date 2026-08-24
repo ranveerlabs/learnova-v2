@@ -2,26 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/* Speech input for Round 4.
-
-   The contract this file exists to enforce: nothing here ever submits
-   anything. It produces text and hands it back. The student sees the
-   transcript, corrects it if the recogniser misheard them, and submits it
-   themselves. Audio never leaves the browser at all: the Web Speech API in
-   Chrome and Edge does its recognition against Google's service, so the
-   audio goes there rather than to us, and what our server receives is text
-   the student read and approved.
-
-   Support is genuinely partial and always will be. Chrome and Edge are good,
-   Safari is patchy, Firefox has nothing. So this reports what it can do and
-   the interface keeps a typed field visible at all times rather than putting
-   the round behind a microphone that may not exist. */
-
-/* ── The shim ─────────────────────────────────────────────────────────────
-   None of the SpeechRecognition interfaces are in TypeScript's DOM library,
-   because the spec has never left draft. These are the parts actually used
-   here, typed narrowly rather than reached for through `any`. */
-
 type SpeechAlternative = { transcript: string; confidence: number };
 
 type SpeechResult = {
@@ -72,8 +52,6 @@ function recognizerClass(): RecognizerConstructor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-/* ── Why a particular attempt failed, in words a student can act on ─────── */
-
 function readableError(code: string): string {
   switch (code) {
     case "not-allowed":
@@ -93,18 +71,13 @@ function readableError(code: string): string {
 }
 
 export type Speech = {
-  /** Whether this browser can do speech recognition at all. Decided after
-      mount, so the server and the first client render agree. */
   supported: boolean;
   listening: boolean;
-  /** Everything recognised and settled so far this attempt. */
   transcript: string;
-  /** The current in-progress phrase, still being revised as they speak. */
   interim: string;
   error: string | null;
   start: () => void;
   stop: () => void;
-  /** Throw away what was captured and start from nothing. */
   reset: () => void;
 };
 
@@ -117,17 +90,12 @@ export function useSpeech(): Speech {
 
   const recognizer = useRef<SpeechRecognizer | null>(null);
 
-  /* Capability is read after mount rather than during render. Deciding it
-     during render would make the server's HTML and the browser's first pass
-     disagree about whether the microphone exists. */
   useEffect(() => {
     setSupported(recognizerClass() !== null);
   }, []);
 
   useEffect(() => {
     return () => {
-      /* Leaving the round with the microphone still open would keep it open.
-         `abort` rather than `stop`: there is no transcript left to deliver. */
       recognizer.current?.abort();
       recognizer.current = null;
     };
@@ -177,8 +145,6 @@ export function useSpeech(): Speech {
 
     rec.onend = () => {
       setListening(false);
-      /* Anything still in flight when the recogniser stops is the last thing
-         they said. Dropping it would silently lose the end of a sentence. */
       setInterim((pending) => {
         if (pending.trim()) {
           setTranscript((prev) => `${prev}${prev && !prev.endsWith(" ") ? " " : ""}${pending.trim()}`);
@@ -190,7 +156,6 @@ export function useSpeech(): Speech {
     try {
       rec.start();
     } catch {
-      /* Calling start twice throws. Nothing has gone wrong for the student. */
       setListening(false);
     }
   }, []);
@@ -209,8 +174,3 @@ export function useSpeech(): Speech {
 
   return { supported, listening, transcript, interim, error, start, stop, reset };
 }
-
-/* The synthesised tones that used to live below this line are in app/tone.ts
-   now. Debate mode needed a gavel out of the same oscillator code, and a sound
-   module reachable only by importing Round 4's speech recogniser is a sound
-   module in the wrong place. Nothing about them changed in the move. */

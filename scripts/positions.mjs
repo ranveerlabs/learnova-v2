@@ -1,21 +1,3 @@
-/* Where the correct answer actually lands, measured against the running app.
-
-   Not a unit test of the shuffle. The shuffle being uniform is easy and was
-   never the interesting question; what matters is whether a question served by
-   the real route, through the real model, through validation and citation
-   checking and the repeat filter, comes out with its answer in an unbiased
-   position. So this asks the dev server for real banks and counts what comes
-   back.
-
-   Run the dev server, then:
-
-       node scripts/positions.mjs
-       node scripts/positions.mjs --topics 6 --base http://localhost:3000
-
-   It also counts repeats across everything it generated, which is the other
-   claim that is easy to make and hard to believe without numbers.
-------------------------------------------------------------------------- */
-
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
@@ -25,9 +7,6 @@ const flag = (name, fallback) => {
 const BASE = flag("base", "http://localhost:3000");
 const TOPIC_COUNT = Number(flag("topics", "4"));
 
-/* Four spread deliberately wide. A position bias that only shows up in biology
-   is still a position bias, and one that only shows up in a topic the model
-   knows thinly is the more likely case. */
 const TOPICS = [
   "Photosynthesis",
   "The French Revolution",
@@ -48,12 +27,6 @@ async function ask(body) {
   return data;
 }
 
-/* ── The same measurement the app defines ─────────────────────────────────
-   Mirrored from app/round/shuffle.ts rather than imported, because this is a
-   plain node script and that file is TypeScript. It is nine lines and it is
-   checked against the real one by the fact that both are looking at the same
-   payload. */
-
 function answerPosition(q) {
   if (q.format === "recognition" || q.format === "choice") {
     const of = q.options?.length ?? 0;
@@ -69,11 +42,6 @@ function answerPosition(q) {
   }
   return null;
 }
-
-/* ── Counting ─────────────────────────────────────────────────────────────
-   Assemble trays vary in length, so raw index counts across them would be
-   meaningless. Those are bucketed by where in the tray the answer fell as a
-   fraction, which is comparable across lengths. */
 
 const buckets = {
   recognition: [0, 0],
@@ -101,11 +69,6 @@ function record(q) {
     buckets[q.format][at.index] += 1;
   }
 }
-
-/* ── The repeat check ─────────────────────────────────────────────────────
-   A rough version of app/round/dedupe.ts, enough to count collisions the real
-   one should already have removed. If this reports anything above zero within
-   a topic, the sift is not doing its job. */
 
 const EMPTY = new Set("a an the of in on at to for from by with is are was were be do does did has have had what which who when where why how you your and or that this it its as not no".split(" "));
 
@@ -138,8 +101,6 @@ function collisions(questions) {
   return n;
 }
 
-/* ── Reporting ───────────────────────────────────────────────────────────── */
-
 function bar(share) {
   return "█".repeat(Math.round(share * 40));
 }
@@ -162,10 +123,6 @@ function report(name, counts, labels) {
     );
   });
 
-  /* A chi-square against uniform, for one number that says whether the spread
-     is ordinary sampling noise or a pattern. Reported with its threshold
-     rather than as a verdict, because a script should not be the thing that
-     decides whether the app is correct. */
   const expectedCount = total / counts.length;
   const chi = counts.reduce((sum, c) => sum + Math.pow(c - expectedCount, 2) / expectedCount, 0);
   const df = counts.length - 1;
@@ -175,8 +132,6 @@ function report(name, counts, labels) {
       (chi > critical ? "NOT uniform." : "Consistent with uniform.")
   );
 }
-
-/* ── The run ─────────────────────────────────────────────────────────────── */
 
 async function main() {
   console.log(`Generating across ${TOPICS.length} topics against ${BASE}\n`);

@@ -4,17 +4,6 @@ import { useMemo } from "react";
 import type { Annotation } from "./api/grade/route";
 import { Label } from "./ui";
 
-/* ═══ The apparatus ═══════════════════════════════════════════════════════
-   The student's explanation, set in the reading face and marked in place.
-   Flagged spans carry a siglum that keys to a note in the margin; each note
-   attests what the source actually says, verbatim.
-
-   Colour is one of three channels and never the only one: every mark also
-   has its own underline shape, and every note names its kind in words.
-
-   The pieces are exported separately so the page can run the notes down the
-   whole margin rather than only alongside the text block. */
-
 type Flagged = Exclude<Annotation["type"], "right">;
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
@@ -40,24 +29,6 @@ const NOTE_KIND: Record<Flagged, { word: string; mark: string; ink: string; tint
   },
 };
 
-/** What a "wrong" mark is allowed to call itself.
-
-    "Contradicts the source" is a true sentence in a grounded session and a
-    false one everywhere else, and it was being printed in both. In a
-    topic-only session there is no source: the student pasted nothing, the
-    grader is told in as many words that there is nothing to quote, and the
-    server blanks every citation on the way out. The screen went on saying
-    "Contradicts the source" anyway, over a heading that reads "The notes",
-    which names a document that does not exist and attributes the model's own
-    opinion to it.
-
-    That is not a missing disclaimer, it is the app asserting a check it never
-    ran, in the one place a student is most likely to defer to it. Somebody who
-    knew that Tritoflex is sprayed on cold wrote exactly that, and was told it
-    contradicted a source. There was no source. There was a model that had the
-    fact wrong, and an interface that dressed it up as an authority.
-
-    So the mark says who is actually disagreeing. */
 function wrongWord(grounded: boolean): string {
   return grounded ? NOTE_KIND.wrong.word : "Model disagrees";
 }
@@ -75,8 +46,6 @@ export type Card = {
   sourceQuote: string;
 };
 
-/** Straight-quote curly punctuation without changing string length, so match
-    positions stay valid against the original text. */
 function normalize(s: string): string {
   return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 }
@@ -91,7 +60,6 @@ function findRange(
   taken: [number, number][]
 ): { start: number; end: number } | null {
   if (!normQuote) return null;
-  // Exact match first.
   for (let from = 0; ; ) {
     const i = normText.indexOf(normQuote, from);
     if (i < 0) break;
@@ -99,7 +67,6 @@ function findRange(
     if (!overlaps(i, e, taken)) return { start: i, end: e };
     from = i + 1;
   }
-  // Whitespace-tolerant fallback (model may re-flow whitespace in the quote).
   const escaped = normQuote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
   let re: RegExp;
   try {
@@ -145,7 +112,6 @@ export function buildDissection(
         id,
       });
     } else if (ann.type !== "right") {
-      // Couldn't locate it, so keep it as a note and no feedback is silently lost.
       unmatched.push({
         id,
         type: ann.type,
@@ -158,7 +124,6 @@ export function buildDissection(
 
   matched.sort((a, b) => a.start - b.start);
 
-  // Number the flagged spans in reading order: the sigla key text to notes.
   let counter = 0;
   const numById = new Map<number, number>();
   for (const m of matched) if (m.type !== "right") numById.set(m.id, ++counter);
@@ -199,8 +164,6 @@ export function useDissection(text: string, annotations: Annotation[]) {
   return useMemo(() => buildDissection(text, annotations), [text, annotations]);
 }
 
-/** The student's own words, marked. Left plain rather than ruled: the marks
-    are the reason to look at this block, and ruling fights the underlines. */
 export function MarkedUpText({
   segments,
   cards,
@@ -212,15 +175,11 @@ export function MarkedUpText({
   cards: Card[];
   active: number | null;
   setActive: (id: number | null) => void;
-  /** Whether these marks were made against material the student pasted. Only
-      a grounded session may describe a mark as contradicting a source. */
   grounded: boolean;
 }) {
   const hasSolid = segments.some((s) => s.kind === "mark" && s.type === "right");
   const kinds = Array.from(new Set(cards.map((c) => c.type)));
 
-  /* Marks ink in one after another, in reading order, so the position in the
-     sequence has to be counted over marks alone, not over every segment. */
   let markNo = -1;
 
   return (
@@ -249,10 +208,6 @@ export function MarkedUpText({
             );
           }
 
-          /* A siglum is a reference to its note, so it is a link, which is
-             also the only inline-wrapping control available: Chrome coerces
-             <button> to inline-block, which would stop a long marked phrase
-             from breaking across lines. */
           return (
             <a
               key={i}
@@ -283,8 +238,6 @@ export function MarkedUpText({
   );
 }
 
-/** Key to the apparatus. States what each underline means, so the marks are
-    readable before the reader has hovered anything, and without colour. */
 function MarkKey({
   hasSolid,
   kinds,
@@ -314,7 +267,6 @@ function MarkKey({
   );
 }
 
-/** The margin. Each note is keyed to its siglum and attests the source. */
 export function MarginNotes({
   cards,
   active,
@@ -324,7 +276,6 @@ export function MarginNotes({
   cards: Card[];
   active: number | null;
   setActive: (id: number | null) => void;
-  /** See MarkedUpText. Decides whether a "wrong" mark may claim a source. */
   grounded: boolean;
 }) {
   if (cards.length === 0) return null;
@@ -369,15 +320,6 @@ export function MarginNotes({
                   </span>
                 </div>
 
-                {/* Only when there is something to quote.
-
-                    The grader's quote is checked against the explanation
-                    server-side and blanked when it is not actually in there,
-                    so this can arrive empty. Printed anyway it became a pair
-                    of quotation marks around nothing, which reads as the app
-                    having lost the student's words rather than as the model
-                    having never had them. The comment below carries the note
-                    on its own. */}
                 {card.quote && (
                   <p className="mt-1.5 font-read text-[0.9375rem] leading-[1.55] text-ink">
                     <span className={MARK_CLASS[card.type]}>“{card.quote}”</span>

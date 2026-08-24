@@ -3,32 +3,6 @@
 import { BlankField, ChipBoard, ChoiceGrid } from "../ui";
 import type { Presentation, PresentationProps } from "./types";
 
-/* Plain: the presentation with no scenery.
-
-   It is not a setting and it is not in the rotation. There is no toggle that
-   turns it on, because "how much of a game would you like your studying to be"
-   is not a question a student should have to answer before they can start, and
-   because a preference offered next to the real presentations quietly implies
-   the real presentations are optional. They are how rounds look.
-
-   What Plain is, is the floor. Three things stand on it:
-
-   1. A presentation that throws is caught by the boundary and re-rendered as
-      this, in place, with the answer still to give. A bad render in a drawing
-      of a vending machine must not cost a student their round.
-   2. A question no presentation can honestly draw falls back to this. Options
-      too long to fit on a balloon are a real case, and the honest answer is
-      to render them as text rather than to squeeze them.
-   3. Anyone who asks for it can have it for the rest of the session, through
-      the control in ui.tsx that only assistive technology and the keyboard
-      ever reach. A screen reader user is not well served by a patch board,
-      and the way out has to exist without being a menu item that invites
-      everyone else to opt out of the product.
-
-   It is a thin wrapper over the surfaces in app/round/ui.tsx rather than a
-   copy of them, so the plain rendering has exactly one implementation and
-   cannot drift. */
-
 function PlainSurface({
   question,
   revealed,

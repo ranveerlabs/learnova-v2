@@ -19,32 +19,6 @@ export type Grade = {
   outcome: Outcome;
 };
 
-/* ── Two rubrics, because there are two kinds of session ──────────────────
-
-   A grounded session has real source material: the student pasted it, every
-   question was cited against it, and grading an explanation against that
-   passage and nothing else is the whole guarantee of the mode. That is the
-   rubric below, unchanged.
-
-   A topic-only session has no source material and never did. What it has is
-   the questions the session happened to ask, and those were being handed to
-   the grader as though they were a passage from a textbook. The result is the
-   one that was reported: asked to define nutrition, a student wrote "the
-   benefit you get from consuming healthy foods", and it came back marked
-   imprecise against the quote "Which mineral is carrots especially rich in?",
-   with that question printed under the heading "Source". The definition was
-   fine. The grader was doing exactly what it was told, which was to judge a
-   general definition against a multiple choice question, and then to quote
-   the question back as evidence.
-
-   So the second rubric below judges a topic-only answer against ordinary
-   established knowledge of the concept, and is told in as many words that
-   there is no source and nothing to quote.
-
-   The two must stay in step on everything that is not that distinction: the
-   tone, the scope, and the outcome definitions are load bearing and were
-   recalibrated deliberately. Change one, change the other. */
-
 const SYSTEM = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Dissect their explanation phrase by phrase against the provided source material ONLY, not against your own knowledge of the topic.
 
 Do not use em dashes anywhere in your output. Use commas, colons or separate sentences instead.
@@ -65,7 +39,6 @@ Judge the explanation against WHAT WAS ASKED, not against the most complete poss
 Respond with JSON exactly in this shape:
 {"annotations": [{"quote": "...", "type": "right" | "imprecise" | "wrong", "comment": "...", "sourceQuote": "..."}], "missed": ["..."], "verdict": "...", "outcome": "solid" | "shaky" | "not-yet"}`;
 
-/** The same grading, for a session that never had any source material. */
 const TOPIC_SYSTEM = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Judge their explanation against ordinary, well established knowledge of that concept, the kind any competent textbook would agree on.
 
 THERE IS NO SOURCE MATERIAL IN THIS SESSION. The student did not paste anything. You may be shown a record of the questions this session asked them, and that record is context for what was covered, nothing more. It is a list of quiz questions, not a passage, and it is not the standard the explanation is measured against.
@@ -102,7 +75,6 @@ function isAnnotation(v: unknown): v is Annotation {
   );
 }
 
-/** Collapse whitespace and straighten quotes for a tolerant presence check. */
 function flatten(s: string): string {
   return s
     .replace(/[‘’]/g, "'")
@@ -112,52 +84,14 @@ function flatten(s: string): string {
     .toLowerCase();
 }
 
-/** The same, with whitespace removed entirely.
-
-    Pasted notes are often run together, with no space where a sentence ends
-    and the next heading begins ("...nitrogen.Pressure: 92 times..."). Asked to
-    quote verbatim, a model will faithfully copy the words and quietly insert
-    the space that ought to be there. Collapsing runs of whitespace does not
-    help, because the source has no run to collapse: the citation is real but
-    fails a literal substring test. Ignoring whitespace on both sides settles
-    it. This only ever admits a quote whose characters are all present in the
-    source in order, so it cannot let a fabricated citation through. */
 function deflate(s: string): string {
   return flatten(s).replace(/\s+/g, "");
 }
 
-/** Drop any sourceQuote that isn't actually present in the pasted source, so
-    citations can never be fabricated or hallucinated.
-
-    In a topic-only session there is no source to be present in, so every
-    quote goes. The prompt already says so; this is the part that holds when
-    the model does it anyway, and it is the reason a quiz question can no
-    longer be printed under the heading "Source". */
-/** Is this quote actually present in that text, allowing for the punctuation
-    and spacing a model tidies up on the way past? */
 function present(quote: string, haystack: string, tight: string): boolean {
   return haystack.includes(flatten(quote)) || tight.includes(deflate(quote));
 }
 
-/** Every quotation on a grade, checked against the thing it claims to quote.
-
-    ── The student's own words ──────────────────────────────────────────────
-    `quote` is documented as a verbatim span of the explanation, and the
-    interface treats it as one: an annotation whose span cannot be located in
-    the text is still shown, as a note, with the quote printed inside actual
-    quotation marks. So a model that paraphrases instead of quoting, or that
-    invents the sentence it wishes had been written, produces a card that
-    attributes words to the student that the student never wrote.
-
-    That is the worst failure this file can produce. It is not a wrong mark on
-    a real sentence, which a student can look at and disagree with; it is a
-    sentence that does not exist, and the only thing they can conclude is that
-    they wrote it and forgot. Blanking the quote leaves the comment, which is
-    often still worth reading, and leaves nothing to be misread as theirs.
-
-    Checked here rather than trusted from the prompt for the same reason the
-    source citations are: this one is decidable without a model, so it should
-    not depend on one. */
 export function verifyCitations(
   grade: Grade,
   source: string,
@@ -180,8 +114,6 @@ export function verifyCitations(
       out = { ...out, quote: "" };
     }
 
-    /* In a topic-only session there is no source to be present in, so every
-       citation goes whatever it says. */
     if (out.sourceQuote && (!grounded || !present(out.sourceQuote, inSource, sourceTight))) {
       if (grounded) lostCitations++;
       out = { ...out, sourceQuote: "" };
@@ -197,8 +129,6 @@ export function verifyCitations(
     console.warn(`Dropped ${lostCitations} sourceQuote(s) not found verbatim in the source.`);
   }
 
-  /* An annotation with nothing left to point at and nothing to say is not a
-     note, it is a blank card. The ones that keep a comment survive. */
   return { ...grade, annotations: annotations.filter((a) => a.quote || a.comment.trim()) };
 }
 
@@ -219,16 +149,8 @@ export async function POST(req: Request) {
     source?: unknown;
     concept?: unknown;
     explanation?: unknown;
-    /** The student was asked for a sentence or two rather than a full
-        write-up, and may have spoken it. Round 4 sets this. It changes what
-        counts as complete, not how honest the grade is. */
     brief?: unknown;
     via?: unknown;
-    /** Whether `source` is material the student actually pasted. False for a
-        topic-only session, where `source` is only a record of the questions
-        this session asked and must never be graded against. Defaults to the
-        grounded reading, so a caller that forgets to say gets the stricter
-        rubric rather than the looser one. */
     grounded?: unknown;
   };
   try {
@@ -248,9 +170,6 @@ export async function POST(req: Request) {
     );
   }
 
-  /* Said aloud, an explanation arrives without punctuation, with false starts
-     and repeated words. None of that is a gap in understanding, and a grader
-     that has not been told the answer was spoken will read it as one. */
   const brief = body.brief === true;
   const spoken = body.via === "voice";
   const conditions = brief
@@ -261,15 +180,8 @@ export async function POST(req: Request) {
       } as a gap.`
     : "";
 
-  /* Grounded unless the caller says otherwise. The stricter rubric is the
-     safe default: applied to a grounded session it is correct, and applied to
-     a topic-only one it is merely what this already did. */
   const grounded = body.grounded !== false;
 
-  /* The heading this material is given matters as much as the rubric. Called
-     "Source material", a list of the session's own questions reads as a
-     passage to quote from, which is how a multiple choice question ended up
-     printed under the word "Source" as evidence against a student. */
   const material = grounded
     ? `Source material:\n\n${source}`
     : `For context only, the questions this session asked the student about "${concept}". This is a record of what was covered. It is NOT source material, it is NOT a passage, and it is NOT the standard the explanation is judged against:\n\n${source}`;

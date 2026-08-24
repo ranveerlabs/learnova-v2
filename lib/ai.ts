@@ -1,66 +1,23 @@
-// Server-side only. HACKCLUB_AI_KEY must never be imported into client code.
-// TODO: add auth and per-user abuse/rate limits before exposing this beyond local use.
-// TODO: prompt-injection hardening: source material is untrusted input fed straight into prompts.
 const BASE_URL = "https://ai.hackclub.com/proxy/v1";
 const ENDPOINT = `${BASE_URL}/chat/completions`;
-/* The tilde is the proxy's own marker for a moving alias, not a typo: it
-   resolves to deepseek/deepseek-v4-flash-0731 today and to whatever succeeds
-   it later. Without it the id is rejected outright as invalid. */
 const MODEL = process.env.HACKCLUB_AI_MODEL ?? "~deepseek/deepseek-v4-flash-latest";
 
-/** Error whose message is safe to show the user; details stay in server logs. */
 export class AIError extends Error {
   constructor(message: string, public status = 502) {
     super(message);
   }
 }
 
-/* One key serves everyone on the deployment, at 450 requests per thirty
-   minutes between them. So being rate limited is not an error in the sense
-   that something is broken: it is a busy afternoon, and the student who runs
-   into it did nothing wrong and needs no diagnosis. It is said in those terms
-   wherever it surfaces, and it is said in one place so it cannot drift into
-   four slightly different apologies. */
 export const BUSY =
   "Everyone is studying at once! Give it a moment and try again.";
 
-/* The other way a shared key stops answering, and the one that does not pass.
-
-   429 is a busy afternoon. 402 is the credit behind the key being spent, and
-   401 and 403 are a key that has been revoked or rotated. All three arrive as
-   an HTTP error on a request that was correctly formed, and not one of them
-   clears because a student pressed the button again. "Try again" is the wrong
-   instruction twice over there: it will fail in exactly the same way, and it
-   invites them to think the fault might be in what they wrote.
-
-   The body behind the 402, recorded verbatim on 2026-08-21 so that whoever
-   reads this next is not diagnosing it from a status code again:
-
-     {"error":{"message":"Insufficient credits. Add more using
-      https://openrouter.ai/settings/credits","code":402,
-      "metadata":{"limit_source":"openrouter_credits","remedy_hint":"Add
-      credits at https://openrouter.ai/settings/credits, or lower max_tokens
-      / prompt size to fit your remaining balance."}}}
-
-   Note where that points. The Hack Club proxy is forwarding OpenRouter's own
-   402, so the balance to top up is on the OpenRouter account behind the key.
-   Nothing in this repository can fix it, which is exactly why the message
-   below does not ask the student to do anything about it. */
 export const UNAVAILABLE =
   "Oops! We cannot reach our marker right now, this one is on us :(";
 
-/** Whether this status is a standing condition rather than a passing one. */
 function spent(status: number): boolean {
   return status === 401 || status === 402 || status === 403;
 }
 
-/** One HTTP failure, read the same way wherever it happens.
-
-    Both call paths route through here so the two cannot drift apart, which is
-    the same reason `BUSY` is a constant rather than a sentence written twice.
-    The raw body is logged in every case, not just the interesting ones: the
-    status code on its own has never once been enough to say what went wrong,
-    and the body says it in a sentence. */
 async function failed(res: Response, where: string): Promise<AIError> {
   const detail = await res.text().catch(() => "");
   console.error(`Hack Club AI API ${where} error ${res.status} (model ${MODEL}):`, detail);
@@ -78,25 +35,6 @@ async function failed(res: Response, where: string): Promise<AIError> {
   return new AIError(`Oops! Something went wrong on our end (HTTP ${res.status}) :( Give it another go.`);
 }
 
-/* Reasoning off, deliberately.
-
-   The model reasons by default, at "high" effort, and it is the single
-   biggest thing standing between a student and their first question.
-   Measured on the real Round 1 prompt: 7992 completion tokens with it on
-   against 1837 with it off, and on the cold open 349 to 3398 tokens depending
-   on nothing more than which topic was named. That variance is the problem as
-   much as the size is. The cold open is the one call a student actually waits
-   on, and the whole mode is built on them answering something within about
-   ten seconds of naming a topic.
-
-   What is being given up is small. These prompts do not ask the model to work
-   anything out: they hand it a topic, a format, a shape and about twenty
-   hard rules, and ask it to write. The thinking a study question needs was
-   done in the prompt.
-
-   Not the same as asking for less reasoning. Measured, "low" effort produced
-   MORE reasoning than the default and took longer, which is its own reason
-   not to trust the dial. Off is off. */
 const REASONING = { enabled: false } as const;
 
 async function request(
@@ -125,7 +63,6 @@ async function request(
   });
 }
 
-/** Read the token key out of the environment, or say why we cannot. */
 function key(): string {
   const token = process.env.HACKCLUB_AI_KEY;
   if (!token || token === "PLACEHOLDER") {
@@ -144,14 +81,6 @@ async function callModel(
 ): Promise<string> {
   const token = key();
 
-  /* Two attempts, and only ever for one reason: a reply that arrived fine and
-     had nothing in it. That happens occasionally and is not a state anything
-     downstream can do anything with, so it is worth one more ask before it
-     becomes an error on a student's screen.
-
-     Deliberately not a retry for anything else. An HTTP error is not retried
-     here, and a rate limit least of all: asking again immediately is the one
-     response to a busy shared key that makes it busier. */
   for (let attempt = 1; attempt <= 2; attempt++) {
     const res = await request(token, system, user, opts);
 
@@ -170,54 +99,22 @@ async function callModel(
   throw new AIError("Hmm, the AI drew a blank there. Give it another go?");
 }
 
-/* ── Getting the JSON back out of a reply ─────────────────────────────────
-
-   `response_format: json_object` is asked for on every structured call above,
-   and it is a request rather than a guarantee: whether it is honoured is a
-   property of whichever model is behind the proxy, and that is one line of
-   this file away from being a different model with different manners. So a
-   reply is treated as text that probably contains JSON, not as JSON.
-
-   Three shapes turn up when it is not honoured, in rising order of nuisance:
-   a fenced block, a fenced block with a sentence of preamble in front of it,
-   and a reasoning trace before either. Each attempt below is a strictly wider
-   net than the one before it, and every one of them ends at JSON.parse, so a
-   reply that is not JSON at all still fails. Nothing here coerces, repairs or
-   guesses at malformed JSON: it only decides which span of the reply to hand
-   to the parser. Shape validation downstream is unaffected and still the
-   thing that decides whether a parsed payload is usable. */
-
-/** Reasoning traces, which some models emit ahead of the answer whatever the
-    response format says.
-
-    Stripped before anything else looks at the text, because a trace is prose
-    about the answer and will happily contain braces and fences of its own.
-    Left in, it would be the span the wider nets below picked up. */
 function withoutThinking(s: string): string {
   return (
     s
       .replace(/<think>[\s\S]*?<\/think>/gi, "")
-      /* A closing tag with nothing opening it means the opening tag was never
-         emitted or was trimmed upstream. Everything ahead of it is still the
-         model thinking rather than answering. */
       .replace(/^[\s\S]*?<\/think>/i, "")
       .trim()
   );
 }
 
-/** The spans of a reply that might be the JSON, widest net last. */
 function candidates(raw: string): string[] {
   const text = withoutThinking(raw);
   const spans = [text];
 
-  /* A fenced block anywhere in the reply, rather than only one occupying the
-     whole of it. This is what a leading "Here is the JSON:" costs. */
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenced) spans.push(fenced[1]);
 
-  /* Last resort: the widest span that could be a JSON object. Every payload
-     this app asks for is an object, so anything outside the outermost braces
-     is commentary by definition. */
   const first = text.indexOf("{");
   const last = text.lastIndexOf("}");
   if (first !== -1 && last > first) spans.push(text.slice(first, last + 1));
@@ -225,10 +122,6 @@ function candidates(raw: string): string[] {
   return spans;
 }
 
-/** The first of those spans that parses, or null if none of them does.
-
-    Wrapped in an object rather than returned bare, because `null` is itself
-    valid JSON and a bare return could not tell the two apart. */
 export function extractJSON(raw: string): { value: unknown } | null {
   for (const span of candidates(raw)) {
     const text = span.trim();
@@ -236,7 +129,6 @@ export function extractJSON(raw: string): { value: unknown } | null {
     try {
       return { value: JSON.parse(text) };
     } catch {
-      /* Not this span. Try a wider one. */
     }
   }
   return null;
@@ -263,36 +155,6 @@ export async function chatJSON<T>(
   return parsed;
 }
 
-/* There was a `chatText` here, a plain-text completion for prose that is not
-   structured data. Its one caller was the debate opponent, which streams now,
-   and everything else in the app asks for JSON. It is gone rather than kept
-   warm for a hypothetical second caller: `callModel` is right there and the
-   wrapper was four lines. */
-
-/* ── Streaming ────────────────────────────────────────────────────────────
-   For prose the reader watches arrive rather than waits for.
-
-   Only debate mode uses this, and it is the difference between an opponent
-   who speaks and a form that submits. A study question does not want it: a
-   question is a thing you read once it exists, and revealing it a word at a
-   time would only make the student wait to find out what they are being
-   asked.
-
-   The transport is Server-Sent Events, which is what the OpenAI-compatible
-   endpoint speaks when `stream: true` is set. Deliberately hand-parsed rather
-   than pulled from a library: it is twenty lines, and this file's whole
-   premise is that the thing behind the proxy is one line away from being a
-   different model with different manners.
-
-   One retry is deliberately NOT offered here, unlike `callModel`. A stream
-   that dies has usually already put words on somebody's screen, and starting
-   it again would rewrite a speech they were reading. */
-
-/** The text deltas of a completion, in order, as they arrive.
-
-    Throws before yielding anything if the request itself failed, so a caller
-    can still answer with a real status code. Once the first chunk is yielded
-    the status is already sent and a later failure can only end the stream. */
 export async function* chatStream(
   system: string,
   user: string,
@@ -304,8 +166,6 @@ export async function* chatStream(
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
-  /* SSE frames are separated by a blank line and can be split across reads,
-     so whatever is left over stays here until the rest of it turns up. */
   let buffer = "";
 
   try {
@@ -328,15 +188,10 @@ export async function* chatStream(
           const delta: unknown = parsed?.choices?.[0]?.delta?.content;
           if (typeof delta === "string" && delta) yield delta;
         } catch {
-          /* A frame that is not JSON is a frame this does not need. */
         }
       }
     }
   } finally {
-    /* Whoever stops reading stops the generation. The caller cuts the stream
-       off the moment a speech has run its length, and without this the model
-       would go on producing tokens nobody will ever see, billed to a key
-       everybody shares. */
     await reader.cancel().catch(() => {});
   }
 }

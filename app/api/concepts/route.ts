@@ -23,9 +23,6 @@ Respond with JSON in exactly one of these two shapes:
 
 type ConceptsPayload = { concepts: Concept[]; insufficient?: string };
 
-/* An empty array is now a meaningful answer rather than a malformed one, so
-   shape validation no longer doubles as a "did the model say anything useful"
-   check. The route decides what an empty array means. */
 function isConceptsPayload(v: unknown): v is ConceptsPayload {
   if (typeof v !== "object" || v === null) return false;
   const { concepts, insufficient } = v as { concepts?: unknown; insufficient?: unknown };
@@ -51,8 +48,6 @@ export async function POST(req: Request) {
   if (typeof source !== "string") {
     return NextResponse.json({ error: "Paste some source material first." }, { status: 400 });
   }
-  /* The client checks this too, so the student sees it before pressing
-     anything, but the floor belongs to the route, not to the button. */
   const problem = sourceProblem(source);
   if (problem) {
     return NextResponse.json({ error: problem }, { status: 400 });
@@ -65,9 +60,6 @@ export async function POST(req: Request) {
       isConceptsPayload
     );
 
-    /* The local floors catch material that is too small or not prose. This
-       catches the rest: text that reads fine and still has nothing in it to
-       explain. Better to say so than to hand back invented concepts. */
     if (concepts.length === 0) {
       const said = insufficient?.trim();
       return NextResponse.json(

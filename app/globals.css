@@ -1,97 +1,26 @@
 @import "tailwindcss";
 
-/* ═══ Learnova: "the blackboard and the marking pen" ═════════════════════
-   Ground is the charcoal of the logo's own background, sampled rather than
-   matched by eye; the writing surface is a near-white page on top of it. The
-   chrome is greys, cream type, and the app's own star gold for anything you
-   can press. Colour with meaning is still reserved for the marks on a
-   student's words, and the marks are still the loudest thing on any screen.
-
-   ── Why every neutral here is a true grey ────────────────────────────────
-   This was a blue book: the ground was #edeff4, the chrome carried a blue
-   cast all the way down to the shadows, and the accent was ink-blue. The
-   blue is gone, and the replacements were not picked. Each one is the grey
-   with the same relative luminance as the colour it replaced, so every
-   contrast ratio the old palette was tuned to still holds: ink on page moved
-   from 14.13:1 to 14.14:1, ink-faint from 3.78:1 to 3.76:1. Only the hue
-   left.
-
-   Type is the cream of the logo's letter rather than white, and the accent
-   is the gold of its star. One caution worth writing down: that gold sits in
-   the same family as the amber "shaky" mark. They are told apart by shape
-   and by place, never by hue alone, so an action never has to be read as a
-   verdict; but if a gold button ever starts looking like a mark, this is the
-   line that explains why, and the fix is to move the accent, not the mark.
-
-   Mark hues were chosen with the palette validator, not by eye: green↔bad
-   under deuteranopia went from ΔE 3.2 (the old green/rose pair) to 10.8 by
-   moving "bad" off red and onto magenta-plum. Every mark also carries two
-   non-colour channels, an underline shape and a written label, so nothing
-   here depends on colour vision.
-------------------------------------------------------------------------- */
-
 :root {
   color-scheme: light;
 
-  /* ground */
   --ground: #efefef;
-  --page: #fcfcfc; /* the leaf you write on */
+  --page: #fcfcfc;
   --sunk: #e8e8e8;
   --line: #d8d8d8;
   --line-strong: #c1c1c1;
 
-  /* The two washes behind `.page-glow`, as tokens rather than the chrome
-     colours the glow used to borrow. */
   --glow-near: #e4e4e4;
   --glow-far: var(--sunk);
 
-  /* ink */
   --ink: #1a1a1a;
   --ink-soft: #565656;
   --ink-faint: #868686;
 
-  /* accent: actions and focus only, never meaning.
-
-     ── Why the accent has no hue at all ────────────────────────────────────
-     It was ink-blue, then briefly the teal of the logo's chevron. Both were
-     colours, and a colour here has to survive one hard test: this app spends
-     its most important screen putting green, amber and plum on a student's
-     own sentences to say which parts were right. Anything the chrome is
-     tinted with is a fourth colour competing with those three for meaning,
-     and the reader has no way to know it means nothing.
-
-     So the accent is chalk. On the board it is the cream of the logo's
-     letter; on paper it is near-black. Actions read as actions because they
-     are filled and everything around them is not, which is a stronger signal
-     than hue was, and the only colour left on any screen is the marking.
-
-     Light: 13.2:1 under white type, against 9.52:1 for the blue it replaced.
-     Nothing on this screen got quieter for losing its hue. */
-  /* The same gold taken down until it can carry white type: 9.66:1, against
-     the 9.52:1 the ink-blue it replaced had. */
   --accent: #554211;
   --accent-hover: #3b2d0c;
   --accent-wash: #e4e4e4;
   --on-accent: #ffffff;
 
-  /* marks: meaning only, never chrome.
-     `mark` draws (rules, rails, glyphs); `ink` sets type; `tint` washes.
-
-     ── One set of three hues, not two ──────────────────────────────────────
-     These were their own greens, ambers and magentas, chosen for contrast on
-     each page and nothing else, so the app had a green for a right answer
-     and a different green on the music toggle, an amber for a shaky one and
-     a different yellow on the stars. Two palettes both claiming to be the
-     app's green is how a screen stops looking designed and starts looking
-     assembled.
-
-     So there is one set of three: the mint, the gold and the pink from the
-     stationery below. Marks and inks are steps along those hues rather than
-     new colours, dark enough here to sit on a near-white page and left at
-     full strength on the dark one, where the supply colours are already what
-     they are. The meaning rule is unchanged and still the important half:
-     these say something about a student's work, and nothing else in the app
-     may borrow them. */
   --solid-mark: #3e9c76;
   --solid-ink: #27664c;
   --solid-tint: #e6f4ed;
@@ -108,20 +37,8 @@
   --gap-ink: #464646;
   --gap-tint: #e9e9e9;
 
-  --rule: rgb(26 26 26 / 0.06); /* the ruling on the page */
+  --rule: rgb(26 26 26 / 0.06);
 
-  /* The dot array, so the ground reads as a surface and not as a fill.
-
-     This is the cutting-mat grid `.desk-grid` already drew behind the source
-     screen, promoted to the whole ground. Same construction and same 23px
-     pitch on purpose: two dot fields at different spacings on the same page
-     would read as a mistake, and the desk is where this pattern earned its
-     place.
-
-     Built from the ink token rather than a fixed grey, so it follows the
-     theme: faint dark dots on paper, faint light ones on the board. Ten per
-     cent is the ceiling at which it stops being a texture and starts being a
-     grid somebody tries to read. */
   --dots: radial-gradient(
     circle at 1px 1px,
     color-mix(in srgb, var(--ink) 10%, transparent) 1px,
@@ -134,15 +51,8 @@
   :root {
     color-scheme: dark;
 
-    /* Sampled from the logo's own ground rather than picked to look near it:
-       #131313 is 39.8% of the pixels outside the mark, and the weighted mean
-       of the whole field is rgb(19.5 19.5 18.8). The variation around it is
-       the grain in the artwork, not a hue, so the flat value is neutral. */
     --ground: #131313;
 
-    /* Neutral, so the lit-surface reading survives without a hue. A blackboard
-       catches light as chalk dust rather than as a colour, and these two are
-       the same grey as the ground, lifted. */
     --glow-near: #242424;
     --glow-far: #1a1a1a;
 
@@ -151,29 +61,15 @@
     --line: #313131;
     --line-strong: #454545;
 
-    /* The logo's own cream, and two steps down from it that hold the
-       luminance the greys had, so no contrast ratio moves: 16.19:1 on the
-       page. Chalk is not white, and neither is this. */
     --ink: var(--cream);
     --ink-soft: #a7a793;
     --ink-faint: #787869;
 
-    /* The star, and literally the same token the star sprite is drawn from,
-       so the two can never drift apart. The favicon's raw #fcd309 was tried
-       first and read as too bright next to cream type; this is the gold the
-       app already puts on screen. 11.12:1 carrying near-black type. */
     --accent: var(--supply-gold);
     --accent-hover: #ffce48;
     --accent-wash: #2c2c2c;
     --on-accent: #141414;
 
-    /* On the dark page the three marking hues ARE the stationery colours,
-       unmodified: mint, gold, pink, at the values the music toggle and the
-       stars use. That is the whole point of putting them on one set of hues
-       — against #1d1d1d all three clear 7:1 as type, so there is no step to
-       take and no second green to explain. Only the tints are built, and
-       they are the same hues dropped into the page rather than mixed with
-       it. */
     --solid-mark: var(--supply-mint);
     --solid-ink: var(--supply-mint);
     --solid-tint: #16281f;
@@ -191,9 +87,6 @@
     --gap-tint: #222222;
 
     --rule: rgb(253 252 223 / 0.07);
-
-    /* No `--dots` override: it is built from `--ink`, which has already
-       flipped by the time it is read. */
   }
 }
 
@@ -226,7 +119,6 @@
   --color-gap-ink: var(--gap-ink);
   --color-gap-tint: var(--gap-tint);
 
-
   --color-cream: var(--cream);
   --color-sheet: var(--sheet);
   --color-sheet-ink: var(--sheet-ink);
@@ -246,26 +138,11 @@
   --font-pixel: var(--font-pixel);
 }
 
-/* ═══ The desk ════════════════════════════════════════════════════════════
-   These belong to the source screen alone and are deliberately outside the
-   light/dark system: a sheet of paper is the colour of paper under any lamp.
-   In the dark theme that reads as a lit sheet on a dark desk, which is the
-   intent. Nothing here is allowed past the first screen. The moment a
-   student's own words are on display, the marks are the only colour. */
 :root {
-  /* The cream, and the only definition of it. The dark theme's type and the
-     two cards on the landing page both point here, so "the same cream as the
-     text" stays true by construction rather than by two hexes agreeing. */
   --cream: #fdfcdf;
 
   --sheet: #fdfaf1;
   --sheet-ink: #262626;
-  /* Secondary ink on paper: for a sentence somebody actually has to read.
-
-     --sheet-faint below is a placeholder grey, and at 2.5:1 against the sheet
-     it is correctly named: it is for a hint inside an empty field, not for
-     copy. A line of description set in it is a line most people cannot read
-     comfortably and some cannot read at all. This one clears 5.8:1. */
   --sheet-soft: #5d5d5d;
   --sheet-faint: #a0a0a0;
   --sheet-rule: #c1c1c1;
@@ -277,18 +154,12 @@
   --supply-pink: #f08aa4;
   --supply-gold: #f5c243;
   --supply-mint: #7cc9a6;
-  /* The stationery the pixel sprites are drawn from. Referenced as
-     var(--supply-*) inside style objects in paper.tsx rather than through a
-     Tailwind utility, which is why a search for the class name finds nothing
-     and deleting them turned the paperclip and the pencil black. */
   --supply-wood: #e8c9a0;
   --supply-metal: #bebebe;
   --supply-graphite: #2f2f2f;
 }
 
 body {
-  /* Split rather than shorthand: the grain is an image over the ground, and
-     `background:` would drop one every time the other was set. */
   background-color: var(--ground);
   background-image: var(--dots);
   background-size: var(--dots-pitch);
@@ -297,19 +168,6 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 
-  /* Two rules that only matter on a touch screen, and matter a lot there.
-
-     `overscroll-behavior` stops the rubber-band bounce and the pull-to-refresh
-     gesture. On a page that is exactly the viewport, dragging on it is not a
-     scroll and should not look like one; the drag that starts on the wire plug
-     especially must not be read as the beginning of a page pull.
-
-     `touch-action: manipulation` drops double-tap-to-zoom, and with it the
-     ~300ms the browser spends waiting to find out whether a tap was the first
-     half of one. In a round where a correct answer advances in 620ms, a third
-     of a second of nothing after every tap is the difference between a game
-     that feels immediate and one that feels like it is thinking. Pinch zoom is
-     untouched, so nothing here takes magnification away from anybody. */
   overscroll-behavior: none;
   touch-action: manipulation;
 }
@@ -318,8 +176,6 @@ body {
   background: var(--accent-wash);
 }
 
-/* A single wash of accent behind the top of the page, so a wide viewport
-   reads as a lit surface rather than as a narrow column adrift on grey. */
 .page-glow {
   position: fixed;
   inset: 0 0 auto 0;
@@ -332,9 +188,6 @@ body {
   opacity: 0.85;
 }
 
-/* The desk pad the sheet sits on, gridded like a cutting mat so the paper has
-   a surface instead of a void. Scoped to the source screen by the class being
-   applied only on that phase: the marking screens keep their plain ground. */
 .desk-grid {
   background-image: radial-gradient(
     circle at 1px 1px,
@@ -344,49 +197,12 @@ body {
   background-size: 23px 23px;
 }
 
-/* ── Examined prose ──────────────────────────────────────────────────────
-   The student's words, and the source's. Every number the ruling depends on
-   is declared here, so the two can never drift apart. */
 .prose-read {
   font-family: var(--font-newsreader), Georgia, serif;
   font-size: 1.0625rem;
   line-height: var(--read-leading, 2rem);
 }
 
-/* ── The ruled leaf ──────────────────────────────────────────────────────
-   Booklet ruling: an even grid of rules, with a line of writing centred in
-   the space between each pair of them.
-
-   Three invariants hold this together. Break any one and the writing drifts
-   off the ruling, which is the thing a ruled page must never do.
-
-   1. The rule step IS the prose line-height. Both are --read-leading, so a
-      rule and a line of writing keep step forever.
-
-   2. The ruling is anchored at the top of the leaf and never offset. An
-      offset background tiles: the strip above the offset gets filled by the
-      previous copy of the image, whose rules land wherever the element's
-      height happens to fall modulo the step. That put one rule near the top
-      at an arbitrary distance from its neighbours. Anchored at 0 as a single
-      un-repeated image, every gap is exactly one step.
-
-   3. The ruling is anchored to the CONTENT box, not the padding box. This is
-      what centres the text, and it is worth being precise about why. A browser
-      lays a line of type out by centring the font's content area inside the
-      line box: with leading L and a font whose ascent and descent sum to H,
-      there is (L - H)/2 of space above it and the same below. Newsreader
-      declares 1470/-530 per 2000 units in hhea and OS/2 alike and sets
-      USE_TYPO_METRICS, so H is exactly one em, 17px at this size, leaving
-      7.5px either side inside a 32px line box. The type is therefore already
-      centred in its own line box; the only job left is to make the line boxes
-      and the ruled bands the same bands.
-
-      Anchoring to the content box does that for free, because the first line
-      box also opens at the top of the content box. Anchoring to the padding
-      box instead would only line up when the padding happened to be a whole
-      number of steps, which forced padding-top to 32px and pushed the first
-      line of writing down past an empty ruled row. The padding is now free to
-      be whatever reads well, and the writing still starts at the top. */
 .leaf {
   --rule-step: var(--read-leading, 2rem);
   padding: 1.5rem;
@@ -404,8 +220,6 @@ body {
     background-color 0.2s ease;
 }
 
-/* Lift on focus, but never at the expense of the focus ring. The ring is
-   left to the global :focus-visible rule. */
 .leaf:focus {
   border-color: var(--line-strong);
   box-shadow:
@@ -413,13 +227,7 @@ body {
     0 14px 34px -20px rgb(26 26 26 / 0.4);
 }
 
-/* ── Marks on a student's words ──────────────────────────────────────────
-   Three redundant channels per mark: hue, underline shape, and (in the
-   keyed note) a written label. Any one of them carries the meaning alone. */
 .mk {
-  /* Marks must wrap with the prose: a long marked phrase has to break across
-     lines like any other text. Interactive marks are anchors rather than
-     buttons for this reason: Chrome coerces <button> to inline-block. */
   display: inline;
   color: inherit;
   text-decoration-line: underline;
@@ -447,17 +255,10 @@ body {
   box-shadow: 0 0 0 2px var(--broken-tint);
 }
 
-/* A siglum and its note light together, from either end. */
 .mk-linked {
   outline: 2px solid currentColor;
   outline-offset: 3px;
 }
-
-/* ── Motion ──────────────────────────────────────────────────────────────
-   One idea, applied everywhere: the page is being written on. Type settles
-   onto the paper, marks are inked across it in reading order, and the notes
-   land in the margin afterwards, the order a marker actually works in.
-   Nothing here loops except the reading indicator, and nothing moves far. */
 
 @keyframes settle {
   from {
@@ -470,7 +271,6 @@ body {
   animation: settle 0.4s cubic-bezier(0.2, 0.65, 0.25, 1) both;
 }
 
-/* Staggered arrival within a block. Set --i per child, in reading order. */
 @keyframes rise {
   from {
     opacity: 0;
@@ -490,15 +290,11 @@ body {
   }
 }
 
-/* The notes land after the marks they key to, not before them. */
 .note-in {
   animation: note-in 0.42s cubic-bezier(0.2, 0.65, 0.25, 1) both;
   animation-delay: calc(440ms + var(--i, 0) * 90ms);
 }
 
-/* The marking pen: each mark inks itself in where it sits, in the order a
-   reader would meet it. The words are legible the whole time; only the
-   marking arrives late, which is exactly what a marked page looks like. */
 @keyframes ink-in {
   from {
     text-decoration-color: transparent;
@@ -512,7 +308,6 @@ body {
   animation-delay: calc(260ms + var(--i, 0) * 100ms);
 }
 
-/* A siglum arrives with its mark rather than before it. */
 @keyframes siglum-in {
   from {
     opacity: 0;
@@ -525,7 +320,6 @@ body {
   animation-delay: calc(420ms + var(--i, 0) * 100ms);
 }
 
-/* The check draws itself when a concept is finally demonstrated. */
 @keyframes draw-check {
   from {
     stroke-dashoffset: 12;
@@ -537,7 +331,6 @@ body {
   animation: draw-check 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both;
 }
 
-/* An underline that sweeps in from the leading edge on focus. */
 .sweep {
   transform: scaleX(0);
   transform-origin: left center;
@@ -548,18 +341,6 @@ body {
   transform: scaleX(1);
 }
 
-/* The travelling rule that used to mark "the app is reading" lived here. It
-   is gone with the component that drew it: every wait in both modes now
-   draws the one meter in `Working` and `Waiting`, because an indicator that
-   appears on a single screen is one nobody gets the chance to learn. */
-
-/* ── The desk: looseleaf, tape, stickers ─────────────────────────────────
-   Everything under here is scoped to the source screen. It is the loudest
-   thing in the app on purpose, and it stops dead at the session boundary. */
-
-/* A sheet of paper, punched and taped down. The tilt is small and fixed
-   rather than random, because a sheet that moves on every render reads as a
-   glitch rather than as a hand having put it down. */
 .sheet {
   position: relative;
   background: var(--sheet);
@@ -571,8 +352,6 @@ body {
   transform: rotate(-0.35deg);
 }
 
-/* The torn-off top edge of a pad: a row of small scallops in the desk colour
-   sitting over the sheet, so the paper looks pulled rather than cut. */
 .sheet::before {
   content: "";
   position: absolute;
@@ -584,7 +363,6 @@ body {
   pointer-events: none;
 }
 
-/* The red margin, drawn where a ream of looseleaf draws it. */
 .sheet-margin {
   position: absolute;
   top: 0;
@@ -596,30 +374,6 @@ body {
   pointer-events: none;
 }
 
-/* A sticky note, stuck down at an angle.
-
-   ── Why the desk is allowed on the results screen ────────────────────────
-   The rule above says the desk stops at the session boundary, because once a
-   student's own words are on display the marks have to be the only colour on
-   the page. This is the one exception and it is a narrow one: what goes on
-   the note is the topic or the motion, which is the one thing on a results
-   screen that is neither a judgement nor a number. It is the label on the
-   folder, and a label is exactly what a sticky note is for. It never carries
-   a score, a standing, or a word the model wrote.
-
-   Two details do the work and both are about the adhesive. The glue band
-   across the top catches light differently from the rest of the sheet, and
-   the corner at the bottom right has stopped holding. Without the lifted
-   corner this is a coloured rectangle; with it, the eye reads paper.
-
-   The band is a soft gradient rather than a hard-edged strip. Drawn as a
-   strip it was a visible seam a third of the way down a short note, which
-   reads as a printing fault rather than as glue.
-
-   Proportion is the other half of the illusion, and it lives at the call
-   site: a sticky note is roughly square, so anything using this wants a
-   width that fits its text and a minimum height to stop a short line
-   flattening it into a banner. */
 .sticky {
   --sticky-paper: var(--supply-gold);
   position: relative;
@@ -633,22 +387,12 @@ body {
     0 14px 24px -16px rgb(16 16 16 / 0.6);
 }
 
-/* Selecting the text on a note.
-
-   The browser paints its own highlight, which is the accent blue, and the
-   accent blue over gold or mint is a muddy overlap that makes the words
-   harder to read while they are selected than while they are not. A note is
-   paper: white is what a highlight looks like on it, and the ink stays the
-   ink. Both the note itself and anything inside it, because a selection drag
-   that starts on the paper and ends in the text crosses both. */
 .sticky::selection,
 .sticky *::selection {
   background: #ffffff;
   color: #262626;
 }
 
-/* The corner that has let go: a wedge of the desk showing through, with the
-   paper's own thickness catching the light along the fold. */
 .sticky::after {
   content: "";
   position: absolute;
@@ -665,9 +409,6 @@ body {
   pointer-events: none;
 }
 
-/* A punched hole is the desk seen through the paper. What makes it read as a
-   hole rather than a printed dot is the lip: shadow inside the top edge, and
-   a bright rim of paper catching light along the bottom. */
 .punch {
   width: 12px;
   height: 12px;
@@ -677,9 +418,6 @@ body {
     color-mix(in srgb, var(--ground) 62%, #000),
     color-mix(in srgb, var(--ground) 94%, #000)
   );
-  /* The ring is the cut edge of the paper itself. Without it the hole reads
-     as a printed dot on any dark desk, because the hole and the desk are the
-     same colour: what says "punched" is the paper's own thickness. */
   box-shadow:
     inset 0 2px 2px rgb(0 0 0 / 0.75),
     0 0 0 1px color-mix(in srgb, var(--sheet) 62%, #8d7f63),
@@ -687,14 +425,12 @@ body {
     0 3px 5px -2px rgb(90 76 52 / 0.5);
 }
 
-/* Masking tape: two strips, torn at the ends, holding the sheet to the desk. */
 .tape {
   position: absolute;
   width: 6.5rem;
   height: 1.6rem;
   background: var(--tape);
   box-shadow: 0 1px 3px rgb(16 16 16 / 0.22);
-  /* Ragged short edges, the way tape tears off the roll. */
   clip-path: polygon(
     3% 0%, 97% 4%, 100% 22%, 96% 48%, 99% 74%, 95% 100%,
     5% 96%, 1% 72%, 4% 46%, 0% 24%
@@ -712,18 +448,6 @@ body {
   );
 }
 
-/* Anything stuck to the desk: scraps, sticker buttons, badges.
-
-   The resting angle travels in --tilt rather than in a transform, so hover
-   and press can compose with it. Set it as a transform and the inline style
-   would outrank every state rule here, and nothing would move.
-
-   --swing arrived with the two side buttons on the debate setup screen, which
-   are the only pair in the app that face each other. Every other sticker
-   cocks the same way on hover, and two of them side by side doing that read
-   as one object with a shear across it rather than as two sides pulling
-   apart. The default is what every sticker was already doing, so nothing that
-   does not set it moved. */
 .stuck {
   transform: rotate(var(--tilt, 0deg));
   box-shadow: 3px 3px 0 var(--sheet-edge);
@@ -737,8 +461,6 @@ body {
   box-shadow: 6px 6px 0 var(--sheet-edge);
 }
 
-/* The arrow leans where it takes you. `.btn` does this too, but a sticker is
-   not a `.btn`: its hover transform carries a tilt that `.btn` would flatten. */
 .stuck .arrow {
   display: inline-block;
   transition: transform 0.25s cubic-bezier(0.2, 0.65, 0.25, 1);
@@ -748,34 +470,12 @@ body {
   transform: translateX(3px);
 }
 
-/* A sticker you can actually press. */
 .sticker:active:not(:disabled) {
   transform: translate(2px, 2px) rotate(var(--tilt, 0deg));
   box-shadow: 0 0 0 var(--sheet-edge);
   transition-duration: 0.04s;
 }
 
-/* ── One gesture per control, in debate mode ─────────────────────────────
-   Every button on this screen used to answer the pointer the same way: the
-   `.btn` lift, a one-pixel rise and an arrow nudging three pixels right. That
-   is a good default and it is the reason the mode read as a form — six
-   controls doing six unrelated things to a round, all of them shrugging
-   identically.
-
-   So each of these is the gesture the control's own job already suggests, and
-   none of them is decoration you could swap between buttons: a speech is
-   thrown, a rematch winds back, a code drops into a slot. (There was a fourth,
-   a gavel knocking on the button that closed a round. The ballot sends itself
-   now, and the one button left was not a vocabulary.) The rule they all obey
-   is that the movement happens to the GLYPH
-   rather than to the button. `.btn` owns the button's transform, and an
-   animation on the same element wins while it plays and then snaps back to
-   the hover rule the moment it stops.
-
-   Every one is disarmed under reduced motion at the foot of this file. */
-
-/* Send: the speech leaves. Off the right edge, and the next one arrives from
-   the left, which is the arrow saying "gone" rather than "about to go". */
 @keyframes throw {
   0% { transform: translateX(0); opacity: 1; }
   40% { transform: translateX(1.5rem); opacity: 0; }
@@ -788,8 +488,6 @@ body {
   animation: throw 0.55s cubic-bezier(0.35, 0, 0.2, 1);
 }
 
-/* Another round: back to the top. Anticlockwise, because the one thing this
-   button must not look like is "next". */
 @keyframes rewind {
   to { transform: rotate(-360deg); }
 }
@@ -799,7 +497,6 @@ body {
   animation: rewind 0.6s cubic-bezier(0.45, 0, 0.25, 1);
 }
 
-/* Join: the code drops into the slot. */
 @keyframes slot {
   0% { transform: translateY(0); }
   45% { transform: translateY(0.35rem); }
@@ -817,21 +514,6 @@ body {
   display: inline-block;
 }
 
-/* ── The toggles in debate mode answer the press, not just the pointer ────
-   Model/Friend, the two tabs, the formats and the tiers are all drawn as
-   keycaps: a two-pixel hard shadow under an unpressed one, and the chosen
-   one sitting two pixels lower with the shadow gone. That reads correctly
-   once the choice is made and read as nothing at all while it was being
-   made, because the only thing between the two states was `.btn`, whose
-   entire press is a one-pixel undo of its own hover lift.
-
-   On a touch screen there is no hover to undo, so those buttons
-   acknowledged the finger with nothing whatsoever.
-
-   So the press borrows the selected state rather than inventing a gesture:
-   holding a key down puts it exactly where choosing it will leave it.
-   There is nothing new to learn, and the button stops being the only
-   control in the mode that does not move when you use it. */
 .key {
   transition:
     transform 0.1s ease,
@@ -847,13 +529,6 @@ body {
   transition-duration: 0.04s;
 }
 
-/* The verdict, stamped rather than faded in.
-
-   The one moment in the mode that was earned rather than clicked, and it used
-   to arrive by the same `settle` every notice in the app uses. It comes down
-   from above the screen, overshoots, and rests off-square, because a stamp
-   pressed by a hand is never straight and a verdict that lands square looks
-   like a heading. */
 @keyframes stamp {
   0% { opacity: 0; transform: scale(2.6) rotate(-9deg); }
   55% { opacity: 1; transform: scale(0.93) rotate(-1.2deg); }
@@ -867,13 +542,11 @@ body {
   animation-delay: 120ms;
 }
 
-/* Pixel art must never be smoothed, at any scale. */
 .pixel {
   image-rendering: pixelated;
   shape-rendering: crispEdges;
 }
 
-/* Sprites sit on a desk, so they are never quite straight, and they breathe. */
 @keyframes bob {
   0%, 100% { transform: translateY(0) rotate(var(--tilt, 0deg)); }
   50% { transform: translateY(-3px) rotate(calc(var(--tilt, 0deg) + 1.5deg)); }
@@ -884,7 +557,6 @@ body {
   animation-delay: calc(var(--i, 0) * 700ms);
 }
 
-/* The pencil scribbles while there is writing happening under it. */
 @keyframes scribble {
   0%, 100% { transform: translate(0, 0) rotate(var(--tilt, 0deg)); }
   25% { transform: translate(-1px, 2px) rotate(calc(var(--tilt, 0deg) - 4deg)); }
@@ -896,7 +568,6 @@ body {
   animation: scribble 0.32s linear infinite;
 }
 
-/* Stickers land with a small overshoot, the way a sticker is pressed down. */
 @keyframes press-on {
   0% { opacity: 0; transform: scale(0.4) rotate(var(--tilt, 0deg)); }
   70% { opacity: 1; transform: scale(1.12) rotate(var(--tilt, 0deg)); }
@@ -908,16 +579,12 @@ body {
   animation-delay: calc(240ms + var(--i, 0) * 110ms);
 }
 
-/* The writing surface on the sheet: the app's ruling, in paper colours, with
-   the left margin widened to clear the red rule and the punched holes. */
 .leaf-paper {
   --rule: color-mix(in srgb, var(--sheet-rule) 78%, transparent);
   padding: 1.25rem 1.5rem 2rem 3.4rem;
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  /* Run the rules the full width of the sheet without disturbing where they
-     sit vertically: only the horizontal size and offset change. */
   background-size: calc(100% + 4.9rem) 100%;
   background-position: -3.4rem 0;
 }
@@ -927,7 +594,6 @@ body {
   box-shadow: none;
 }
 
-/* The sheet arrives as if set down on the desk. */
 @keyframes drop-in {
   from {
     opacity: 0;
@@ -939,7 +605,6 @@ body {
   animation: drop-in 0.55s cubic-bezier(0.2, 0.75, 0.3, 1) both;
 }
 
-/* Writing on paper is dark on light whatever the theme is doing. */
 .on-paper {
   color: var(--sheet-ink);
 }
@@ -962,10 +627,6 @@ body {
     animation: none;
   }
 
-  /* The debate gestures stop, and the verdict simply is where it lands: the
-     stamp's resting angle is on `.stamp` itself rather than only in the last
-     keyframe, so cancelling the animation leaves the mark off-square instead
-     of quietly handing reduced-motion users a straight heading. */
   .btn:not(:disabled):hover .thrown,
   .btn:not(:disabled):hover .rewound,
   .btn:not(:disabled):hover .slotted,
@@ -976,17 +637,10 @@ body {
     animation: none;
   }
 
-  /* The keycap press stays. It is a two-pixel state change on a control
-     being held down, not travel across the screen, and taking it away would
-     leave a touch user back where this started: pressing something that
-     never admits it was pressed. Only the easing goes. */
   .key {
     transition-duration: 0.01ms;
   }
 
-  /* The resting tilt stays. A scrap lying at an angle is a static design
-     choice, not motion, and flattening it here would quietly hand reduced
-     motion users a different, blander page. Only the movement stops. */
   .stuck {
     transition-duration: 0.01ms;
   }
@@ -997,17 +651,6 @@ body {
   }
 }
 
-/* ── Chips ───────────────────────────────────────────────────────────────
-   A small thing you pick up and set down, so both ends of that need to feel
-   physical. Round 3's sentence tray is where these started; debate mode's
-   topic suggestions are the same object doing the same job.
-
-   Here rather than in round.css because of what that cost: round.css is
-   imported by Round Mode's page and by nothing else, so every chip on
-   /debate rendered with its Tailwind border and none of this, which is a
-   button that does not answer the cursor. The Round-3-only behaviour, a chip
-   snapping into the sentence and the gap it leaves in the tray, is still over
-   there where it belongs. */
 .chip {
   transition:
     transform 0.16s cubic-bezier(0.2, 1.3, 0.4, 1),
@@ -1025,12 +668,6 @@ body {
   transition-duration: 0.05s;
 }
 
-/* ── Waiting on somebody ─────────────────────────────────────────────────
-   Slow, steady, unhurried. It marks Round 4 listening for a spoken answer
-   and it marks a debate opponent writing their speech, and in both places it
-   is the only thing on screen saying the app has not died. Same reason as the
-   chips for living here: the debate route does not load round.css, so this
-   was a static dot on the one screen with the longest wait in the app. */
 @keyframes listening {
   0%, 100% { opacity: 0.85; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.12); }
@@ -1040,31 +677,6 @@ body {
   animation: listening 1.5s ease-in-out infinite;
 }
 
-/* ── Working, with the page still under it ───────────────────────────────
-   The app has two kinds of wait and for a while only one of them said so.
-   `Waiting` takes the screen when there is nothing to look at yet: a round
-   being written, a transcript being judged. It does not fit the other kind, a
-   wait that happens underneath something the student is still looking at,
-   like their own explanation while it is being marked. Replacing the screen
-   there would take away the very thing the wait is about, so this is small,
-   sits inline, and leaves the page where it was.
-
-   A level meter rather than a throb. Scaling on Y from the bottom is what
-   makes it read as something being processed rather than a dot with a
-   heartbeat, and it is the same accent bar Round Mode's waiting screen uses,
-   which is what stops it being a second idea.
-
-   ── It was too still ────────────────────────────────────────────────────
-   The first pass ran 0.3 to 1 over 0.85s, and four bars a tenth of a cycle
-   apart. That is a wave, but a shallow one moving slowly: at any moment the
-   four bars are nearly the same height, so what a glance sees is a block
-   that shimmers rather than a meter that is running. A wait indicator is
-   looked at in glances, and it has to read as motion in every one of them.
-
-   So the travel is most of the bar rather than two thirds of it, the cycle
-   is faster, and the stagger is a bigger share of that cycle: the bars are
-   now visibly at different heights at every instant, which is what makes it
-   a wave instead of a pulse. */
 @keyframes working-bar {
   0%,
   100% {
@@ -1082,7 +694,6 @@ body {
   animation: working-bar 0.62s ease-in-out infinite;
 }
 
-
 @media (prefers-reduced-motion: reduce) {
   .chip {
     transition-duration: 0.01ms;
@@ -1093,47 +704,17 @@ body {
     transform: none;
   }
 
-  /* An infinite animation is the kind that actually hurts. Every one of these
-     still leaves something on screen that says the app is working: the bars
-     and the dots keep their shape and their label, they simply stop moving. */
   .listening,
   .working-bar {
     animation: none;
   }
 
-  /* Held part way up rather than at their resting 0.3, so a stopped meter
-     still looks like a meter and not like four bars that failed to draw. */
   .working-bar {
     transform: scaleY(0.7);
     opacity: 0.8;
   }
 }
 
-/* ── The fold on the front door ──────────────────────────────────────────
-   "I have notes to paste" was a link that swapped itself for a panel, then a
-   bare <summary> with a chevron in front of it. The second was honest about
-   being a fold and looked like nothing: underlined accent text, a glyph
-   beside it, and a full sheet of ruled paper arriving underneath in one
-   frame with no relationship to the thing that had just been pressed.
-
-   Three things fix that and none of them is decoration.
-
-   It is shaped like a control. A bordered chip with the app's own keycap
-   press, so the one optional thing on the front door reads as something you
-   can press rather than as a sentence that happens to be clickable, and so
-   a finger on a phone gets the same acknowledgement every other control in
-   the app gives.
-
-   It says which way it is going. Closed it sits in the accent and offers;
-   open it goes quiet and its border firms up, because an open fold is a
-   close control and should not keep advertising. The chevron turns with it.
-
-   The sheet arrives instead of appearing. `details[open]` is what fires the
-   animation, so it plays on every open and never on a close, and it comes
-   from just above with the paper's own slight rotation — the same gesture
-   `.drop-in` uses for a sheet landing on a desk. Height is deliberately not
-   animated: the panel is a full ruled leaf and easing its height would
-   reflow the page under the reader's cursor for a third of a second. */
 .fold-key {
   transition:
     background-color 0.18s ease,
@@ -1179,9 +760,6 @@ details[open] > .fold-body {
   }
 }
 
-/* ── Controls ────────────────────────────────────────────────────────────
-   Buttons acknowledge the press. The arrow leans in the direction it takes
-   you; nothing bounces. */
 .btn {
   transition:
     background-color 0.18s ease,
@@ -1208,7 +786,6 @@ details[open] > .fold-body {
   transform: translateX(3px);
 }
 
-/* Anything that should register a pointer without moving the page around. */
 .lift {
   transition:
     background-color 0.2s ease,
@@ -1232,9 +809,6 @@ details[open] > .fold-body {
     animation: none;
   }
 
-  /* The sweep keeps its resting scaleX(0): it is a focus indicator, not a
-     decoration, so under reduced motion it must still appear only on focus.
-     Pinning it open here drew a permanent accent rule under every leaf. */
   .btn,
   .btn .arrow,
   .lift,
@@ -1254,20 +828,6 @@ details[open] > .fold-body {
   border-radius: 2px;
 }
 
-/* Where the field IS the object, the ring goes round the object.
-
-   The motion on the debate setup screen is typed onto a sticky note, and the
-   textarea is the whole face of it. Left to the rule above, a keyboard focus
-   drew an accent rectangle floating inside the note, which reads as a second
-   box sitting on the paper rather than as "you are writing here" — the note
-   already looks like a field, so a field drawn on top of it is furniture.
-
-   The ring is not dropped, only moved: it goes round the paper, in the ink
-   the paper is written in. Both halves are needed, because the outline the
-   rule above sets is unlayered and beats any utility class on the textarea.
-
-   `:has(:focus-visible)` rather than `:focus-within` on purpose. A ring that
-   also appears on a mouse click is the thing focus-visible exists to stop. */
 .note textarea:focus-visible {
   outline: none;
 }

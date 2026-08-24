@@ -1,27 +1,3 @@
-/* Whether long material is really spread, and whether spreading it is safe.
-
-   lib/chunk.ts decides what a student's pasted notes look like by the time
-   they reach the model. For the page or two most sessions run on it does
-   nothing at all; for a chapter it thins the text to an even spread of itself
-   so a run covers the whole document rather than its opening pages.
-
-   Two claims are worth not taking on trust. The first is that the spread is
-   actually a spread: it would be very easy to write something that says it
-   samples evenly and in practice returns the front of the document, and the
-   symptom would be a student quietly never being asked about their last five
-   pages. The second is the safety property the whole design rests on, which is
-   that everything handed to the model is still a literal substring of what the
-   student pasted. Citations are checked against the FULL source, so if the
-   spread ever paraphrased, joined or tidied anything, a student's own material
-   would start failing verification for the crime of being long.
-
-   Pure functions, so this needs no server and no key:
-
-       node --experimental-strip-types scripts/spread.mjs
-
-   The flag is what lets plain node import the TypeScript module directly.
-------------------------------------------------------------------------- */
-
 import {
   chunkSource,
   sampleForPrompt,
@@ -69,10 +45,6 @@ check(
 check("keeps fewer passages than it was given", spread.kept < spread.total, `(${spread.kept}/${spread.total})`);
 check("marks the gaps", spread.text.includes("[...]"));
 
-/* The distribution itself, which is the claim worth measuring rather than
-   asserting. Front-loading is the failure this is looking for, so it is not
-   enough that some late paragraph survived: the kept indices should reach the
-   end of the document and should not bunch in its first half. */
 const kept = [...spread.text.matchAll(/Paragraph (\d+)\./g)].map((m) => Number(m[1]));
 const highest = Math.max(...kept);
 const pastHalfway = kept.filter((n) => n >= 60).length;
@@ -97,8 +69,6 @@ check(
 
 console.log("\nBoundaries: a passage has to read on its own, not merely be a substring");
 
-/* Paragraphs of ordinary prose, none of them over the chunk size. Nothing here
-   should ever be cut inside a sentence. */
 const proseChunks = chunkSource(long);
 check(
   "no passage of ordinary prose begins mid-sentence",
@@ -114,9 +84,6 @@ check(
   "-- a passage stopping mid-clause can invert its own meaning"
 );
 
-/* A single sentence longer than a chunk is the one case that must be cut
-   inside. It cannot be made safe, so the requirements are that it is cut at
-   the least bad place available and that the pieces are honest about it. */
 const runOn =
   "The membrane cures cold and is never torched, " +
   "which matters because the deck below it cannot take flame; ".repeat(40) +
@@ -129,11 +96,6 @@ check(
   "the last piece is marked as not opening it",
   severed[severed.length - 1].opensSentence === false
 );
-/* Whether a cut fell inside a word cannot be told from the pieces alone: they
-   are trimmed, so a piece cut mid-word and one cut at a space both begin with
-   a letter. It has to be asked of the source. Every piece sits at some offset
-   in the original, and the cut is clean exactly when the characters on either
-   side of it are not letters. */
 function wordBounded(piece, source) {
   const at = source.indexOf(piece);
   if (at === -1) return false;
@@ -154,16 +116,6 @@ check(
   "-- the ladder tries a clause joint, then a comma, then any space"
 );
 
-/* Reassembly. Two contiguous halves of one sentence must not be handed to the
-   model as two paragraphs: that is a fabricated boundary, and a verbatim
-   substring check cannot catch it because both halves really are in the
-   source.
-
-   The budget is chosen so the spread keeps exactly the first two chunks, which
-   are adjacent and are the two halves of one severed sentence. That is asserted
-   rather than assumed: an earlier version of this check quietly tested a sample
-   containing a single chunk, so there was no join in it to be wrong, and it
-   passed against an implementation that got this exactly backwards. */
 const rejoined = sampleForPrompt(runOn, 2000);
 check(
   "the reassembly case is actually set up",
@@ -182,11 +134,6 @@ check(
 );
 check("omitted material is still marked", rejoined.text.includes("[...]"));
 
-/* The substring property again, but over the severed case specifically. This
-   is the one that rejoining could break: the halves are trimmed and put back
-   with a single space, so if that space were not the one the source had, the
-   prompt would contain text the student never wrote and every citation taken
-   from it would fail its own check. */
 check(
   "rejoined halves are still literally in the source",
   rejoined.text

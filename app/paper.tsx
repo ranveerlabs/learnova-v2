@@ -3,25 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAutoGrow } from "./ui";
 
-/* ═══ The desk ════════════════════════════════════════════════════════════
-   Furniture for the source screen only: a sheet of looseleaf, the tape that
-   holds it down, and the school supplies lying around it.
-
-   The sprites are hand-plotted rather than drawn from an icon set, because a
-   drawn-by-hand pencil is the whole point. Each is a grid of characters and a
-   palette, rendered one rect per pixel with no smoothing, so they stay crisp
-   at any scale and stay editable as pictures rather than as paths.
-
-   The deal used to be "nothing in this file reaches the explain or result
-   screens: the front door is playful, the marking is not". That held while
-   the only playful surface was Round Mode's source screen, and it stopped
-   holding when the landing became three scraps pinned to a desk and debate
-   was asked to look like the rest of the app rather than like a form. It is
-   now drawn narrower and it is still a real line: sprites may mark CONTROLS
-   anywhere — a door, a side, the button that closes a round — and may not
-   decorate a JUDGEMENT. Nothing in here goes near a mark on a student's own
-   words, which is where the original rule was actually aimed. */
-
 type Sprite = { rows: string[]; palette: Record<string, string> };
 
 const PENCIL: Sprite = {
@@ -142,12 +123,10 @@ export function PixelSprite({
   );
 }
 
-/** A torn strip of masking tape, angled and placed by the caller. */
 export function Tape({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
   return <span aria-hidden className={`tape ${className}`} style={style} />;
 }
 
-/** The punched edge of a sheet pulled from a binder. */
 export function PunchHoles() {
   return (
     <span
@@ -161,7 +140,6 @@ export function PunchHoles() {
   );
 }
 
-/** True while the value is actively changing, so the pencil can scribble. */
 export function useScribbling(value: string, quietAfter = 480) {
   const [scribbling, setScribbling] = useState(false);
 
@@ -175,12 +153,6 @@ export function useScribbling(value: string, quietAfter = 480) {
   return scribbling;
 }
 
-/** The sheet you paste onto: punched, taped down, ruled, with a pencil lying
-    across the corner that scribbles while you write.
-
-    The writing surface keeps the same `.leaf` ruling as the rest of the app,
-    so the alignment work holds; only the colours are swapped underneath it,
-    and the left padding is widened to clear the margin rule and the holes. */
 export function Looseleaf({
   value,
   onChange,
@@ -213,42 +185,19 @@ export function Looseleaf({
         />
       </div>
 
-      {/* Held down at the corners. The strips sit above the sheet so they
-          overlap the torn top edge, the way tape actually does. */}
       <Tape className="left-6 top-0 -rotate-6" />
       <Tape className="right-10 top-[-0.15rem] rotate-[5deg]" />
 
-      {/* The pencil lies across the corner of the sheet and gets to work when
-          you do. It is the one thing on this screen that reacts to writing.
-
-          How far it hangs off the sheet depends on there being anything to
-          hang off into. On a desk there is a margin either side of the paper
-          and the pencil lies half on and half off it, which is where a pencil
-          would be. On a phone the sheet is the full width of the screen, there
-          is no desk beside it, and seven units of overhang put half the pencil
-          past the edge of the viewport, where it was cut down its length.
-
-          The overhang comes back at `lg` rather than at `sm`, because `sm` is
-          not where the desk appears. The sheet stops growing at 52rem, and
-          until the window is wider than that plus its gutters the sheet is
-          still the full width of the screen with nothing either side of it: a
-          phone held sideways is 844 wide, comfortably past `sm`, and had the
-          pencil hanging four pixels off the edge. */}
       <PixelSprite
         name="pencil"
         scale={6}
         title="A pencil, resting on the page"
-        /* `right-1` and not `right-0`: the pencil is tilted seventeen degrees,
-           so the box it actually occupies is about fourteen pixels wider than
-           the box it is laid out in, and the browser clips against the first
-           of those. */
         className={`pointer-events-none absolute right-1 top-8 drop-shadow-[3px_4px_0_rgb(12_16_24/0.3)] lg:-right-7 ${
           scribbling ? "scribbling" : "bob"
         }`}
         style={{ ["--tilt" as string]: "17deg" }}
       />
 
-      {/* An eraser left on the desk, clear of the paper rather than on it. */}
       <PixelSprite
         name="eraser"
         scale={4}
@@ -266,7 +215,6 @@ export function Looseleaf({
   );
 }
 
-/** A small label-maker strip. Used for the eyebrow and for step numbers. */
 export function PixelTag({
   children,
   tone = "gold",
