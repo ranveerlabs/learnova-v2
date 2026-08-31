@@ -1038,3 +1038,105 @@ details[open] > .fold-body {
   outline: 2px solid var(--sheet-ink);
   outline-offset: 3px;
 }
+
+/* ---- scrollbars ---- */
+
+/* firefox only gets the two colours, the rest is webkit */
+* {
+  scrollbar-color: var(--ink) var(--sunk);
+}
+
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sunk);
+  border-left: var(--bevel-strong) solid var(--line);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--sunk);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--page);
+  border: var(--bevel-strong) solid var(--line);
+  /* the grab notches, three lines centred on the thumb */
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(50% - 4px),
+    var(--line) calc(50% - 4px) calc(50% - 3px),
+    transparent calc(50% - 3px) calc(50% - 1px),
+    var(--line) calc(50% - 1px) 50%,
+    transparent 50% calc(50% + 2px),
+    var(--line) calc(50% + 2px) calc(50% + 3px),
+    transparent calc(50% + 3px)
+  );
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-wash);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--accent);
+}
+
+/* the end buttons. webkit needs both a start and end pair declared or it
+   draws neither */
+::-webkit-scrollbar-button:single-button {
+  display: block;
+  height: 16px;
+  width: 16px;
+  background: var(--page);
+  border: var(--bevel-strong) solid var(--line);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 8px 8px;
+}
+
+::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-image:
+    linear-gradient(
+      to bottom right,
+      transparent 46%,
+      var(--line) 46% 54%,
+      transparent 54%
+    ),
+    linear-gradient(
+      to bottom left,
+      transparent 46%,
+      var(--line) 46% 54%,
+      transparent 54%
+    );
+  background-size: 5px 8px;
+  background-position:
+    3px center,
+    8px center;
+}
+
+::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-image:
+    linear-gradient(
+      to top right,
+      transparent 46%,
+      var(--line) 46% 54%,
+      transparent 54%
+    ),
+    linear-gradient(
+      to top left,
+      transparent 46%,
+      var(--line) 46% 54%,
+      transparent 54%
+    );
+  background-size: 5px 8px;
+  background-position:
+    3px center,
+    8px center;
+}
+
+::-webkit-scrollbar-button:single-button:active {
+  background-color: var(--accent-wash);
+}

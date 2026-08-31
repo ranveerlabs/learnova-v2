@@ -1,7 +1,55 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+
+// drag by the title bar. transform only, so the window never reflows its own
+// contents while it moves
+function useDragBar() {
+  const [at, setAt] = useState({ x: 0, y: 0 });
+  const from = useRef<{ x: number; y: number } | null>(null);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      // the close button is in the bar and is not a handle
+      if ((e.target as HTMLElement).closest("a,button")) return;
+      if (e.button !== 0) return;
+      from.current = { x: e.clientX - at.x, y: e.clientY - at.y };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    [at],
+  );
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    const start = from.current;
+    if (!start) return;
+    // keep a grabbable strip of bar on screen whatever they do with it
+    const room = 48;
+    setAt({
+      x: clamp(e.clientX - start.x, -innerWidth + room, innerWidth - room),
+      y: clamp(e.clientY - start.y, 0, innerHeight - room),
+    });
+  }, []);
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    from.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }, []);
+
+  // double click the bar to put it back
+  const onDoubleClick = useCallback(() => setAt({ x: 0, y: 0 }), []);
+
+  const moved = at.x !== 0 || at.y !== 0;
+  return {
+    moved,
+    style: moved ? { transform: `translate(${at.x}px, ${at.y}px)` } : undefined,
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onDoubleClick },
+  };
+}
+
+function clamp(n: number, lo: number, hi: number) {
+  return Math.min(Math.max(n, lo), hi);
+}
 
 // the window. a title bar and a body, and every screen sits in one. the dark
 // ground behind it is desktop and never carries text
@@ -18,9 +66,18 @@ export function Win({
   className?: string;
   bodyClassName?: string;
 }) {
+  const drag = useDragBar();
+
   return (
-    <section className={`win flex min-h-0 flex-col ${className}`}>
-      <header className="title-bar shrink-0">
+    <section
+      className={`win flex min-h-0 flex-col ${className}`}
+      style={drag.style}
+    >
+      <header
+        {...drag.handlers}
+        title={drag.moved ? "Double click to put it back" : undefined}
+        className="title-bar shrink-0 cursor-grab active:cursor-grabbing"
+      >
         <span className="grip">{title}</span>
         {closeHref && (
           <Link href={closeHref} className="title-btn" aria-label="Close">

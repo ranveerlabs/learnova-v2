@@ -126,18 +126,12 @@ export function TimerRing({
         ...(cheering ? { ["--ring-ink" as string]: "var(--solid-mark)" } : {}),
       }}
     >
-      <span className="grid h-[86%] w-[86%] place-items-center bg-ground">
-        <span
-          className={`font-mono text-[clamp(1rem,3.1vh,1.375rem)] font-semibold tabular-nums ${
-            cheering
-              ? "text-solid-ink"
-              : urgent
-                ? "text-shaky-ink"
-                : "text-ink-soft"
-          }`}
-        >
-          {seconds}
-        </span>
+      <span
+        className={`relative grid h-full w-full place-items-center font-pixel text-[clamp(0.9rem,2.8vh,1.25rem)] ${
+          cheering ? "text-solid-ink" : urgent ? "text-shaky-ink" : "text-ink"
+        }`}
+      >
+        {seconds}
       </span>
     </div>
   );

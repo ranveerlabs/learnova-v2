@@ -167,7 +167,7 @@ export function Entry({
               if (notesProblem) setNotesProblem(null);
             }}
             placeholder="Paste notes, a textbook passage, an article…"
-            minRows={10}
+            minRows={6}
           />
 
           {notesProblem && <Notice>{notesProblem}</Notice>}

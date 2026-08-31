@@ -1,8 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useAutoGrow } from "./ui";
-
 // one char per pixel, palette maps char to a css var so they flip with the theme
 type Sprite = { rows: string[]; palette: Record<string, string> };
 
@@ -139,100 +136,38 @@ export function PixelSprite({
   );
 }
 
-export function Tape({
-  className = "",
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return <span aria-hidden className={`tape ${className}`} style={style} />;
-}
-
-export function PunchHoles() {
-  return (
-    <span
-      aria-hidden
-      className="pointer-events-none absolute inset-y-0 left-[0.9rem] flex flex-col justify-between py-[13%]"
-    >
-      {[0, 1, 2].map((i) => (
-        <span key={i} className="punch" />
-      ))}
-    </span>
-  );
-}
-
-// pencil scratches while you type, settles when you stop
-export function useScribbling(value: string, quietAfter = 480) {
-  const [scribbling, setScribbling] = useState(false);
-
-  useEffect(() => {
-    if (!value) return;
-    setScribbling(true);
-    const t = setTimeout(() => setScribbling(false), quietAfter);
-    return () => clearTimeout(t);
-  }, [value, quietAfter]);
-
-  return scribbling;
-}
-
+// notes go in a panel inside the window, not on a sheet of paper. the ruled
+// leaf had tape, punch holes and a pencil hanging off its right edge, all of
+// which sat outside the box and got cut off once screens had a border
 export function Looseleaf({
   value,
   onChange,
   placeholder,
-  minRows = 15,
+  minRows = 6,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   minRows?: number;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useAutoGrow(ref, value, minRows);
-  const scribbling = useScribbling(value);
-
   return (
-    <div className="relative pt-3">
-      <div className="sheet drop-in">
-        <PunchHoles />
-        <span aria-hidden className="sheet-margin" />
-
-        <textarea
-          ref={ref}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={minRows}
-          aria-label="Your source material"
-          className="leaf leaf-paper prose-read on-paper relative w-full resize-none overflow-hidden bg-transparent"
-        />
+    <div className="xp-field flex min-w-0 flex-col">
+      <div className="flex shrink-0 items-center justify-between border-b-2 border-line bg-sunk px-3 py-1.5">
+        <span className="font-pixel text-[0.625rem] uppercase text-ink-soft">
+          notes
+        </span>
+        <span className="font-pixel text-[0.625rem] text-ink-faint">
+          {value.length.toLocaleString()} chars
+        </span>
       </div>
 
-      <Tape className="left-6 top-0 -rotate-6" />
-      <Tape className="right-10 top-[-0.15rem] rotate-[5deg]" />
-
-      <PixelSprite
-        name="pencil"
-        scale={6}
-        title="A pencil, resting on the page"
-        className={`pointer-events-none absolute right-1 top-8 drop-shadow-[3px_4px_0_rgb(12_16_24/0.3)] lg:-right-7 ${
-          scribbling ? "scribbling" : "bob"
-        }`}
-        style={{ ["--tilt" as string]: "17deg" }}
-      />
-
-      <PixelSprite
-        name="eraser"
-        scale={4}
-        className="bob pointer-events-none absolute -bottom-7 right-10 drop-shadow-[2px_3px_0_rgb(12_16_24/0.28)]"
-        style={{ ["--tilt" as string]: "-9deg", ["--i" as string]: 2 }}
-      />
-
-      <PixelSprite
-        name="star"
-        scale={3}
-        className="press-on pointer-events-none absolute -left-1 bottom-8 lg:-left-4"
-        style={{ ["--tilt" as string]: "-14deg", ["--i" as string]: 3 }}
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={minRows}
+        aria-label="Your source material"
+        className="xp-scroll prose-read max-h-[26vh] w-full resize-none bg-page px-4 py-3 text-ink caret-accent placeholder:text-ink-faint focus:outline-none"
       />
     </div>
   );
