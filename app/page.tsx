@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AudioControls } from "./audio-controls";
 import { PixelSprite, PixelTag } from "./paper";
 import { Credits, Win } from "./ui";
-import { Clippy } from "./clippy";
+import { BuildNote } from "./buildnote";
 import { openCount } from "./feed/limits";
 import { BUILD } from "@/lib/build";
 
@@ -64,7 +64,7 @@ export default function Landing() {
         </main>
       </Win>
 
-      <Clippy sha={BUILD.sha} limits={openCount} />
+      <BuildNote sha={BUILD.sha} issues={openCount} />
     </div>
   );
 }

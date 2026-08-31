@@ -196,54 +196,25 @@ export function Leaf({
   );
 }
 
-// mint on, pink off. the glyph carries it too, colour is never doing this alone
-function AudioToggle({
+// one control for both channels. mint on, pink off, same glyph either way
+export function AudioToggle({
   on,
   onToggle,
-  label,
-  glyph,
 }: {
   on: boolean;
   onToggle: () => void;
-  label: string;
-  glyph: [string, string];
 }) {
   return (
     <button
       onClick={onToggle}
       aria-pressed={on}
-      aria-label={`${label}: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
-      title={`${label} ${on ? "on" : "off"}`}
-      className={`xp-btn h-9 w-9 shrink-0 !px-0 text-[1.125rem] sm:h-10 sm:w-10 ${
-        on ? "bg-supply-mint text-[#101010]" : "bg-supply-pink text-[#101010]"
-      }`}
+      aria-label={`Audio: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
+      title={`Audio ${on ? "on" : "off"}`}
+      style={{ background: on ? "var(--supply-mint)" : "var(--supply-pink)" }}
+      className="xp-btn h-9 w-9 shrink-0 !px-0 text-[1.125rem] text-[#101010] sm:h-10 sm:w-10"
     >
-      <span aria-hidden>{on ? glyph[0] : glyph[1]}</span>
+      <span aria-hidden>♪</span>
     </button>
-  );
-}
-
-export function MusicToggle({
-  on,
-  onToggle,
-}: {
-  on: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <AudioToggle on={on} onToggle={onToggle} label="Music" glyph={["♫", "♫̸"]} />
-  );
-}
-
-export function SoundToggle({
-  on,
-  onToggle,
-}: {
-  on: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <AudioToggle on={on} onToggle={onToggle} label="Sound" glyph={["♪", "♪̸"]} />
   );
 }
 

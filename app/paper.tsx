@@ -99,12 +99,33 @@ const LOGO: Sprite = {
   palette: { B: "var(--ink)", X: "var(--supply-gold)" },
 };
 
+// a small monitor with a face. it sits by the build note
+const CRT: Sprite = {
+  rows: [
+    "BBBBBBBBBBB",
+    "BdddddddddB",
+    "BddSdddSddB",
+    "BdddddddddB",
+    "BddSSSSSddB",
+    "BdddddddddB",
+    "BBBBBBBBBBB",
+    "....BBB....",
+    "..BBBBBBB..",
+  ],
+  palette: {
+    B: "var(--supply-metal)",
+    d: "var(--supply-graphite)",
+    S: "var(--supply-mint)",
+  },
+};
+
 export const SPRITES = {
   pencil: PENCIL,
   star: STAR,
   eraser: ERASER,
   clip: CLIP,
   logo: LOGO,
+  crt: CRT,
 };
 
 export function PixelSprite({

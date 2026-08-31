@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { PixelSprite } from "./paper";
 
-// the assistant. it only ever says two true things and then gets out of the way
-export function Clippy({ sha, limits }: { sha: string; limits: number }) {
+// the little monitor by the corner. it says two things and both are true
+export function BuildNote({ sha, issues }: { sha: string; issues: number }) {
   const [open, setOpen] = useState(true);
 
   if (!open)
@@ -14,9 +13,9 @@ export function Clippy({ sha, limits }: { sha: string; limits: number }) {
         onClick={() => setOpen(true)}
         title="What is this build"
         aria-label="Show the build note"
-        className="xp-btn fixed bottom-4 right-4 z-40 !px-2 !py-2"
+        className="xp-btn fixed bottom-3 right-3 z-40 !px-2 !py-2"
       >
-        <PixelSprite name="clip" scale={2} />
+        <PixelSprite name="crt" scale={2} />
       </button>
     );
 
@@ -42,23 +41,16 @@ export function Clippy({ sha, limits }: { sha: string; limits: number }) {
             <dd>{sha}</dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt>known limitations</dt>
-            <dd>{limits}</dd>
+            <dt>known issues</dt>
+            <dd>{issues}</dd>
           </div>
         </dl>
-
-        <Link
-          href="/feed"
-          className="block border-t-2 border-line px-2.5 py-1.5 font-pixel text-[0.5625rem] uppercase text-[#101010] underline decoration-[#101010]/40 underline-offset-4 hover:decoration-[#101010]"
-        >
-          read them
-        </Link>
       </div>
 
       <PixelSprite
-        name="clip"
+        name="crt"
         scale={3}
-        title="Learnova's paperclip"
+        title="Learnova's monitor"
         className="shrink-0"
       />
     </aside>

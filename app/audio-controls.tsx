@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { audioWanted, type Channel, setAudioWanted } from "./audio";
+import { audioWanted, setAudioWanted } from "./audio";
 import { setMusic } from "./music";
-import { MusicToggle, SoundToggle } from "./ui";
+import { AudioToggle } from "./ui";
 
 export function AudioControls({ className = "" }: { className?: string }) {
   const [music, setMusicOn] = useState(() => audioWanted().music);
@@ -13,18 +13,20 @@ export function AudioControls({ className = "" }: { className?: string }) {
     setMusic(music);
   }, [music]);
 
-  // tells the module synchronously, not through state. tone.ts reads it on the next play()
-  const flip = useCallback((ch: Channel, on: boolean) => {
-    setAudioWanted(ch, on);
-    if (ch !== "music") return setSound(on);
-    setMusicOn(on);
-    setMusic(on);
-  }, []);
+  // one button, so both channels move together
+  const on = music || sound;
+  const flipBoth = useCallback(() => {
+    const next = !on;
+    setAudioWanted("music", next);
+    setAudioWanted("sound", next);
+    setMusicOn(next);
+    setSound(next);
+    setMusic(next);
+  }, [on]);
 
   return (
     <div className={`flex shrink-0 items-center gap-2 ${className}`}>
-      <MusicToggle on={music} onToggle={() => flip("music", !music)} />
-      <SoundToggle on={sound} onToggle={() => flip("sound", !sound)} />
+      <AudioToggle on={on} onToggle={flipBoth} />
     </div>
   );
 }
