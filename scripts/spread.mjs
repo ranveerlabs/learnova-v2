@@ -1,8 +1,8 @@
-import {
-  chunkSource,
-  sampleForPrompt,
-  PROMPT_BUDGET_CHARS,
-} from "../lib/chunk.ts";
+// node --experimental-strip-types scripts/spread.mjs
+// 32 assertions on the chunker. written by breaking the code to watch them fail,
+// which mattered: two of them originally passed against the exact bugs they were for.
+
+import { chunkSource, sampleForPrompt, PROMPT_BUDGET_CHARS } from "../lib/chunk.ts";
 
 let failed = 0;
 function check(name, condition, detail = "") {
@@ -22,7 +22,7 @@ check("is passed through verbatim", asIs.text === short.trim());
 check("splits on paragraphs", chunkSource(short).length === 2);
 check(
   "every piece of ordinary prose is a whole one",
-  chunkSource(short).every((c) => c.opensSentence && c.closesSentence)
+  chunkSource(short).every((c) => c.opens && c.closes)
 );
 
 console.log("\nNo material at all, which is every topic-only session");
@@ -72,11 +72,11 @@ console.log("\nBoundaries: a passage has to read on its own, not merely be a sub
 const proseChunks = chunkSource(long);
 check(
   "no passage of ordinary prose begins mid-sentence",
-  proseChunks.every((c) => c.opensSentence)
+  proseChunks.every((c) => c.opens)
 );
 check(
   "no passage of ordinary prose ends mid-sentence",
-  proseChunks.every((c) => c.closesSentence)
+  proseChunks.every((c) => c.closes)
 );
 check(
   "every passage ends on a sentence terminator",
@@ -90,11 +90,11 @@ const runOn =
   "and that is the whole reason it is specified.";
 const severed = chunkSource(runOn);
 check("a sentence longer than a chunk is split", severed.length > 1);
-check("the first piece is marked as opening the sentence", severed[0].opensSentence === true);
-check("the first piece is marked as not closing it", severed[0].closesSentence === false);
+check("the first piece is marked as opening the sentence", severed[0].opens === true);
+check("the first piece is marked as not closing it", severed[0].closes === false);
 check(
   "the last piece is marked as not opening it",
-  severed[severed.length - 1].opensSentence === false
+  severed[severed.length - 1].opens === false
 );
 function wordBounded(piece, source) {
   const at = source.indexOf(piece);
@@ -119,7 +119,7 @@ check(
 const rejoined = sampleForPrompt(runOn, 2000);
 check(
   "the reassembly case is actually set up",
-  rejoined.kept === 2 && severed[0].closesSentence === false && severed[1].opensSentence === false,
+  rejoined.kept === 2 && severed[0].closes === false && severed[1].opens === false,
   `(kept ${rejoined.kept} of ${rejoined.total})`
 );
 check(

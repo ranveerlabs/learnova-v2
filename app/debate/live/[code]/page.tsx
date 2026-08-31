@@ -45,7 +45,11 @@ const SHELL = "mx-auto flex w-full max-w-[54rem] flex-col";
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
-export default function LiveRoomPage({ params }: { params: Promise<{ code: string }> }) {
+export default function LiveRoomPage({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}) {
   const { code: typed } = use(params);
   const code = readCode(typed);
 
@@ -74,6 +78,7 @@ function Bar() {
 }
 
 function Room({ code }: { code: string }) {
+  // whoever came in holding a motion is the host. decided once, never again
   const [brought] = useState<LiveSetup | null>(() => takeHandoff(code));
   const [role] = useState(brought ? ("host" as const) : ("guest" as const));
 
@@ -86,26 +91,34 @@ function Room({ code }: { code: string }) {
   const [wasBusy, setWasBusy] = useState(false);
 
   const setup = room.setup;
-  const mySide: Side | null = setup ? (role === "host" ? setup.side : otherSide(setup.side)) : null;
+  const mySide: Side | null = setup
+    ? role === "host"
+      ? setup.side
+      : otherSide(setup.side)
+    : null;
 
   const next = toSpeak(room.turns);
   const finished = next === null;
   const at = Math.floor(room.turns.length / 2);
   const myTurn = next !== null && mySide !== null && next.side === mySide;
 
-  const scroller = useRef<HTMLDivElement>(null);
+  const tape = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
+    tape.current?.scrollTo({
+      top: tape.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [room.turns, room.ballot]);
 
+  // one tone when a speech lands from the other side. not for your own
   const heard = useRef(0);
   useEffect(() => {
-    const now = room.turns.length;
-    if (now === heard.current + 1) {
-      const last = room.turns[now - 1];
+    const n = room.turns.length;
+    if (n === heard.current + 1) {
+      const last = room.turns[n - 1];
       if (mySide && last.side !== mySide) play("speech");
     }
-    heard.current = now;
+    heard.current = n;
   }, [room.turns, mySide]);
 
   const gavelled = useRef(false);
@@ -118,8 +131,13 @@ function Room({ code }: { code: string }) {
 
   async function send() {
     if (!myTurn || !next || !mySide || !draft.trim() || sending) return;
-    const turn: LiveTurn = { side: mySide, speech: next.speech, text: draft.trim() };
+    const turn: LiveTurn = {
+      side: mySide,
+      speech: next.speech,
+      text: draft.trim(),
+    };
 
+    // cleared before the publish. the turn is already theirs either way
     setSending(true);
     setError(null);
     setDraft("");
@@ -143,21 +161,22 @@ function Room({ code }: { code: string }) {
         turns: asTranscript(room.turns, setup.side),
       });
       await room.publishBallot(ballot);
-    } catch (err) {
-      setWasBusy(isBusy(err));
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } catch (e) {
+      setWasBusy(isBusy(e));
+      setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setJudging(false);
     }
   }
 
+  // eighth speech lands and the host sends it, without being asked. guest gets it mirrored
   const sent = useRef(false);
   useEffect(() => {
     if (role !== "host" || room.stage !== "open") return;
     if (sent.current || judging || room.ballot) return;
     if (toSpeak(room.turns) !== null) return;
-    const mine = wordsSpoken(asTranscript(room.turns, setup?.side ?? "Pro"));
-    if (mine === 0) return;
+    if (wordsSpoken(asTranscript(room.turns, setup?.side ?? "Pro")) === 0)
+      return;
     sent.current = true;
     void judge();
   });
@@ -166,7 +185,10 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Bar />
-        <Waiting title="Opening the room" sub="Finding out who is already in it." />
+        <Waiting
+          title="Opening the room"
+          sub="Finding out who is already in it."
+        />
       </div>
     );
   }
@@ -175,7 +197,10 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Bar />
-        <Stopped title="The room would not open" said={room.error ?? "Something went wrong."} />
+        <Stopped
+          title="The room would not open"
+          said={room.error ?? "Something went wrong."}
+        />
       </div>
     );
   }
@@ -210,7 +235,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Stopped
           title={`Nobody is in room ${code}`}
-          said="Either the code is wrong, or whoever opened the room has closed it. Nothing about a room outlives the people in it, so there is nothing to rejoin — but opening a new one takes about ten seconds."
+          said="Either the code is wrong, or whoever opened the room has closed it. Nothing about a room outlives the people in it, so there is nothing to rejoin, but opening a new one takes about ten seconds."
         />
       </div>
     );
@@ -238,7 +263,9 @@ function Room({ code }: { code: string }) {
       <div className={SHELL}>
         <Bar />
         <Stopped
-          title={room.closed === "idle" ? "The room timed out" : "The room closed"}
+          title={
+            room.closed === "idle" ? "The room timed out" : "The room closed"
+          }
           said={
             room.closed === "idle"
               ? "Nothing happened in it for ten minutes, so it let go. That is what stops abandoned tabs holding rooms open."
@@ -270,7 +297,10 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Bar />
-        <Waiting title="Joining the room" sub="Waiting to be told what is being argued." />
+        <Waiting
+          title="Joining the room"
+          sub="Waiting to be told what is being argued."
+        />
       </div>
     );
   }
@@ -285,8 +315,8 @@ function Room({ code }: { code: string }) {
             <Share code={code} />
           ) : (
             <Aside>
-              You are in the room. Whoever opened it has stepped away — the round starts when they
-              are back.
+              You are in the room. Whoever opened it has stepped away. The round
+              starts when they are back.
             </Aside>
           )}
           <Leave onLeave={() => room.close("left")} />
@@ -295,10 +325,14 @@ function Room({ code }: { code: string }) {
     );
   }
 
+  // both sides, not just mine. one person arguing into the void is not a round
   const transcript = asTranscript(room.turns, mySide!);
   const spokenByMe = wordsSpoken(transcript);
-  const spokenByThem = wordsSpoken(asTranscript(room.turns, otherSide(mySide!)));
-  const judgeable = spokenByMe >= MIN_WORDS_TO_JUDGE && spokenByThem >= MIN_WORDS_TO_JUDGE;
+  const spokenByThem = wordsSpoken(
+    asTranscript(room.turns, otherSide(mySide!)),
+  );
+  const judgeable =
+    spokenByMe >= MIN_WORDS_TO_JUDGE && spokenByThem >= MIN_WORDS_TO_JUDGE;
 
   return (
     <div className={`${SHELL} gap-4`}>
@@ -318,34 +352,35 @@ function Room({ code }: { code: string }) {
 
       {room.arrived && !room.together && (
         <Aside>
-          Your opponent has dropped out of the room. Every speech was given before they went, so the
-          transcript is complete and the ballot is still worth reading.
+          Your opponent has dropped out of the room. Every speech was given
+          before they went, so the transcript is complete and the ballot is
+          still worth reading.
         </Aside>
       )}
 
       {room.dropped && (
         <Aside>
-          You have lost your connection. Nothing is lost while it comes back, and anything they say
-          in the meantime will arrive when it does.
+          You have lost your connection. Nothing is lost while it comes back,
+          and anything they say in the meantime will arrive when it does.
         </Aside>
       )}
 
       {room.desync && (
         <Aside>
-          Part of the round did not reach this tab. Asking for it again — the transcript below may
-          be a speech short until it lands.
+          Part of the round did not reach this tab. Asking for it again, the
+          transcript below may be a speech short until it lands.
         </Aside>
       )}
 
       <div
-        ref={scroller}
-        className="flex max-h-[52vh] min-h-[8rem] flex-col gap-3 overflow-y-auto rounded-[3px] border border-line bg-sunk/40 p-3"
+        ref={tape}
+        className="flex max-h-[52vh] min-h-[8rem] flex-col gap-3 overflow-y-auto border border-line bg-sunk/40 p-3"
       >
         {transcript.length === 0 && (
           <Opening said={myTurn ? "You open." : "They open. Yours is next."} />
         )}
-        {transcript.map((turn, i) => (
-          <Said key={i} turn={turn} tierName="Them" />
+        {transcript.map((t, i) => (
+          <Said key={i} turn={t} tierName="Them" />
         ))}
       </div>
 
@@ -353,7 +388,10 @@ function Room({ code }: { code: string }) {
 
       <div className="flex shrink-0 flex-col gap-2">
         {judging ? (
-          <Waiting title="Judging the round" sub="Both sides, with no names on them, from the top." />
+          <Waiting
+            title="Judging the round"
+            sub="Both sides, with no names on them, from the top."
+          />
         ) : finished ? (
           <Closing
             host={role === "host"}
@@ -405,11 +443,11 @@ function Motion({ setup, mine }: { setup: LiveSetup; mine: Side }) {
   return (
     <div className="flex flex-col gap-3">
       <Label>
-        {setup.tab === "competitive" ? setup.format : "Open debate"} ·{" "}
+        {setup.tab === "competitive" ? setup.format : "Open debate"} ·{""}
         {mine === "Pro" ? "You are for it" : "You are against it"}
       </Label>
       <div
-        className="sticky flex min-h-[7.5rem] w-fit min-w-[11rem] max-w-[20rem] items-start rounded-[2px] pb-6 pl-5 pr-6 pt-5"
+        className="sticky flex min-h-[7.5rem] w-fit min-w-[11rem] max-w-[20rem] items-start pb-6 pl-5 pr-6 pt-5"
         style={{ ["--tilt" as string]: "-1.3deg" }}
       >
         <p className="font-hand text-[1.5rem] leading-[1.15]">{setup.motion}</p>
@@ -429,10 +467,9 @@ function Share({ code }: { code: string }) {
       </p>
 
       <p className="max-w-[40ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-        They open Learnova, press Debate, choose <span className="text-ink">Friend</span>, and
-        type it in.
+        They open Learnova, press Debate, choose{" "}
+        <span className="text-ink">Friend</span>, and type it in.
       </p>
-
     </div>
   );
 }
@@ -464,8 +501,9 @@ function Closing({
     return (
       <div className="flex flex-col gap-3">
         <Notice>
-          There is not enough here to judge. {who} wrote under {MIN_WORDS_TO_JUDGE} words across the
-          round, which is about one real sentence of argument. Nothing was sent to the judge.
+          There is not enough here to judge. {who} wrote under{" "}
+          {MIN_WORDS_TO_JUDGE} words across the round, which is about one real
+          sentence of argument. Nothing was sent to the judge.
         </Notice>
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton onClick={onLeave}>
@@ -481,8 +519,9 @@ function Closing({
       return (
         <div className="flex flex-col gap-3">
           <Aside>
-            Every speech was given, but the person who opened the room has left, and the ballot is
-            theirs to ask for. There will not be one for this round.
+            Every speech was given, but the person who opened the room has left,
+            and the ballot is theirs to ask for. There will not be one for this
+            round.
           </Aside>
           <Ways />
         </div>
@@ -508,23 +547,25 @@ function Closing({
   );
 }
 
-function clock(at: number): string {
-  return new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
+// whatever shape this reader's locale writes a clock in
+const clock = (at: number) =>
+  new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-function ended(reason: Closed, myRole: Role, departed: Departure | null): string {
+function ended(reason: Closed, myRole: Role, departed: Departure | null) {
   if (reason === "idle") {
-    return "Nothing was said in here for ten minutes, so the room let go of itself. Neither of you left — it just went quiet, and an empty room is not a thing this app keeps.";
+    return "Nothing was said in here for ten minutes, so the room let go of itself. Neither of you left, it just went quiet, and an empty room is not a thing this app keeps.";
   }
 
+  // presence usually tells us who went. if it did not, it was the other chair by elimination
   const theirs: Role = departed?.role ?? (myRole === "host" ? "guest" : "host");
-  const who = theirs === "host" ? "The person who opened the room" : "The person who joined";
+  const who =
+    theirs === "host"
+      ? "The person who opened the room"
+      : "The person who joined";
   const when = departed ? ` at ${clock(departed.at)}` : "";
 
-  if (reason === "done") {
+  if (reason === "done")
     return `${who} closed it before the round had finished.`;
-  }
-
   return `${who} left${when}.`;
 }
 
@@ -578,13 +619,13 @@ function Unfinished({
         )}
       </div>
 
-      <div className="flex max-h-[38vh] flex-col gap-3 overflow-y-auto rounded-[3px] border border-line bg-sunk/40 p-3">
-        {transcript.map((turn, i) => (
-          <Said key={i} turn={turn} tierName="Them" />
+      <div className="flex max-h-[38vh] flex-col gap-3 overflow-y-auto border border-line bg-sunk/40 p-3">
+        {transcript.map((t, i) => (
+          <Said key={i} turn={t} tierName="Them" />
         ))}
       </div>
 
-      <div className="flex flex-col gap-1 rounded-[3px] border-l-[4px] border-gap-mark bg-gap-tint py-3 pl-4 pr-4">
+      <div className="flex flex-col gap-1 border-l-[4px] border-gap-mark bg-gap-tint py-3 pl-4 pr-4">
         <span
           style={NARROW}
           className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-gap-ink"
@@ -592,10 +633,11 @@ function Unfinished({
           No ballot for this one
         </span>
         <p className="font-read text-[1.0625rem] leading-[1.5] text-ink">
-          Nothing was sent to the judge, and there is no winner and no score. A ballot weighs one
-          finished case against another, and this round has neither: a verdict on it would be
-          marking you both on the speeches nobody got to give. Nothing from it was saved anywhere,
-          here or on the server.
+          Nothing was sent to the judge, and there is no winner and no score. A
+          ballot weighs one finished case against another, and this round has
+          neither: a verdict on it would be marking you both on the speeches
+          nobody got to give. Nothing from it was saved anywhere, here or on the
+          server.
         </p>
       </div>
 
@@ -606,7 +648,10 @@ function Unfinished({
 
 function Leave({ onLeave }: { onLeave: () => void }) {
   return (
-    <GhostButton onClick={onLeave} title="This closes the room for both of you.">
+    <GhostButton
+      onClick={onLeave}
+      title="The room carries on for whoever is still in it."
+    >
       Leave the room
     </GhostButton>
   );
@@ -618,7 +663,9 @@ function Stopped({ title, said }: { title: string; said: string }) {
       <h1 className="max-w-[20ch] font-read text-[clamp(1.5rem,1.2rem+1.4vw,2.125rem)] leading-[1.15] tracking-[-0.015em] text-ink">
         {title}
       </h1>
-      <p className="max-w-[52ch] font-sans text-[1rem] leading-[1.65] text-ink-soft">{said}</p>
+      <p className="max-w-[52ch] font-sans text-[1rem] leading-[1.65] text-ink-soft">
+        {said}
+      </p>
       <Ways />
     </section>
   );
@@ -629,7 +676,7 @@ function Ways() {
     <div className="flex flex-wrap items-center gap-3">
       <Link
         href="/debate"
-        className="btn inline-flex items-center gap-2 self-start rounded-[3px] bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover"
+        className="btn inline-flex items-center gap-2 self-start bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover"
       >
         Start another round
         <span aria-hidden className="rewound">

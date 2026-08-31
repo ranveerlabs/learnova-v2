@@ -3,6 +3,7 @@ import { wire } from "./choice/wire";
 import { plain } from "./plain";
 import type { Presentation } from "./types";
 
+// add one here, nothing in app/round/ changes
 export const PRESENTATIONS: Presentation[] = [wire];
 
 export function eligible(format: Format, question: Question): Presentation[] {
@@ -11,10 +12,11 @@ export function eligible(format: Format, question: Question): Presentation[] {
   );
 }
 
-function hash(...parts: (string | number)[]): number {
+// fnv-1a. same seed and round always picks the same one, so a redraw is not a reshuffle
+function hash(...parts: (string | number)[]) {
   let h = 2166136261;
-  for (const part of parts) {
-    const s = String(part);
+  for (const p of parts) {
+    const s = String(p);
     for (let i = 0; i < s.length; i++) {
       h ^= s.charCodeAt(i);
       h = Math.imul(h, 16777619);
@@ -36,24 +38,22 @@ export function pickPresentation({
   round: 0 | 1 | 2 | 3 | 4;
   plainOnly?: boolean;
 }): Presentation {
+  // round 4 is unpresented, enforced here rather than left to convention
   if (plainOnly || format === "open" || round === 4) return plain;
 
-  const options = eligible(format, question);
-  if (options.length === 0) return plain;
-  if (options.length === 1) return options[0];
+  const ok = eligible(format, question);
+  if (!ok.length) return plain;
+  if (ok.length === 1) return ok[0];
 
-  const here = options[hash(seed, round) % options.length];
+  const here = ok[hash(seed, round) % ok.length];
 
+  // nudge it along if last round drew the same one
   if (round > 0) {
-    const previous = options[hash(seed, round - 1) % options.length];
-    if (previous.id === here.id) {
-      return options[(hash(seed, round) + 1) % options.length];
-    }
+    const last = ok[hash(seed, round - 1) % ok.length];
+    if (last.id === here.id) return ok[(hash(seed, round) + 1) % ok.length];
   }
 
   return here;
 }
 
-export function newSeed(): number {
-  return Math.floor(Math.random() * 1_000_000);
-}
+export const newSeed = () => Math.floor(Math.random() * 1_000_000);

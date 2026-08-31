@@ -11,7 +11,7 @@ import {
   TIERS,
 } from "./types";
 
-export function normalizeAnswer(s: string): string {
+export function normalizeAnswer(s: string) {
   return s
     .toLowerCase()
     .replace(/[‘’]/g, "'")
@@ -22,34 +22,32 @@ export function normalizeAnswer(s: string): string {
     .replace(/^(?:the|a|an)\s+/, "");
 }
 
-function editDistance(a: string, b: string, limit: number): number {
+// levenshtein, bails as soon as it's past the limit
+function dist(a: string, b: string, limit: number) {
   if (a === b) return 0;
   if (Math.abs(a.length - b.length) > limit) return limit + 1;
 
   let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-  let curr = new Array<number>(b.length + 1);
+  let cur = new Array<number>(b.length + 1);
 
   for (let i = 1; i <= a.length; i++) {
-    curr[0] = i;
-    let best = curr[0];
+    cur[0] = i;
+    let best = cur[0];
     for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
-      if (curr[j] < best) best = curr[j];
+      const c = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c);
+      if (cur[j] < best) best = cur[j];
     }
     if (best > limit) return limit + 1;
-    [prev, curr] = [curr, prev];
+    [prev, cur] = [cur, prev];
   }
   return prev[b.length];
 }
 
-function typoTolerance(len: number): number {
-  if (len <= 4) return 0;
-  if (len <= 8) return 1;
-  return 2;
-}
+// no slack on short answers, one typo in "ion" is a different word
+const slack = (n: number) => (n <= 4 ? 0 : n <= 8 ? 1 : 2);
 
-function numberForms(s: string): string[] {
+function plurals(s: string) {
   const out = new Set([s]);
   if (/ies$/.test(s) && s.length > 4) out.add(`${s.slice(0, -3)}y`);
   if (/es$/.test(s) && s.length > 3) out.add(s.slice(0, -2));
@@ -57,33 +55,30 @@ function numberForms(s: string): string[] {
   return [...out];
 }
 
-export function checkTyped(q: Question, given: string): boolean {
+export function checkTyped(q: Question, given: string) {
   const typed = normalizeAnswer(given);
   if (!typed) return false;
 
-  const targets = [q.answer, ...(q.accepted ?? [])].map(normalizeAnswer).filter(Boolean);
-  const typedForms = numberForms(typed);
+  const want = [q.answer, ...(q.accepted ?? [])].map(normalizeAnswer).filter(Boolean);
+  const mine = plurals(typed);
 
-  return targets.some((target) => {
-    for (const t of numberForms(target)) {
-      if (typedForms.includes(t)) return true;
-    }
-    const tolerance = typoTolerance(target.length);
-    if (tolerance === 0) return false;
-    return editDistance(typed, target, tolerance) <= tolerance;
+  return want.some((t) => {
+    for (const form of plurals(t)) if (mine.includes(form)) return true;
+    const s = slack(t.length);
+    return s === 0 ? false : dist(typed, t, s) <= s;
   });
 }
 
-function listParts(sentence: string): string[] {
-  return sentence
+const bits = (s: string) =>
+  s
     .split(/\s*,\s*|\s+and\s+|\s+or\s+|\s*;\s*/i)
     .map(normalizeAnswer)
     .filter(Boolean);
-}
 
-function sameListDifferentOrder(builtRaw: string, targetRaw: string): boolean {
-  const a = builtRaw.toLowerCase().split(/\s+/).filter(Boolean);
-  const b = targetRaw.toLowerCase().split(/\s+/).filter(Boolean);
+// "a, b and c" vs "c, a and b". same sentence, and the student didn't get it wrong
+function sameListShuffled(built: string, want: string) {
+  const a = built.toLowerCase().split(/\s+/).filter(Boolean);
+  const b = want.toLowerCase().split(/\s+/).filter(Boolean);
 
   let head = 0;
   while (head < a.length && head < b.length && a[head] === b[head]) head++;
@@ -97,150 +92,115 @@ function sameListDifferentOrder(builtRaw: string, targetRaw: string): boolean {
     tail++;
   }
 
-  const left = listParts(a.slice(head, a.length - tail).join(" "));
-  const right = listParts(b.slice(head, b.length - tail).join(" "));
-  if (left.length < 2 || left.length !== right.length) return false;
+  const l = bits(a.slice(head, a.length - tail).join(" "));
+  const r = bits(b.slice(head, b.length - tail).join(" "));
+  if (l.length < 2 || l.length !== r.length) return false;
 
-  const sortedLeft = [...left].sort();
-  const sortedRight = [...right].sort();
-  return sortedLeft.every((part, i) => part === sortedRight[i]);
+  const ls = [...l].sort();
+  const rs = [...r].sort();
+  return ls.every((x, i) => x === rs[i]);
 }
 
-export function checkAssembled(q: Question, selected: string[]): boolean {
-  const builtRaw = selected.join(" ");
-  const built = normalizeAnswer(builtRaw);
+export function checkAssembled(q: Question, picked: string[]) {
+  const raw = picked.join(" ");
+  const built = normalizeAnswer(raw);
   if (!built) return false;
 
-  const rawTargets = [(q.chips ?? []).join(" "), q.answer, ...(q.accepted ?? [])].filter((t) =>
-    t.trim()
-  );
+  const want = [(q.chips ?? []).join(" "), q.answer, ...(q.accepted ?? [])].filter((t) => t.trim());
 
-  if (rawTargets.map(normalizeAnswer).includes(built)) return true;
-  return rawTargets.some((target) => sameListDifferentOrder(builtRaw, target));
+  if (want.map(normalizeAnswer).includes(built)) return true;
+  return want.some((t) => sameListShuffled(raw, t));
 }
 
-export function isCorrect(q: Question, given: string | number | string[]): boolean {
-  if (q.format === "recognition" || q.format === "choice") {
+export function isCorrect(q: Question, given: string | number | string[]) {
+  if (q.format === "recognition" || q.format === "choice")
     return typeof given === "number" && given === q.answerIndex;
-  }
-  if (q.format === "assemble") {
-    return Array.isArray(given) && checkAssembled(q, given);
-  }
+  if (q.format === "assemble") return Array.isArray(given) && checkAssembled(q, given);
   return typeof given === "string" && checkTyped(q, given);
 }
 
-export function accuracy(answers: Answer[]): number {
-  if (answers.length === 0) return 0;
-  return answers.filter((a) => a.correct).length / answers.length;
-}
+export const accuracy = (as: Answer[]) =>
+  as.length ? as.filter((a) => a.correct).length / as.length : 0;
 
 function step(d: Difficulty, by: -1 | 0 | 1, floor: Difficulty = "easy"): Difficulty {
   const i = TIERS.indexOf(d);
-  const lowest = Math.max(0, TIERS.indexOf(floor));
-  return TIERS[Math.min(TIERS.length - 1, Math.max(lowest, i + by))];
+  const lo = Math.max(0, TIERS.indexOf(floor));
+  return TIERS[Math.min(TIERS.length - 1, Math.max(lo, i + by))];
 }
 
-export function nextDifficulty(
-  current: Difficulty,
-  roundAnswers: Answer[],
-  floor: Difficulty = "easy"
-): Difficulty {
-  const lastTwo = roundAnswers.slice(-2);
-  if (lastTwo.length === 2 && lastTwo.every((a) => !a.correct)) {
-    return step(current, -1, floor);
-  }
+export function nextDifficulty(now: Difficulty, answers: Answer[], floor: Difficulty = "easy") {
+  // two wrong in a row drops it regardless of the average
+  const last2 = answers.slice(-2);
+  if (last2.length === 2 && last2.every((a) => !a.correct)) return step(now, -1, floor);
 
-  if (roundAnswers.length < 2) return current;
+  if (answers.length < 2) return now;
 
-  const rate = accuracy(roundAnswers);
-  if (rate < TARGET_LOW) return step(current, -1, floor);
-  if (rate > TARGET_HIGH) return step(current, 1, floor);
-  return current;
+  const rate = accuracy(answers);
+  if (rate < TARGET_LOW) return step(now, -1, floor);
+  if (rate > TARGET_HIGH) return step(now, 1, floor);
+  return now;
 }
 
-function unasked(pool: Question[], tier: Difficulty, asked: Set<string>): Question | undefined {
-  return pool.find((q) => q.difficulty === tier && !asked.has(q.id));
-}
+const fresh = (pool: Question[], tier: Difficulty, asked: Set<string>) =>
+  pool.find((q) => q.difficulty === tier && !asked.has(q.id));
 
-export function pickQuestion(
-  pool: Question[],
-  want: Difficulty,
-  asked: Set<string>
-): Question | null {
-  const direct = unasked(pool, want, asked);
-  if (direct) return direct;
+export function pickQuestion(pool: Question[], want: Difficulty, asked: Set<string>) {
+  const hit = fresh(pool, want, asked);
+  if (hit) return hit;
 
-  const wantIndex = TIERS.indexOf(want);
-  const order = [...TIERS].sort((a, b) => {
-    const da = Math.abs(TIERS.indexOf(a) - wantIndex);
-    const db = Math.abs(TIERS.indexOf(b) - wantIndex);
-    if (da !== db) return da - db;
-    return TIERS.indexOf(a) - TIERS.indexOf(b);
+  // nothing left at that tier, walk outwards
+  const wi = TIERS.indexOf(want);
+  const near = [...TIERS].sort((a, b) => {
+    const da = Math.abs(TIERS.indexOf(a) - wi);
+    const db = Math.abs(TIERS.indexOf(b) - wi);
+    return da !== db ? da - db : TIERS.indexOf(a) - TIERS.indexOf(b);
   });
 
-  for (const tier of order) {
-    const found = unasked(pool, tier, asked);
-    if (found) return found;
+  for (const t of near) {
+    const q = fresh(pool, t, asked);
+    if (q) return q;
   }
-
   return null;
 }
 
-export function currentStreak(answers: Answer[]): number {
+export function currentStreak(as: Answer[]) {
   let n = 0;
-  for (let i = answers.length - 1; i >= 0; i--) {
-    if (!answers[i].correct) break;
+  for (let i = as.length - 1; i >= 0; i--) {
+    if (!as[i].correct) break;
     n++;
   }
   return n;
 }
 
-export function bestStreak(answers: Answer[]): number {
+export function bestStreak(as: Answer[]) {
   let best = 0;
   let run = 0;
-  for (const a of answers) {
-    if (a.correct) {
-      run++;
-      if (run > best) best = run;
-    } else {
+  for (const a of as) {
+    if (!a.correct) {
       run = 0;
+      continue;
     }
+    run++;
+    if (run > best) best = run;
   }
   return best;
 }
 
-export function formatClock(ms: number): string {
-  const safe = Math.max(0, ms);
-  const minutes = Math.floor(safe / 60000);
-  const seconds = Math.floor((safe % 60000) / 1000);
-  const tenths = Math.floor((safe % 1000) / 100);
-  return `${minutes}:${String(seconds).padStart(2, "0")}.${tenths}`;
+export function formatClock(ms: number) {
+  const t = Math.max(0, ms);
+  const m = Math.floor(t / 60000);
+  const s = Math.floor((t % 60000) / 1000);
+  return `${m}:${String(s).padStart(2, "0")}.${Math.floor((t % 1000) / 100)}`;
 }
 
-export function splitTotal(splits: Split[]): number {
-  return splits.reduce((sum, s) => sum + s.ms, 0);
-}
+export const splitTotal = (ss: Split[]) => ss.reduce((n, s) => n + s.ms, 0);
 
-const STAGE_WEIGHT: Record<number, number> = {
-  0: 1, // warm up, before studying
-  1: 3, // pick it out
-  2: 5, // fill the gap
-  3: 6, // build it
-};
+// later rounds count for more
+const STAGE_W: Record<number, number> = { 0: 1, 1: 3, 2: 5, 3: 6 };
+const DIFF_W: Record<Difficulty, number> = { easy: 1, medium: 1.5, hard: 2 };
 
-const DIFFICULTY_WEIGHT: Record<Difficulty, number> = {
-  easy: 1,
-  medium: 1.5,
-  hard: 2,
-};
-
-const PRODUCTION_VALUE: Record<Production["outcome"], number> = {
-  solid: 150,
-  shaky: 70,
-  "not-yet": 0,
-};
-
-const PRODUCTION_BEST = PRODUCTION_VALUE.solid;
+const SAID: Record<Production["outcome"], number> = { solid: 150, shaky: 70, "not-yet": 0 };
+const SAID_MAX = SAID.solid;
 
 export type Rating = {
   earned: number;
@@ -250,23 +210,21 @@ export type Rating = {
   band: "strong" | "fair" | "weak";
 };
 
-function questionValue(a: Answer): number {
-  return (STAGE_WEIGHT[a.stage] ?? 0) * DIFFICULTY_WEIGHT[a.difficulty] * 10;
-}
+const worth = (a: Answer) => (STAGE_W[a.stage] ?? 0) * DIFF_W[a.difficulty] * 10;
 
-export function rating(answers: Answer[], productions: Production[]): Rating {
+export function rating(answers: Answer[], said: Production[]): Rating {
   let earned = 0;
   let possible = 0;
 
   for (const a of answers) {
-    const value = questionValue(a);
-    possible += value;
-    if (a.correct) earned += value;
+    const v = worth(a);
+    possible += v;
+    if (a.correct) earned += v;
   }
 
-  for (const p of productions) {
-    possible += PRODUCTION_BEST;
-    earned += PRODUCTION_VALUE[p.outcome];
+  for (const p of said) {
+    possible += SAID_MAX;
+    earned += SAID[p.outcome];
   }
 
   earned = Math.round(earned);
@@ -278,14 +236,14 @@ export function rating(answers: Answer[], productions: Production[]): Rating {
   return { earned, possible, share, score: Math.round(share * 10), band };
 }
 
-export function fastestCorrect(answers: Answer[]): number | null {
-  const times = answers.filter((a) => a.correct).map((a) => a.ms);
-  return times.length > 0 ? Math.min(...times) : null;
+export function fastestCorrect(as: Answer[]) {
+  const ms = as.filter((a) => a.correct).map((a) => a.ms);
+  return ms.length ? Math.min(...ms) : null;
 }
 
-export function beatsBest(previous: Answer[], ms: number, correct: boolean): boolean {
+export function beatsBest(before: Answer[], ms: number, correct: boolean) {
   if (!correct) return false;
-  const best = fastestCorrect(previous);
+  const best = fastestCorrect(before);
   return best === null || ms < best;
 }
 
@@ -300,13 +258,14 @@ export type RoundSummary = {
 
 export function summarizeRound(answers: Answer[], stage: 0 | Round): RoundSummary {
   const mine = answers.filter((a) => a.stage === stage);
-  const earlier = answers.filter((a) => a.stage < stage);
+  const before = answers.filter((a) => a.stage < stage);
 
-  const rightNow = new Set(mine.filter((a) => a.correct).map((a) => a.concept));
-  const rightBefore = new Set(earlier.filter((a) => a.correct).map((a) => a.concept));
-  const seenBefore = new Set(earlier.map((a) => a.concept));
+  const nowRight = new Set(mine.filter((a) => a.correct).map((a) => a.concept));
+  const wasRight = new Set(before.filter((a) => a.correct).map((a) => a.concept));
+  const wasAsked = new Set(before.map((a) => a.concept));
 
-  const turnedAround = [...rightNow].filter((c) => seenBefore.has(c) && !rightBefore.has(c));
+  // wrong earlier, right now
+  const turnedAround = [...nowRight].filter((c) => wasAsked.has(c) && !wasRight.has(c));
 
   const everRight = new Set(answers.filter((a) => a.correct).map((a) => a.concept));
   const stillOpen = [...new Set(answers.map((a) => a.concept))].filter((c) => !everRight.has(c));
@@ -330,36 +289,37 @@ export type ProductionRank = {
   attempts: number;
 };
 
-function median(ns: number[]): number | null {
-  if (ns.length === 0) return null;
-  const sorted = [...ns].sort((x, y) => x - y);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+function median(ns: number[]) {
+  if (!ns.length) return null;
+  const s = [...ns].sort((x, y) => x - y);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
+// which concept round 4 asks about. still-open ones first, then whatever they held up best
 export function rankForProduction(answers: Answer[], openFirst: string[] = []): ProductionRank[] {
-  const inRounds = answers.filter((a) => a.stage >= 1 && a.stage <= 3);
-  if (inRounds.length === 0) return [];
+  const played = answers.filter((a) => a.stage >= 1 && a.stage <= 3);
+  if (!played.length) return [];
 
   const open = new Set(openFirst);
 
-  const scored = [...new Set(inRounds.map((a) => a.concept))].map((concept) => {
-    const mine = inRounds.filter((a) => a.concept === concept);
+  const scored = [...new Set(played.map((a) => a.concept))].map((concept) => {
+    const mine = played.filter((a) => a.concept === concept);
     const right = mine.filter((a) => a.correct);
     return {
       concept,
       attempts: mine.length,
       correct: right.length,
-      highestRound: right.reduce((max, a) => Math.max(max, a.stage), 0),
+      highestRound: right.reduce((m, a) => Math.max(m, a.stage), 0),
       medianMs: median(right.map((a) => a.ms)),
-      basis: (right.length > 0 ? "strongest" : "most-seen") as ProductionRank["basis"],
+      basis: (right.length ? "strongest" : "most-seen") as ProductionRank["basis"],
     };
   });
 
   return scored.sort((a, b) => {
-    const aOpen = open.has(a.concept);
-    const bOpen = open.has(b.concept);
-    if (aOpen !== bOpen) return aOpen ? -1 : 1;
+    const ao = open.has(a.concept);
+    const bo = open.has(b.concept);
+    if (ao !== bo) return ao ? -1 : 1;
     if (a.correct > 0 !== b.correct > 0) return a.correct > 0 ? -1 : 1;
     if (a.highestRound !== b.highestRound) return b.highestRound - a.highestRound;
     const am = a.medianMs ?? Infinity;
@@ -370,12 +330,7 @@ export function rankForProduction(answers: Answer[], openFirst: string[] = []): 
   });
 }
 
-export type StageScore = {
-  correct: number;
-  answered: number;
-  format: Format;
-  chance: number;
-};
+export type StageScore = { correct: number; answered: number; format: Format; chance: number };
 
 export type ConceptLine = {
   concept: string;
@@ -385,23 +340,16 @@ export type ConceptLine = {
   outcome: Production["outcome"] | null;
 };
 
-export type Standing =
-  | "explained"
-  | "almost"
-  | "not-yet"
-  | "recognised"
-  | "missed";
+export type Standing = "explained" | "almost" | "not-yet" | "recognised" | "missed";
 
-export function conceptStanding(line: ConceptLine): Standing {
-  if (line.outcome === "solid") return "explained";
-  if (line.outcome === "shaky") return "almost";
-  if (line.outcome === "not-yet") return "not-yet";
-  return line.reached > 0 ? "recognised" : "missed";
+export function conceptStanding(l: ConceptLine): Standing {
+  if (l.outcome === "solid") return "explained";
+  if (l.outcome === "shaky") return "almost";
+  if (l.outcome === "not-yet") return "not-yet";
+  return l.reached > 0 ? "recognised" : "missed";
 }
 
-export function isOpen(standing: Standing): boolean {
-  return standing !== "explained";
-}
+export const isOpen = (s: Standing) => s !== "explained";
 
 export type Reveal = {
   open: StageScore | null;
@@ -415,31 +363,30 @@ export type Reveal = {
   fastestAnswer: number | null;
 };
 
+// chance = what you'd score guessing. shown next to the real number so 5/10 on
+// two-option means something different to 5/10 on four
 function stageScore(answers: Answer[], stage: 0 | Round, format: Format): StageScore | null {
   const mine = answers.filter((a) => a.stage === stage);
-  if (mine.length === 0) return null;
+  if (!mine.length) return null;
   return {
     correct: mine.filter((a) => a.correct).length,
     answered: mine.length,
     format,
-    chance: format === "recognition" ? 0.5 : format === "choice" ? 0.25 : format === "assemble" ? 0.01 : 0,
+    chance:
+      format === "recognition" ? 0.5 : format === "choice" ? 0.25 : format === "assemble" ? 0.01 : 0,
   };
 }
 
-export function buildReveal(
-  answers: Answer[],
-  productions: Production[],
-  splits: Split[] = []
-): Reveal {
-  const concepts = [...new Set(answers.map((a) => a.concept))].map((concept) => {
-    const open = answers.filter((a) => a.concept === concept && a.stage === 0);
-    const right = answers.filter((a) => a.concept === concept && a.correct);
+export function buildReveal(answers: Answer[], said: Production[], splits: Split[] = []): Reveal {
+  const concepts = [...new Set(answers.map((a) => a.concept))].map((c) => {
+    const open = answers.filter((a) => a.concept === c && a.stage === 0);
+    const right = answers.filter((a) => a.concept === c && a.correct);
     return {
-      concept,
+      concept: c,
       openCorrect: open.filter((a) => a.correct).length,
       openAnswered: open.length,
-      reached: right.reduce((max, a) => Math.max(max, a.stage), 0),
-      outcome: productions.find((p) => p.concept === concept)?.outcome ?? null,
+      reached: right.reduce((m, a) => Math.max(m, a.stage), 0),
+      outcome: said.find((p) => p.concept === c)?.outcome ?? null,
     };
   });
 
@@ -448,10 +395,10 @@ export function buildReveal(
     rounds: ([1, 2, 3] as Round[])
       .map((r) => stageScore(answers, r, r === 1 ? "choice" : r === 2 ? "blank" : "assemble"))
       .filter((s): s is StageScore => s !== null),
-    productions,
+    productions: said,
     concepts,
     bestStreak: bestStreak(answers),
-    rating: rating(answers, productions),
+    rating: rating(answers, said),
     splits,
     runTime: splitTotal(splits),
     fastestAnswer: fastestCorrect(answers),

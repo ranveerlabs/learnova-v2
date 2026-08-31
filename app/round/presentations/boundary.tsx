@@ -11,6 +11,7 @@ type Props = PresentationProps & {
 
 type State = { failed: boolean; forKey: string };
 
+// a presentation throwing mid-question drops to plain instead of blanking the round
 export class PresentationBoundary extends Component<Props, State> {
   state: State = { failed: false, forKey: this.props.resetKey };
 
@@ -18,13 +19,17 @@ export class PresentationBoundary extends Component<Props, State> {
     return { failed: true };
   }
 
-  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
-    if (props.resetKey !== state.forKey) return { failed: false, forKey: props.resetKey };
+  static getDerivedStateFromProps(
+    props: Props,
+    state: State,
+  ): Partial<State> | null {
+    if (props.resetKey !== state.forKey)
+      return { failed: false, forKey: props.resetKey };
     return null;
   }
 
-  componentDidCatch(error: Error) {
-    console.error("Presentation failed, falling back to plain:", error);
+  componentDidCatch(e: Error) {
+    console.error("presentation:rip, using plain", e);
   }
 
   render() {

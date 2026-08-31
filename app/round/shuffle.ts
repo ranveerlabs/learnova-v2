@@ -2,6 +2,7 @@ import type { Question } from "./types";
 
 export type Rand = () => number;
 
+// mulberry32. good enough for a four item list, and seedable so a round redraws the same
 export function seeded(seed: number): Rand {
   let a = seed >>> 0;
   return () => {
@@ -12,42 +13,35 @@ export function seeded(seed: number): Rand {
   };
 }
 
+// fisher-yates
 export function permutation(n: number, rand: Rand): number[] {
-  const order = Array.from({ length: n }, (_, i) => i);
+  const o = Array.from({ length: n }, (_, i) => i);
   for (let i = n - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
-    [order[i], order[j]] = [order[j], order[i]];
+    [o[i], o[j]] = [o[j], o[i]];
   }
-  return order;
+  return o;
 }
 
-export function applyOrder<T>(items: T[], order: number[]): T[] {
-  return order.map((i) => items[i]);
-}
+export const applyOrder = <T,>(xs: T[], order: number[]): T[] => order.map((i) => xs[i]);
 
-export function shuffled<T>(items: T[], rand: Rand): T[] {
-  return applyOrder(items, permutation(items.length, rand));
-}
+export const shuffled = <T,>(xs: T[], rand: Rand): T[] =>
+  applyOrder(xs, permutation(xs.length, rand));
 
 export function placeQuestion(q: Question, rand: Rand): Question {
   switch (q.format) {
     case "recognition":
     case "choice": {
-      const options = q.options ?? [];
-      if (options.length < 2 || typeof q.answerIndex !== "number") return q;
+      const opts = q.options ?? [];
+      if (opts.length < 2 || typeof q.answerIndex !== "number") return q;
 
-      const order = permutation(options.length, rand);
-      return {
-        ...q,
-        options: applyOrder(options, order),
-        answerIndex: order.indexOf(q.answerIndex),
-      };
+      const o = permutation(opts.length, rand);
+      return { ...q, options: applyOrder(opts, o), answerIndex: o.indexOf(q.answerIndex) };
     }
 
     case "assemble": {
       const chips = q.chips ?? [];
-      if (chips.length === 0) return q;
-      return { ...q, tray: shuffled(chips, rand) };
+      return chips.length ? { ...q, tray: shuffled(chips, rand) } : q;
     }
 
     case "blank":
@@ -56,10 +50,10 @@ export function placeQuestion(q: Question, rand: Rand): Question {
   }
 }
 
-export function placeAll(questions: Question[], rand: Rand = Math.random): Question[] {
-  return questions.map((q) => placeQuestion(q, rand));
-}
+export const placeAll = (qs: Question[], rand: Rand = Math.random): Question[] =>
+  qs.map((q) => placeQuestion(q, rand));
 
+// where the right answer actually landed. scripts/positions.mjs counts these
 export function answerPosition(q: Question): { index: number; of: number } | null {
   if (q.format === "recognition" || q.format === "choice") {
     const of = q.options?.length ?? 0;
@@ -70,9 +64,9 @@ export function answerPosition(q: Question): { index: number; of: number } | nul
   if (q.format === "assemble") {
     const tray = q.tray ?? [];
     const first = q.chips?.[0];
-    if (tray.length === 0 || first === undefined) return null;
-    const index = tray.indexOf(first);
-    return index < 0 ? null : { index, of: tray.length };
+    if (!tray.length || first === undefined) return null;
+    const i = tray.indexOf(first);
+    return i < 0 ? null : { index: i, of: tray.length };
   }
 
   return null;

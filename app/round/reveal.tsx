@@ -1,18 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { conceptStanding, formatClock, type Reveal as RevealData, type Standing } from "./engine";
+import {
+  conceptStanding,
+  formatClock,
+  type Reveal as RevealData,
+  type Standing,
+} from "./engine";
 import { Arrow, GhostButton, PrimaryButton } from "../ui";
 import { conceptKey, forget } from "./record";
 import type { Provenance } from "./types";
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
+// 5 standings, 3 words. on purpose
 const SHOWN: Record<Standing, { word: string; ink: string; mark: string }> = {
-  explained: { word: "Explained it", ink: "text-solid-ink", mark: "bg-solid-mark" },
+  explained: {
+    word: "Explained it",
+    ink: "text-solid-ink",
+    mark: "bg-solid-mark",
+  },
   almost: { word: "Almost", ink: "text-shaky-ink", mark: "bg-shaky-mark" },
-  "not-yet": { word: "Not yet", ink: "text-broken-ink", mark: "bg-broken-mark" },
-  recognised: { word: "Got it right", ink: "text-solid-ink", mark: "bg-solid-mark" },
+  "not-yet": {
+    word: "Not yet",
+    ink: "text-broken-ink",
+    mark: "bg-broken-mark",
+  },
+  recognised: {
+    word: "Got it right",
+    ink: "text-solid-ink",
+    mark: "bg-solid-mark",
+  },
   missed: { word: "Not yet", ink: "text-broken-ink", mark: "bg-broken-mark" },
 };
 
@@ -78,15 +96,16 @@ export function Reveal({
   onRestart: () => void;
 }) {
   const produced = data.productions.length > 0;
-  const demonstrated = data.productions.filter((p) => p.outcome === "solid").length;
+  const said = data.productions.filter((p) => p.outcome === "solid").length;
   const { score } = data.rating;
   const band = BAND[data.rating.band];
-  const beatBest = best !== null && score > best.rating;
+  const pb = best !== null && score > best.rating;
 
-  const nowExplained = data.concepts.filter((line) => {
-    if (conceptStanding(line) !== "explained") return false;
-    const before = previously[conceptKey(line.concept)];
-    return before !== undefined && before !== "explained";
+  // could not explain it last time, can now. needs a previous run to mean anything
+  const nowExplained = data.concepts.filter((l) => {
+    if (conceptStanding(l) !== "explained") return false;
+    const was = previously[conceptKey(l.concept)];
+    return was !== undefined && was !== "explained";
   });
 
   const [forgotten, setForgotten] = useState(false);
@@ -95,8 +114,11 @@ export function Reveal({
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2">
       <div className="stage-in flex flex-col gap-4">
         <div
-          className="sticky flex min-h-[6.5rem] w-fit min-w-[10rem] max-w-[18rem] items-start self-start rounded-[2px] pb-5 pl-4 pr-6 pt-4"
-          style={{ ["--tilt" as string]: "-1.6deg", ["--sticky-paper" as string]: "var(--supply-mint)" }}
+          className="sticky flex min-h-[6.5rem] w-fit min-w-[10rem] max-w-[18rem] items-start self-start pb-5 pl-4 pr-6 pt-4"
+          style={{
+            ["--tilt" as string]: "-1.6deg",
+            ["--sticky-paper" as string]: "var(--supply-mint)",
+          }}
         >
           <p className="font-hand text-[1.375rem] leading-[1.15]">{topic}</p>
         </div>
@@ -109,7 +131,7 @@ export function Reveal({
       </div>
 
       <div
-        className={`stage-in flex w-fit min-w-[16rem] max-w-full flex-col gap-2 rounded-[3px] border-l-[5px] py-4 pl-4 pr-8 ${band.rule} ${band.wash}`}
+        className={`stage-in flex w-fit min-w-[16rem] max-w-full flex-col gap-2 border-l-[5px] py-4 pl-4 pr-8 ${band.rule} ${band.wash}`}
         style={{ ["--i" as string]: 1 }}
       >
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -118,7 +140,9 @@ export function Reveal({
           >
             {score}
           </span>
-          <span className="font-mono text-[1.125rem] tabular-nums text-ink-faint">out of 10</span>
+          <span className="font-mono text-[1.125rem] tabular-nums text-ink-faint">
+            out of 10
+          </span>
         </div>
 
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -130,7 +154,7 @@ export function Reveal({
           </span>
           {best !== null && (
             <span className="font-mono text-[0.8125rem] tabular-nums text-ink-faint">
-              {beatBest ? "new best, was" : "best"} {best.rating}
+              {pb ? "new best, was" : "best"} {best.rating}
             </span>
           )}
         </p>
@@ -142,8 +166,9 @@ export function Reveal({
           style={{ ["--i" as string]: 2 }}
           title="Paste notes next time and every question arrives with the line it came from, checked word for word on the server."
         >
-          Nothing in this run was checked against a source. You gave a topic, so an AI model wrote
-          the questions and marked the answers from its own knowledge.
+          Nothing in this run was checked against a source. You gave a topic, so
+          an AI model wrote the questions and marked the answers from its own
+          knowledge.
         </p>
       ) : (
         (droppedTotal > 0 || sampled) && (
@@ -152,18 +177,20 @@ export function Reveal({
             style={{ ["--i" as string]: 2 }}
             title="Every question in a grounded session has to quote your material word for word. The quote is checked on the server before the question is served, and anything that cannot be found is dropped rather than shown to you."
           >
-            Every question came from your notes.{" "}
+            Every question came from your notes.{""}
             {droppedTotal > 0 && (
               <>
                 {droppedTotal === 1
                   ? "One more was written and dropped: its quote"
-                  : `${droppedTotal} more were written and dropped: their quotes`}{" "}
-                could not be found in your material.{" "}
+                  : `${droppedTotal} more were written and dropped: their quotes`}
+                {""}
+                could not be found in your material.{""}
               </>
             )}
             {sampled && (
               <>
-                Your material was long, so the questions were written from an even spread of it:{" "}
+                Your material was long, so the questions were written from an
+                even spread of it:{""}
                 {sampled.kept} passages out of {sampled.total}.
               </>
             )}
@@ -173,7 +200,7 @@ export function Reveal({
 
       {nowExplained.length > 0 && (
         <div
-          className="stage-in flex flex-col gap-2 rounded-[3px] border-l-[3px] border-solid-mark bg-solid-tint py-3 pl-4 pr-4"
+          className="stage-in flex flex-col gap-2 border-l-[3px] border-solid-mark bg-solid-tint py-3 pl-4 pr-4"
           style={{ ["--i" as string]: 3 }}
         >
           <span
@@ -183,20 +210,23 @@ export function Reveal({
             Could not explain this before
           </span>
           <ul className="flex flex-wrap gap-2">
-            {nowExplained.map((line, i) => (
+            {nowExplained.map((l, i) => (
               <li
-                key={line.concept}
+                key={l.concept}
                 style={{ ["--i" as string]: i }}
-                className="split-land rounded-[3px] bg-page px-2.5 py-1 font-read text-[0.9375rem] text-solid-ink"
+                className="split-land bg-page px-2.5 py-1 font-read text-[0.9375rem] text-solid-ink"
               >
-                {line.concept}
+                {l.concept}
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      <div className="stage-in flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 4 }}>
+      <div
+        className="stage-in flex flex-wrap items-center gap-3"
+        style={{ ["--i" as string]: 4 }}
+      >
         <PrimaryButton onClick={onAgain}>
           Run it again <Arrow />
         </PrimaryButton>
@@ -206,9 +236,12 @@ export function Reveal({
       <details className="stage-in group" style={{ ["--i" as string]: 5 }}>
         <summary
           style={NARROW}
-          className="inline-flex cursor-pointer list-none items-center gap-2 rounded-[3px] font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:text-ink"
+          className="inline-flex cursor-pointer list-none items-center gap-2 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:text-ink"
         >
-          <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+          <span
+            aria-hidden
+            className="inline-block transition-transform group-open:rotate-90"
+          >
             ›
           </span>
           How each concept went
@@ -225,25 +258,31 @@ export function Reveal({
             )}
             {produced && (
               <Figure
-                value={`${demonstrated}/${data.productions.length}`}
+                value={`${said}/${data.productions.length}`}
                 label="Explained in your own words"
               />
             )}
           </div>
 
-          <ol className="max-h-[27vh] divide-y divide-line overflow-y-auto rounded-[3px] border border-line bg-page">
-            {data.concepts.map((line) => {
-              const s = SHOWN[conceptStanding(line)];
+          <ol className="max-h-[27vh] divide-y divide-line overflow-y-auto border border-line bg-page">
+            {data.concepts.map((l) => {
+              const c = SHOWN[conceptStanding(l)];
               return (
-                <li key={line.concept} className="flex items-center gap-3 px-4 py-3">
-                  <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${s.mark}`} />
+                <li
+                  key={l.concept}
+                  className="flex items-center gap-3 px-4 py-3"
+                >
+                  <span
+                    aria-hidden
+                    className={`h-2.5 w-2.5 shrink-0 ${c.mark}`}
+                  />
                   <span className="min-w-0 flex-1 font-read text-[1.0625rem] leading-snug text-ink">
-                    {line.concept}
+                    {l.concept}
                   </span>
                   <span
-                    className={`shrink-0 font-sans text-[0.8125rem] font-semibold ${s.ink}`}
+                    className={`shrink-0 font-sans text-[0.8125rem] font-semibold ${c.ink}`}
                   >
-                    {s.word}
+                    {c.word}
                   </span>
                 </li>
               );

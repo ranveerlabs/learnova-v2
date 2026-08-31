@@ -1,3 +1,7 @@
+// counts where the right answer actually lands, against the running app.
+// an unbiased shuffle is easy to claim and hard to believe without numbers.
+//   node --experimental-strip-types scripts/positions.mjs --topics 4
+
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
@@ -27,6 +31,8 @@ async function ask(body) {
   return data;
 }
 
+// same logic as app/round/shuffle.ts. duplicated because this runs against the
+// deployed api and should not care what the local build says
 function answerPosition(q) {
   if (q.format === "recognition" || q.format === "choice") {
     const of = q.options?.length ?? 0;
@@ -88,6 +94,7 @@ function jaccard(a, b) {
   return shared / (a.size + b.size - shared);
 }
 
+// rough repeat check. same idea as dedupe.ts, cruder on purpose
 function collisions(questions) {
   let n = 0;
   const sigs = questions.map((q) => ({ a: norm(q.answer), p: terms(q.prompt) }));
@@ -123,8 +130,8 @@ function report(name, counts, labels) {
     );
   });
 
-  const expectedCount = total / counts.length;
-  const chi = counts.reduce((sum, c) => sum + Math.pow(c - expectedCount, 2) / expectedCount, 0);
+  const want = total / counts.length;
+  const chi = counts.reduce((sum, c) => sum + Math.pow(c - want, 2) / want, 0);
   const df = counts.length - 1;
   const critical = { 1: 3.84, 2: 5.99, 3: 7.81 }[df] ?? 7.81;
   console.log(
@@ -203,7 +210,7 @@ async function main() {
   console.log(`${"─".repeat(72)}`);
 }
 
-main().catch((err) => {
-  console.error(`\nFailed: ${err.message}`);
+main().catch((e) => {
+  console.error(`\ndead: ${e.message}`);
   process.exit(1);
 });

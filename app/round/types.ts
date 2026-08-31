@@ -4,12 +4,7 @@ export type Difficulty = "easy" | "medium" | "hard";
 
 export const TIERS: Difficulty[] = ["easy", "medium", "hard"];
 
-export type Format =
-  | "recognition"
-  | "choice"
-  | "blank"
-  | "assemble"
-  | "open";
+export type Format = "recognition" | "choice" | "blank" | "assemble" | "open";
 
 export type Round = 1 | 2 | 3 | 4;
 
@@ -36,9 +31,8 @@ export type Question = {
   citation?: string;
 };
 
-export type Provenance =
-  | "grounded"
-  | "generated";
+// grounded = came out of their notes and got cite-checked. generated = trust me bro
+export type Provenance = "grounded" | "generated";
 
 export type Answer = {
   questionId: string;
@@ -70,13 +64,11 @@ export type Split = {
 };
 
 export const WARM_UP_COUNT = 5;
-
 export const QUESTIONS_PER_ROUND = 9;
-
 export const QUESTION_SECONDS = 15;
+export const PER_TIER = 5; // per difficulty, so 15 a round and the session picks from them
 
-export const PER_TIER = 5;
-
+// hold accuracy in here. under and it drops a tier, over and it climbs
 export const TARGET_LOW = 0.7;
 export const TARGET_HIGH = 0.8;
 

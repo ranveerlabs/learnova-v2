@@ -28,7 +28,7 @@ import {
 } from "./types";
 import { AudioControls } from "../audio-controls";
 import { play } from "../tone";
-import { Aside, Notice, Waiting, Wordmark } from "../ui";
+import { Aside, Notice, Waiting, Win, Wordmark } from "../ui";
 
 const SHELL = "mx-auto w-full max-w-[96rem] px-4 sm:px-6 lg:px-10 xl:px-14";
 
@@ -42,17 +42,20 @@ export default function Home() {
 
   const [remaining, setRemaining] = useState(QUESTION_SECONDS * 1000);
 
+  // twice: once now, once after paint. one of them always loses the race
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     panel.current?.scrollTo({ top: 0 });
-    const frame = requestAnimationFrame(() => panel.current?.scrollTo({ top: 0 }));
-    return () => cancelAnimationFrame(frame);
+    const raf = requestAnimationFrame(() =>
+      panel.current?.scrollTo({ top: 0 }),
+    );
+    return () => cancelAnimationFrame(raf);
   }, [s.phase]);
 
-  const servedThisRound = s.answers.filter((a) => a.stage === s.stage).length;
+  const served = s.answers.filter((a) => a.stage === s.stage).length;
   const shortened =
     (s.dropped[s.stage] ?? 0) > 0 &&
-    servedThisRound < (s.stage === 0 ? WARM_UP_COUNT : QUESTIONS_PER_ROUND);
+    served < (s.stage === 0 ? WARM_UP_COUNT : QUESTIONS_PER_ROUND);
 
   const [cheering, setCheering] = useState(false);
   const cheer = useCallback(() => {
@@ -61,163 +64,183 @@ export default function Home() {
   }, []);
 
   return (
-    <div
-      className={`relative z-10 flex h-full min-h-0 flex-1 flex-col ${
-        s.phase === "entry" ? "desk-grid" : ""
-      }`}
-    >
-      <header className="z-30 shrink-0 border-b border-line bg-ground/85 backdrop-blur-md">
-        <div
-          className={`${SHELL} flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 sm:gap-x-6 sm:gap-y-2 sm:py-2.5`}
-        >
-          <div className="flex min-w-0 items-center gap-2.5 sm:gap-5">
-            <Wordmark />
-            {showRun && <LadderRail stage={s.stage} finished={s.phase === "reveal"} />}
-          </div>
-
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            {showRun && s.phase !== "opening" && <ProvenanceBadge provenance={s.provenance} />}
-            {showRun && <RunClock elapsed={s.runElapsed} live={clockLive} />}
-            <AudioControls />
-            {inPlay && (
-              <TimerRing
-                remaining={remaining}
-                total={QUESTION_SECONDS * 1000}
-                cheering={cheering}
-              />
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div
-        ref={panel}
-        className={`${SHELL} flex min-h-0 flex-1 flex-col ${
-          inPlay ? "overflow-hidden py-2" : "overflow-y-auto py-4 lg:py-6"
-        }`}
+    <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col p-3 sm:p-5">
+      <Win
+        title="Round Mode"
+        closeHref="/"
+        className={`mx-auto w-full max-w-[96rem] flex-1 ${s.phase === "entry" ? "desk-grid" : ""}`}
+        bodyClassName="flex flex-col"
       >
-        <main
-          className={`flex w-full min-w-0 flex-col ${
-            inPlay ? "min-h-0 flex-1" : "min-h-full shrink-0 grow justify-center"
+        <header className="z-30 shrink-0 border-b-2 border-line bg-sunk">
+          <div
+            className={`${SHELL} flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 sm:gap-x-6 sm:gap-y-2 sm:py-2.5`}
+          >
+            <div className="flex min-w-0 items-center gap-2.5 sm:gap-5">
+              <Wordmark />
+              {showRun && (
+                <LadderRail stage={s.stage} finished={s.phase === "reveal"} />
+              )}
+            </div>
+
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              {showRun && s.phase !== "opening" && (
+                <ProvenanceBadge provenance={s.provenance} />
+              )}
+              {showRun && <RunClock elapsed={s.runElapsed} live={clockLive} />}
+              <AudioControls />
+              {inPlay && (
+                <TimerRing
+                  remaining={remaining}
+                  total={QUESTION_SECONDS * 1000}
+                  cheering={cheering}
+                />
+              )}
+            </div>
+          </div>
+        </header>
+
+        <div
+          ref={panel}
+          className={`${SHELL} flex min-h-0 flex-1 flex-col ${
+            inPlay ? "overflow-hidden py-2" : "overflow-y-auto py-4 lg:py-6"
           }`}
         >
-          {s.busyRounds.length > 0 && !inPlay && (
-            <div className="mx-auto mb-6 w-full max-w-[46rem]">
-              <SkippedRounds rounds={s.busyRounds} />
-            </div>
-          )}
+          <main
+            className={`flex w-full min-w-0 flex-col ${
+              inPlay
+                ? "min-h-0 flex-1"
+                : "min-h-full shrink-0 grow justify-center"
+            }`}
+          >
+            {s.busyRounds.length > 0 && !inPlay && (
+              <div className="mx-auto mb-6 w-full max-w-[46rem]">
+                <SkippedRounds rounds={s.busyRounds} />
+              </div>
+            )}
 
-          {s.phase === "interval" && shortened && (
-            <div className="mx-auto mb-6 w-full max-w-[46rem]">
-              <DroppedQuestions
-                count={s.dropped[s.stage] ?? 0}
-                served={s.answers.filter((a) => a.stage === s.stage).length}
+            {s.phase === "interval" && shortened && (
+              <div className="mx-auto mb-6 w-full max-w-[46rem]">
+                <DroppedQuestions
+                  count={s.dropped[s.stage] ?? 0}
+                  served={served}
+                />
+              </div>
+            )}
+
+            {s.phase === "entry" && <Entry onStart={s.start} error={s.error} />}
+
+            {s.phase === "opening" && (
+              <Waiting
+                title="Building your first questions"
+                sub="Five quick ones, before you study anything."
               />
-            </div>
-          )}
+            )}
 
-          {s.phase === "entry" && <Entry onStart={s.start} error={s.error} />}
+            {s.phase === "waiting" && (
+              <Waiting
+                title={`Writing Round ${s.pendingRound ?? ""}`}
+                sub="You got here faster than it could be built. A few seconds."
+              />
+            )}
 
-          {s.phase === "opening" && (
-            <Waiting
-              title="Building your first questions"
-              sub="Five quick ones, before you study anything."
-            />
-          )}
+            {s.phase === "playing" && s.current && (
+              <QuestionScreen
+                key={s.current.id}
+                question={s.current}
+                stage={s.stage}
+                seed={s.seed}
+                plainOnly={s.plainOnly}
+                onPlainOnly={() => s.setPlainOnly(true)}
+                onAnswer={s.answer}
+                onAdvance={s.advance}
+                onRemaining={setRemaining}
+                onCorrect={cheer}
+              />
+            )}
 
-          {s.phase === "waiting" && (
-            <Waiting
-              title={`Writing Round ${s.pendingRound ?? ""}`}
-              sub="You got here faster than it could be built. A few seconds."
-            />
-          )}
+            {s.phase === "interval" && (
+              <Interval
+                summary={summarizeRound(s.answers, s.stage as Round)}
+                next={s.nextPlayable}
+                splitMs={s.splits[s.splits.length - 1]?.ms ?? 0}
+                runMs={s.splits.reduce((n, sp) => n + sp.ms, 0)}
+                returning={Object.keys(s.previously).length > 0}
+                onContinue={s.continueOn}
+              />
+            )}
 
-          {s.phase === "playing" && s.current && (
-            <QuestionScreen
-              key={s.current.id}
-              question={s.current}
-              stage={s.stage}
-              seed={s.seed}
-              plainOnly={s.plainOnly}
-              onPlainOnly={() => s.setPlainOnly(true)}
-              onAnswer={s.answer}
-              onAdvance={s.advance}
-              onRemaining={setRemaining}
-              onCorrect={cheer}
-            />
-          )}
+            {s.phase === "round4" &&
+              (s.productionOrder.length > 0 &&
+              s.productionIndex < s.productionOrder.length ? (
+                <TeachBack
+                  key={s.productionOrder[s.productionIndex]}
+                  concept={s.productionOrder[s.productionIndex]}
+                  notes={s.notes}
+                  questions={
+                    Object.values(s.banks).flat().filter(Boolean) as Question[]
+                  }
+                  provenance={s.provenance}
+                  index={s.productionIndex}
+                  total={s.productionOrder.length}
+                  onDone={s.recordProduction}
+                  onNext={s.nextProduction}
+                  onStop={s.finish}
+                />
+              ) : (
+                <NothingToProduce onFinish={s.finish} />
+              ))}
 
-          {s.phase === "interval" && (
-            <Interval
-              summary={summarizeRound(s.answers, s.stage as Round)}
-              next={s.nextPlayable}
-              splitMs={s.splits[s.splits.length - 1]?.ms ?? 0}
-              runMs={s.splits.reduce((sum, sp) => sum + sp.ms, 0)}
-              returning={Object.keys(s.previously).length > 0}
-              onContinue={s.continueOn}
-            />
-          )}
-
-          {s.phase === "round4" &&
-            (s.productionOrder.length > 0 && s.productionIndex < s.productionOrder.length ? (
-              <TeachBack
-                key={s.productionOrder[s.productionIndex]}
-                concept={s.productionOrder[s.productionIndex]}
-                notes={s.notes}
-                questions={Object.values(s.banks).flat().filter(Boolean) as Question[]}
+            {s.phase === "reveal" && (
+              <Reveal
+                data={s.reveal()}
+                topic={s.topic}
                 provenance={s.provenance}
-                index={s.productionIndex}
-                total={s.productionOrder.length}
-                onDone={s.recordProduction}
-                onNext={s.nextProduction}
-                onStop={s.finish}
+                best={s.best}
+                previously={s.previously}
+                droppedTotal={s.droppedTotal}
+                sampled={s.sampled}
+                onAgain={s.again}
+                onRestart={s.restart}
               />
-            ) : (
-              <NothingToProduce onFinish={s.finish} />
-            ))}
-
-          {s.phase === "reveal" && (
-            <Reveal
-              data={s.reveal()}
-              topic={s.topic}
-              provenance={s.provenance}
-              best={s.best}
-              previously={s.previously}
-              droppedTotal={s.droppedTotal}
-              sampled={s.sampled}
-              onAgain={s.again}
-              onRestart={s.restart}
-            />
-          )}
-        </main>
-      </div>
+            )}
+          </main>
+        </div>
+      </Win>
     </div>
   );
 }
 
 function SkippedRounds({ rounds }: { rounds: Round[] }) {
-  const listed = [...rounds].sort((a, b) => a - b);
-  const names = listed.map((r) => `Round ${r}`);
+  const names = [...rounds].sort((a, b) => a - b).map((r) => `Round ${r}`);
   const which =
     names.length === 1
       ? names[0]
-      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+      : `${names.slice(0, -1).join(",")} and ${names[names.length - 1]}`;
 
   return (
     <Aside>
-      Learnova was busy when {which} {names.length === 1 ? "was" : "were"} due, so{" "}
-      {names.length === 1 ? "it was" : "they were"} skipped. Everything you have already answered
-      still counts, and the rest of the session carries on from here.
+      Learnova was busy when {which} {names.length === 1 ? "was" : "were"} due,
+      so{""}
+      {names.length === 1 ? "it was" : "they were"} skipped. Everything you have
+      already answered still counts, and the rest of the session carries on from
+      here.
     </Aside>
   );
 }
 
-function DroppedQuestions({ count, served }: { count: number; served: number }) {
+function DroppedQuestions({
+  count,
+  served,
+}: {
+  count: number;
+  served: number;
+}) {
   return (
     <Aside>
-      {served} questions this round, not {QUESTIONS_PER_ROUND}. Another {count} were written and
-      dropped: {count === 1 ? "its quote was" : "their quotes were"} not in your notes, so you never
-      saw {count === 1 ? "it" : "them"}.
+      {served} questions this round, not {QUESTIONS_PER_ROUND}. Another {count}{" "}
+      were written and dropped:{" "}
+      {count === 1 ? "its quote was" : "their quotes were"} not in your notes,
+      so you never saw {count === 1 ? "it" : "them"}.
     </Aside>
   );
 }
@@ -226,14 +249,17 @@ function NothingToProduce({ onFinish }: { onFinish: () => void }) {
   return (
     <section className="mx-auto flex w-full max-w-[46rem] flex-col gap-5 py-10">
       <Notice>
-        There was not enough answered in the rounds to pick a concept for you to explain, so Round 4
-        has nothing honest to ask you about.
+        There was not enough answered in the rounds to pick a concept for you to
+        explain, so Round 4 has nothing honest to ask you about.
       </Notice>
       <button
         onClick={onFinish}
-        className="btn inline-flex items-center gap-2 self-start rounded-[3px] bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent"
+        className="btn inline-flex items-center gap-2 self-start bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent"
       >
-        See the results <span aria-hidden className="arrow">→</span>
+        See the results{" "}
+        <span aria-hidden className="arrow">
+          →
+        </span>
       </button>
     </section>
   );
@@ -262,7 +288,10 @@ function QuestionScreen({
   seed: number;
   plainOnly: boolean;
   onPlainOnly: () => void;
-  onAnswer: (given: string | number | string[], timedOut?: boolean) => Result | null;
+  onAnswer: (
+    given: string | number | string[],
+    timedOut?: boolean,
+  ) => Result | null;
   onAdvance: () => void;
   onRemaining: (ms: number) => void;
   onCorrect: () => void;
@@ -273,7 +302,7 @@ function QuestionScreen({
   const [result, setResult] = useState<Result | null>(null);
   const [ranOut, setRanOut] = useState(false);
 
-  const startedAt = useRef(performance.now());
+  const openedAt = useRef(performance.now());
   const settled = useRef(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -284,28 +313,30 @@ function QuestionScreen({
       if (settled.current) return;
       settled.current = true;
 
-      const outcome = onAnswer(given, timedOut);
-      if (!outcome) return;
+      const r = onAnswer(given, timedOut);
+      if (!r) return;
       setRanOut(timedOut);
-      setResult(outcome);
-      if (outcome.correct) onCorrect();
+      setResult(r);
+      if (r.correct) onCorrect();
 
-      const heat = Math.min(1, Math.max(0, (outcome.streak - 1) / 8));
-      play(outcome.correct ? (outcome.streak >= 2 ? "combo" : "right") : "wrong", heat);
+      // pitch climbs with the streak
+      const heat = Math.min(1, Math.max(0, (r.streak - 1) / 8));
+      play(r.correct ? (r.streak >= 2 ? "combo" : "right") : "wrong", heat);
 
+      // right answers move on fast, wrong ones sit there long enough to read
       const wait = timedOut
         ? ADVANCE_MS.timeout
-        : outcome.correct
+        : r.correct
           ? ADVANCE_MS.correct
           : ADVANCE_MS.wrong;
       advanceTimer.current = setTimeout(onAdvance, wait);
     },
-    [onAdvance, onAnswer, onCorrect]
+    [onAdvance, onAnswer, onCorrect],
   );
 
   useEffect(() => {
     const id = setInterval(() => {
-      const left = total - (performance.now() - startedAt.current);
+      const left = total - (performance.now() - openedAt.current);
       onRemaining(Math.max(0, left));
       if (left <= 0) settle("", true);
     }, 100);
@@ -332,7 +363,7 @@ function QuestionScreen({
 
   const revealed = result !== null;
 
-  const presentation = useMemo(
+  const shown = useMemo(
     () =>
       pickPresentation({
         format: question.format,
@@ -341,9 +372,9 @@ function QuestionScreen({
         round: stage,
         plainOnly,
       }),
-    [plainOnly, question, seed, stage]
+    [plainOnly, question, seed, stage],
   );
-  const Drawn = presentation.Component;
+  const Drawn = shown.Component;
 
   const props = {
     question,

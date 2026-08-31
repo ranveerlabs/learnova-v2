@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
+/* a dialog on somebody's desktop. dark ground, paper window, hard borders and
+   no blur anywhere, every shadow is a solid offset block.
+   chrome is the window. the three marking hues are ONLY for marking, never for
+   a button or a toggle, or a green button starts meaning "correct". */
+
 :root {
   color-scheme: light;
 
-  --ground: #efefef;
-  --page: #fcfcfc;
-  --sunk: #e8e8e8;
-  --line: #d8d8d8;
-  --line-strong: #c1c1c1;
+  /* desktop behind the window, never a content surface */
+  --ground: #2b2b2b;
+  --desktop-far: #232323;
 
-  --glow-near: #e4e4e4;
-  --glow-far: var(--sunk);
+  --page: #ffffff;
+  --sunk: #f0f0f0;
+  --line: #000000;
+  --line-strong: #000000;
 
-  --ink: #1a1a1a;
-  --ink-soft: #565656;
-  --ink-faint: #868686;
+  --glow-near: transparent;
+  --glow-far: transparent;
 
-  --accent: #554211;
-  --accent-hover: #3b2d0c;
-  --accent-wash: #e4e4e4;
+  --ink: #101010;
+  --ink-soft: #3f3f3f;
+  --ink-faint: #6e6e6e;
+
+  --accent: #0b3fd8;
+  --accent-hover: #0930a8;
+  --accent-wash: #b9e9f5;
   --on-accent: #ffffff;
 
+  /* title bar. blue at the caption, cyan at the close button */
+  --title-from: #1b1bf0;
+  --title-to: #27e4f5;
+  --title-ink: #ffffff;
+  --title-h: 2.5rem;
+
+  /* borders are structural here, so they get their own names */
+  --bevel: 1px;
+  --bevel-strong: 2px;
+  --drop: 6px;
+
+  /* marks. meaning only */
   --solid-mark: #3e9c76;
   --solid-ink: #27664c;
   --solid-tint: #e6f4ed;
@@ -37,56 +57,23 @@
   --gap-ink: #464646;
   --gap-tint: #e9e9e9;
 
-  --rule: rgb(26 26 26 / 0.06);
+  --rule: rgb(16 16 16 / 0.09);
 
+  /* desktop texture. pitch is odd so it does not moire */
   --dots: radial-gradient(
     circle at 1px 1px,
-    color-mix(in srgb, var(--ink) 10%, transparent) 1px,
+    rgb(255 255 255 / 0.05) 1px,
     transparent 0
   );
   --dots-pitch: 23px 23px;
 }
 
+/* dark only moves the desktop. the window is paper either way, which is what a
+   dialog on a dark desktop actually looked like */
 @media (prefers-color-scheme: dark) {
   :root {
-    color-scheme: dark;
-
-    --ground: #131313;
-
-    --glow-near: #242424;
-    --glow-far: #1a1a1a;
-
-    --page: #1d1d1d;
-    --sunk: #181818;
-    --line: #313131;
-    --line-strong: #454545;
-
-    --ink: var(--cream);
-    --ink-soft: #a7a793;
-    --ink-faint: #787869;
-
-    --accent: var(--supply-gold);
-    --accent-hover: #ffce48;
-    --accent-wash: #2c2c2c;
-    --on-accent: #141414;
-
-    --solid-mark: var(--supply-mint);
-    --solid-ink: var(--supply-mint);
-    --solid-tint: #16281f;
-
-    --shaky-mark: var(--supply-gold);
-    --shaky-ink: var(--supply-gold);
-    --shaky-tint: #2b2410;
-
-    --broken-mark: var(--supply-pink);
-    --broken-ink: var(--supply-pink);
-    --broken-tint: #2e1a20;
-
-    --gap-mark: #777777;
-    --gap-ink: #a4a4a4;
-    --gap-tint: #222222;
-
-    --rule: rgb(253 252 223 / 0.07);
+    --ground: #141414;
+    --desktop-far: #0c0c0c;
   }
 }
 
@@ -168,6 +155,8 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 
+  /* both of these only matter on a phone, and matter a lot there:
+     no rubber banding, no 300ms tap delay */
   overscroll-behavior: none;
   touch-action: manipulation;
 }
@@ -176,25 +165,182 @@ body {
   background: var(--accent-wash);
 }
 
+/* was a pair of radial washes. a desktop has a flat vignette, not a glow */
 .page-glow {
   position: fixed;
-  inset: 0 0 auto 0;
-  height: 40rem;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(52rem 24rem at 18% -6rem, var(--glow-near) 0%, transparent 68%),
-    radial-gradient(38rem 20rem at 88% -10rem, var(--glow-far) 0%, transparent 70%);
-  opacity: 0.85;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    transparent 40%,
+    var(--desktop-far) 100%
+  );
 }
 
 .desk-grid {
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    color-mix(in srgb, var(--ink) 10%, transparent) 1px,
-    transparent 0
-  );
-  background-size: 23px 23px;
+  background-image: var(--dots);
+  background-size: var(--dots-pitch);
+}
+
+/* ---- the window ---- */
+
+.win {
+  border: var(--bevel-strong) solid var(--line);
+  background: var(--page);
+  box-shadow: var(--drop) var(--drop) 0 rgb(0 0 0 / 0.45);
+}
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: var(--title-h);
+  padding: 0 0.5rem 0 0.75rem;
+  background: linear-gradient(to right, var(--title-from), var(--title-to));
+  color: var(--title-ink);
+  font-family: var(--font-pixel), ui-monospace, monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.title-bar .grip {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* square, hard, and the same box as the real one */
+.title-btn {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: var(--bevel-strong) solid var(--line);
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-pixel), ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.title-btn:hover {
+  background: var(--accent-wash);
+}
+
+.title-btn:active {
+  background: var(--ink);
+  color: var(--page);
+}
+
+/* ---- controls ---- */
+
+.xp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.1rem;
+  border: var(--bevel-strong) solid var(--line);
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-pixel), ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  box-shadow: 3px 3px 0 var(--line);
+  transition: none;
+}
+
+.xp-btn:hover:not(:disabled) {
+  background: var(--accent-wash);
+}
+
+/* press moves the box onto its own shadow */
+.xp-btn:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--line);
+}
+
+.xp-btn:disabled {
+  background: var(--sunk);
+  color: var(--ink-faint);
+  box-shadow: 3px 3px 0 var(--ink-faint);
+  cursor: not-allowed;
+}
+
+.xp-btn-go {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.xp-btn-go:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.xp-field {
+  border: var(--bevel-strong) solid var(--line);
+  background: var(--page);
+  box-shadow: inset 2px 2px 0 rgb(0 0 0 / 0.12);
+}
+
+.xp-field:focus,
+.xp-field:focus-within {
+  outline: var(--bevel-strong) dotted var(--ink);
+  outline-offset: 2px;
+}
+
+/* the details-for-nerds table */
+.xp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-pixel), ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.xp-table th,
+.xp-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border: var(--bevel) solid var(--line);
+}
+
+.xp-table th {
+  font-weight: 400;
+}
+
+.xp-table td {
+  border-top: 0;
+  border-bottom: 0;
+  color: var(--ink-soft);
+}
+
+/* progress. eight cells that fill, no easing, nothing continuous */
+.xp-meter {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: var(--bevel-strong) solid var(--line);
+  background: var(--page);
+}
+
+.xp-meter span {
+  width: 0.5rem;
+  background: var(--accent);
+  animation: cell 1s steps(1, end) infinite;
+}
+
+@keyframes cell {
+  0%,
+  45% {
+    opacity: 0.15;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
 }
 
 .prose-read {
@@ -203,6 +349,8 @@ body {
   line-height: var(--read-leading, 2rem);
 }
 
+/* ruled paper. the rules are a gradient sized off the line height that is
+   declared right here, so the two cannot drift apart */
 .leaf {
   --rule-step: var(--read-leading, 2rem);
   padding: 1.5rem;
@@ -227,6 +375,8 @@ body {
     0 14px 34px -20px rgb(26 26 26 / 0.4);
 }
 
+/* marks on a student's own words. colour + shape + a keyed note.
+   any one of the three carries the meaning alone */
 .mk {
   display: inline;
   color: inherit;
@@ -357,8 +507,12 @@ body {
   position: absolute;
   inset: 0 0 auto 0;
   height: 5px;
-  background:
-    radial-gradient(circle at 5px 0, transparent 0 4.5px, var(--sheet) 4.5px) repeat-x;
+  background: radial-gradient(
+      circle at 5px 0,
+      transparent 0 4.5px,
+      var(--sheet) 4.5px
+    )
+    repeat-x;
   background-size: 10px 5px;
   pointer-events: none;
 }
@@ -432,8 +586,16 @@ body {
   background: var(--tape);
   box-shadow: 0 1px 3px rgb(16 16 16 / 0.22);
   clip-path: polygon(
-    3% 0%, 97% 4%, 100% 22%, 96% 48%, 99% 74%, 95% 100%,
-    5% 96%, 1% 72%, 4% 46%, 0% 24%
+    3% 0%,
+    97% 4%,
+    100% 22%,
+    96% 48%,
+    99% 74%,
+    95% 100%,
+    5% 96%,
+    1% 72%,
+    4% 46%,
+    0% 24%
   );
 }
 
@@ -457,7 +619,8 @@ body {
 }
 
 .stuck:hover:not(:disabled) {
-  transform: translate(-1px, -2px) rotate(calc(var(--tilt, 0deg) + var(--swing, 0.7deg)));
+  transform: translate(-1px, -2px)
+    rotate(calc(var(--tilt, 0deg) + var(--swing, 0.7deg)));
   box-shadow: 6px 6px 0 var(--sheet-edge);
 }
 
@@ -477,10 +640,22 @@ body {
 }
 
 @keyframes throw {
-  0% { transform: translateX(0); opacity: 1; }
-  40% { transform: translateX(1.5rem); opacity: 0; }
-  41% { transform: translateX(-1.1rem); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  40% {
+    transform: translateX(1.5rem);
+    opacity: 0;
+  }
+  41% {
+    transform: translateX(-1.1rem);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .btn:not(:disabled):hover .thrown,
@@ -489,7 +664,9 @@ body {
 }
 
 @keyframes rewind {
-  to { transform: rotate(-360deg); }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 .btn:not(:disabled):hover .rewound,
@@ -498,9 +675,15 @@ body {
 }
 
 @keyframes slot {
-  0% { transform: translateY(0); }
-  45% { transform: translateY(0.35rem); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(0.35rem);
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
 .btn:not(:disabled):hover .slotted,
@@ -530,10 +713,21 @@ body {
 }
 
 @keyframes stamp {
-  0% { opacity: 0; transform: scale(2.6) rotate(-9deg); }
-  55% { opacity: 1; transform: scale(0.93) rotate(-1.2deg); }
-  74% { transform: scale(1.05) rotate(-2.8deg); }
-  100% { opacity: 1; transform: scale(1) rotate(-2deg); }
+  0% {
+    opacity: 0;
+    transform: scale(2.6) rotate(-9deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.93) rotate(-1.2deg);
+  }
+  74% {
+    transform: scale(1.05) rotate(-2.8deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-2deg);
+  }
 }
 
 .stamp {
@@ -548,8 +742,13 @@ body {
 }
 
 @keyframes bob {
-  0%, 100% { transform: translateY(0) rotate(var(--tilt, 0deg)); }
-  50% { transform: translateY(-3px) rotate(calc(var(--tilt, 0deg) + 1.5deg)); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--tilt, 0deg));
+  }
+  50% {
+    transform: translateY(-3px) rotate(calc(var(--tilt, 0deg) + 1.5deg));
+  }
 }
 
 .bob {
@@ -558,10 +757,19 @@ body {
 }
 
 @keyframes scribble {
-  0%, 100% { transform: translate(0, 0) rotate(var(--tilt, 0deg)); }
-  25% { transform: translate(-1px, 2px) rotate(calc(var(--tilt, 0deg) - 4deg)); }
-  50% { transform: translate(1px, -1px) rotate(calc(var(--tilt, 0deg) + 3deg)); }
-  75% { transform: translate(-1px, 1px) rotate(calc(var(--tilt, 0deg) - 2deg)); }
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(var(--tilt, 0deg));
+  }
+  25% {
+    transform: translate(-1px, 2px) rotate(calc(var(--tilt, 0deg) - 4deg));
+  }
+  50% {
+    transform: translate(1px, -1px) rotate(calc(var(--tilt, 0deg) + 3deg));
+  }
+  75% {
+    transform: translate(-1px, 1px) rotate(calc(var(--tilt, 0deg) - 2deg));
+  }
 }
 
 .scribbling {
@@ -569,9 +777,18 @@ body {
 }
 
 @keyframes press-on {
-  0% { opacity: 0; transform: scale(0.4) rotate(var(--tilt, 0deg)); }
-  70% { opacity: 1; transform: scale(1.12) rotate(var(--tilt, 0deg)); }
-  100% { opacity: 1; transform: scale(1) rotate(var(--tilt, 0deg)); }
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(var(--tilt, 0deg));
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.12) rotate(var(--tilt, 0deg));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(var(--tilt, 0deg));
+  }
 }
 
 .press-on {
@@ -669,29 +886,19 @@ body {
 }
 
 @keyframes listening {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.12); }
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
 }
 
 .listening {
   animation: listening 1.5s ease-in-out infinite;
-}
-
-@keyframes working-bar {
-  0%,
-  100% {
-    transform: scaleY(0.14);
-    opacity: 0.45;
-  }
-  50% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-}
-
-.working-bar {
-  transform-origin: bottom;
-  animation: working-bar 0.62s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -705,13 +912,8 @@ body {
   }
 
   .listening,
-  .working-bar {
+  .xp-meter span {
     animation: none;
-  }
-
-  .working-bar {
-    transform: scaleY(0.7);
-    opacity: 0.8;
   }
 }
 

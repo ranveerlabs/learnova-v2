@@ -30,14 +30,7 @@ import {
   WARM_UP_COUNT,
 } from "./types";
 
-export type Phase =
-  | "entry"
-  | "opening"
-  | "waiting"
-  | "playing"
-  | "interval"
-  | "round4"
-  | "reveal";
+export type Phase = "entry" | "opening" | "waiting" | "playing" | "interval" | "round4" | "reveal";
 
 export type RunRecord = {
   rating: number;
@@ -48,17 +41,19 @@ export type RunRecord = {
   productions: number;
 };
 
-export type Best = {
-  rating: number;
-} | null;
+export type Best = { rating: number } | null;
 
 type Asked = { concept: string; answer: string; prompt: string; format: Format };
 
 const MAX_PRODUCTIONS = 3;
 
-function lite(q: Question): Asked {
-  return { concept: q.concept, answer: q.answer, prompt: q.prompt, format: q.format };
-}
+// what the route needs to know we already asked. not the whole question
+const lite = (q: Question): Asked => ({
+  concept: q.concept,
+  answer: q.answer,
+  prompt: q.prompt,
+  format: q.format,
+});
 
 export function useRoundSession() {
   const [phase, setPhase] = useState<Phase>("entry");
@@ -69,11 +64,8 @@ export function useRoundSession() {
 
   const [warmUp, setWarmUp] = useState<Question[]>([]);
   const [banks, setBanks] = useState<Partial<Record<Round, Question[]>>>({});
-
   const [floors, setFloors] = useState<Partial<Record<Round, Difficulty>>>({});
-
   const [dropped, setDropped] = useState<Partial<Record<0 | Round, number>>>({});
-
   const [sampled, setSampled] = useState<{ kept: number; total: number } | null>(null);
 
   const [stage, setStage] = useState<0 | Round>(0);
@@ -89,7 +81,6 @@ export function useRoundSession() {
   const [pendingRound, setPendingRound] = useState<Round | null>(null);
 
   const [error, setError] = useState<string | null>(null);
-
   const [busyRounds, setBusyRounds] = useState<Round[]>([]);
 
   const [plainOnly, setPlainOnly] = useState(false);
@@ -100,7 +91,6 @@ export function useRoundSession() {
 
   const [previously, setPreviously] = useState<Record<string, Standing>>({});
   const stillOpen = useRef<string[]>([]);
-
   const recorded = useRef(false);
 
   const seenByTopic = useRef<Map<string, Asked[]>>(new Map());
@@ -109,10 +99,10 @@ export function useRoundSession() {
   const key = useCallback((t: string) => t.trim().toLowerCase(), []);
 
   const remember = useCallback(
-    (forTopic: string, questions: Question[]) => {
+    (forTopic: string, qs: Question[]) => {
       const k = key(forTopic);
       const held = seenByTopic.current.get(k) ?? [];
-      seenByTopic.current.set(k, [...held, ...questions.map(lite)]);
+      seenByTopic.current.set(k, [...held, ...qs.map(lite)]);
     },
     [key]
   );
@@ -122,19 +112,20 @@ export function useRoundSession() {
     [key]
   );
 
-  const questionShownAt = useRef<number>(0);
-  const stageStartedAt = useRef<number>(0);
+  const shownAt = useRef<number>(0);
+  const stageAt = useRef<number>(0);
 
   const streak = currentStreak(answers.filter((a) => a.stage >= 1));
 
   const runElapsed = useCallback(() => {
-    const banked = splits.reduce((sum, s) => sum + s.ms, 0);
+    const banked = splits.reduce((n, s) => n + s.ms, 0);
     if (phase !== "playing" && phase !== "round4") return banked;
-    return banked + (performance.now() - stageStartedAt.current);
+    return banked + (performance.now() - stageAt.current);
   }, [phase, splits]);
 
+  // pulled in the background, one round ahead, so nobody waits on a spinner mid run
   const fetchBank = useCallback(
-    async (round: Round, forTopic: string, forNotes: string, forConcepts: string[]) => {
+    async (round: Round, t: string, n: string, cs: string[]) => {
       if (round === 4) return;
       if (requested.current.has(round)) return;
       requested.current.add(round);
@@ -147,40 +138,41 @@ export function useRoundSession() {
         }>("/api/round", {
           stage: "round",
           round,
-          topic: forTopic,
-          notes: forNotes,
-          concepts: forConcepts,
-          asked: seenFor(forTopic),
+          topic: t,
+          notes: n,
+          concepts: cs,
+          asked: seenFor(t),
         });
 
-        remember(forTopic, questions);
-        if (exhausted) setFloors((prev) => ({ ...prev, [round]: "medium" }));
-        if (lost) setDropped((prev) => ({ ...prev, [round]: lost }));
-        setBanks((prev) => ({ ...prev, [round]: questions }));
-      } catch (err) {
-        console.error(`Round ${round} bank failed:`, err);
-        if (isBusy(err)) setBusyRounds((prev) => (prev.includes(round) ? prev : [...prev, round]));
-        setBanks((prev) => ({ ...prev, [round]: [] }));
+        remember(t, questions);
+        if (exhausted) setFloors((p) => ({ ...p, [round]: "medium" }));
+        if (lost) setDropped((p) => ({ ...p, [round]: lost }));
+        setBanks((p) => ({ ...p, [round]: questions }));
+      } catch (e) {
+        console.error(`bank:r${round} rip`, e);
+        if (isBusy(e)) setBusyRounds((p) => (p.includes(round) ? p : [...p, round]));
+        // empty bank, not undefined. undefined means "still coming"
+        setBanks((p) => ({ ...p, [round]: [] }));
       }
     },
     [remember, seenFor]
   );
 
   const start = useCallback(
-    async (nextTopic: string, nextNotes: string) => {
+    async (t: string, n: string) => {
       setPhase("opening");
       setError(null);
-      setTopic(nextTopic);
-      setNotes(nextNotes);
+      setTopic(t);
+      setNotes(n);
 
-      stillOpen.current = openConcepts(recordFor(nextTopic));
-      setPreviously(standingsFor(nextTopic));
-      const target = bestFor(nextTopic);
-      setBest(target === null ? null : { rating: target });
+      stillOpen.current = openConcepts(recordFor(t));
+      setPreviously(standingsFor(t));
+      const b = bestFor(t);
+      setBest(b === null ? null : { rating: b });
       recorded.current = false;
 
       try {
-        const payload = await postJSON<{
+        const p = await postJSON<{
           concepts: string[];
           questions: Question[];
           provenance: Provenance;
@@ -188,37 +180,28 @@ export function useRoundSession() {
           sampled?: boolean;
           chunksKept?: number;
           chunksTotal?: number;
-        }>("/api/round", {
-          stage: "open",
-          topic: nextTopic,
-          notes: nextNotes,
-          asked: seenFor(nextTopic),
-        });
+        }>("/api/round", { stage: "open", topic: t, notes: n, asked: seenFor(t) });
 
-        setConcepts(payload.concepts);
-        setWarmUp(payload.questions);
-        setProvenance(payload.provenance);
-        if (payload.dropped) setDropped({ 0: payload.dropped });
-        setSampled(
-          payload.sampled
-            ? { kept: payload.chunksKept ?? 0, total: payload.chunksTotal ?? 0 }
-            : null
-        );
-        remember(nextTopic, payload.questions);
+        setConcepts(p.concepts);
+        setWarmUp(p.questions);
+        setProvenance(p.provenance);
+        if (p.dropped) setDropped({ 0: p.dropped });
+        setSampled(p.sampled ? { kept: p.chunksKept ?? 0, total: p.chunksTotal ?? 0 } : null);
+        remember(t, p.questions);
 
-        void fetchBank(1, nextTopic, nextNotes, payload.concepts);
+        void fetchBank(1, t, n, p.concepts);
 
         const now = performance.now();
-        stageStartedAt.current = now;
-        questionShownAt.current = now;
+        stageAt.current = now;
+        shownAt.current = now;
 
         setStage(0);
         setServedThisStage(1);
-        setAsked(new Set([payload.questions[0].id]));
-        setCurrent(payload.questions[0]);
+        setAsked(new Set([p.questions[0].id]));
+        setCurrent(p.questions[0]);
         setPhase("playing");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong.");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not start that one. Try again.");
         setPhase("entry");
       }
     },
@@ -227,22 +210,23 @@ export function useRoundSession() {
 
   const answer = useCallback(
     (given: string | number | string[], timedOut = false) => {
-      const question = current;
-      if (!question) return null;
+      const q = current;
+      if (!q) return null;
 
-      const ms = performance.now() - questionShownAt.current;
-      const right = !timedOut && isCorrect(question, given);
+      const ms = performance.now() - shownAt.current;
+      const right = !timedOut && isCorrect(q, given);
 
+      // the warm up is before studying, so it doesn't count toward streaks or records
       const counts = stage >= 1;
-      const earlier = answers.filter((a) => a.stage >= 1);
-      const newStreak = counts && right ? currentStreak(earlier) + 1 : 0;
-      const record = counts && beatsBest(earlier, ms, right);
+      const before = answers.filter((a) => a.stage >= 1);
+      const run = counts && right ? currentStreak(before) + 1 : 0;
+      const pb = counts && beatsBest(before, ms, right);
 
-      const entry: Answer = {
-        questionId: question.id,
-        concept: question.concept,
-        difficulty: question.difficulty,
-        format: question.format,
+      const row: Answer = {
+        questionId: q.id,
+        concept: q.concept,
+        difficulty: q.difficulty,
+        format: q.format,
         stage,
         correct: right,
         ms,
@@ -250,39 +234,36 @@ export function useRoundSession() {
         timedOut: timedOut || undefined,
       };
 
-      setAnswers((prev) => [...prev, entry]);
-      return { correct: right, streak: newStreak, record, question };
+      setAnswers((prev) => [...prev, row]);
+      return { correct: right, streak: run, record: pb, question: q };
     },
     [answers, current, stage]
   );
 
   const advance = useCallback(() => {
     const limit = stage === 0 ? WARM_UP_COUNT : QUESTIONS_PER_ROUND;
-    const pool = stage === 0 ? warmUp : (banks[stage as Round] ?? []);
+    const pool = stage === 0 ? warmUp : banks[stage as Round] ?? [];
 
-    const roundAnswers = answers.filter((a) => a.stage === stage);
-    const done = servedThisStage >= limit;
+    const mine = answers.filter((a) => a.stage === stage);
+    const spent = servedThisStage >= limit;
 
-    if (!done) {
-      const floor = stage === 0 ? "easy" : (floors[stage as Round] ?? "easy");
-      const wanted = stage === 0 ? difficulty : nextDifficulty(difficulty, roundAnswers, floor);
+    if (!spent) {
+      const floor = stage === 0 ? "easy" : floors[stage as Round] ?? "easy";
+      const want = stage === 0 ? difficulty : nextDifficulty(difficulty, mine, floor);
       const next =
-        stage === 0
-          ? (pool.find((q) => !asked.has(q.id)) ?? null)
-          : pickQuestion(pool, wanted, asked);
+        stage === 0 ? pool.find((q) => !asked.has(q.id)) ?? null : pickQuestion(pool, want, asked);
 
       if (next) {
-        setDifficulty(wanted);
+        setDifficulty(want);
         setAsked((prev) => new Set(prev).add(next.id));
         setServedThisStage((n) => n + 1);
         setCurrent(next);
-        questionShownAt.current = performance.now();
+        shownAt.current = performance.now();
         return;
       }
     }
 
-    const now = performance.now();
-    setSplits((prev) => [...prev, { stage, ms: now - stageStartedAt.current }]);
+    setSplits((prev) => [...prev, { stage, ms: performance.now() - stageAt.current }]);
     setCurrent(null);
     setPhase("interval");
   }, [answers, asked, banks, difficulty, floors, servedThisStage, stage, warmUp]);
@@ -290,49 +271,42 @@ export function useRoundSession() {
   const openRound4 = useCallback(() => {
     setStage(4);
     setProductionIndex(0);
-    stageStartedAt.current = performance.now();
+    stageAt.current = performance.now();
     setPhase("round4");
   }, []);
 
   const beginRound = useCallback(
     (from: Round) => {
-      let target = from;
+      let r = from;
 
-      while (target <= 3) {
-        const pool = banks[target];
+      // skip past any round whose bank came back empty
+      while (r <= 3) {
+        const pool = banks[r];
         if (pool === undefined) {
-          void fetchBank(target, topic, notes, concepts);
-          setPendingRound(target);
+          void fetchBank(r, topic, notes, concepts);
+          setPendingRound(r);
           setPhase("waiting");
           return;
         }
         if (pool.length > 0) break;
-        target = (target + 1) as Round;
+        r = (r + 1) as Round;
       }
 
-      if (target > 3) {
-        openRound4();
-        return;
-      }
+      if (r > 3) return openRound4();
 
-      if (target < 3) {
-        void fetchBank((target + 1) as Round, topic, notes, concepts);
-      }
+      if (r < 3) void fetchBank((r + 1) as Round, topic, notes, concepts);
 
-      const first = pickQuestion(banks[target] ?? [], "medium", new Set());
-      if (!first) {
-        openRound4();
-        return;
-      }
+      const first = pickQuestion(banks[r] ?? [], "medium", new Set());
+      if (!first) return openRound4();
 
       setPendingRound(null);
-      setStage(target);
+      setStage(r);
       setDifficulty("medium");
       setAsked(new Set([first.id]));
       setServedThisStage(1);
       setCurrent(first);
-      stageStartedAt.current = performance.now();
-      questionShownAt.current = performance.now();
+      stageAt.current = performance.now();
+      shownAt.current = performance.now();
       setPhase("playing");
     },
     [banks, concepts, fetchBank, notes, openRound4, topic]
@@ -340,13 +314,11 @@ export function useRoundSession() {
 
   const continueOn = useCallback(() => {
     const next = (stage + 1) as Round;
-    if (next === 4) {
-      openRound4();
-      return;
-    }
+    if (next === 4) return openRound4();
     beginRound(next);
   }, [beginRound, openRound4, stage]);
 
+  // bank landed while we were sat on the waiting screen
   useEffect(() => {
     if (phase !== "waiting" || pendingRound === null) return;
     if (banks[pendingRound] !== undefined) beginRound(pendingRound);
@@ -356,32 +328,25 @@ export function useRoundSession() {
     .map((r) => r.concept)
     .slice(0, MAX_PRODUCTIONS);
 
-  const recordProduction = useCallback((production: Production) => {
-    setProductions((prev) => {
-      const without = prev.filter((p) => p.concept !== production.concept);
-      return [...without, production];
-    });
+  const recordProduction = useCallback((p: Production) => {
+    setProductions((prev) => [...prev.filter((x) => x.concept !== p.concept), p]);
   }, []);
 
-  const nextProduction = useCallback(() => {
-    setProductionIndex((i) => i + 1);
-  }, []);
+  const nextProduction = useCallback(() => setProductionIndex((i) => i + 1), []);
 
   const finish = useCallback(() => {
     setSplits((prev) =>
       prev.some((s) => s.stage === 4)
         ? prev
-        : [...prev, { stage: 4, ms: performance.now() - stageStartedAt.current }]
+        : [...prev, { stage: 4, ms: performance.now() - stageAt.current }]
     );
     setPhase("reveal");
   }, []);
 
   const nextPlayable: Round = (() => {
-    let target = (stage + 1) as Round;
-    while (target <= 3 && banks[target]?.length === 0) {
-      target = (target + 1) as Round;
-    }
-    return target > 3 ? 4 : target;
+    let r = (stage + 1) as Round;
+    while (r <= 3 && banks[r]?.length === 0) r = (r + 1) as Round;
+    return r > 3 ? 4 : r;
   })();
 
   const reveal = useCallback(
@@ -392,24 +357,24 @@ export function useRoundSession() {
   useEffect(() => {
     if (phase !== "reveal" || recorded.current || !topic) return;
     recorded.current = true;
-
-    const data = buildReveal(answers, productions, splits);
-    rememberRun(topic, data);
+    rememberRun(topic, buildReveal(answers, productions, splits));
   }, [answers, phase, productions, splits, topic]);
 
   const bank = useCallback(() => {
-    const data = buildReveal(answers, productions, splits);
-    if (data.splits.length === 0) return;
+    const d = buildReveal(answers, productions, splits);
+    if (!d.splits.length) return;
 
-    const record: RunRecord = {
-      rating: data.rating.score,
-      runTime: data.runTime,
-      openCorrect: data.open?.correct ?? 0,
-      openAnswered: data.open?.answered ?? 0,
-      demonstrated: data.productions.filter((p) => p.outcome === "solid").length,
-      productions: data.productions.length,
-    };
-    runs.current = [...runs.current, record];
+    runs.current = [
+      ...runs.current,
+      {
+        rating: d.rating.score,
+        runTime: d.runTime,
+        openCorrect: d.open?.correct ?? 0,
+        openAnswered: d.open?.answered ?? 0,
+        demonstrated: d.productions.filter((p) => p.outcome === "solid").length,
+        productions: d.productions.length,
+      },
+    ];
   }, [answers, productions, splits]);
 
   const wipe = useCallback(() => {
@@ -440,11 +405,11 @@ export function useRoundSession() {
   }, []);
 
   const again = useCallback(() => {
-    const sameTopic = topic;
-    const sameNotes = notes;
+    const t = topic;
+    const n = notes;
     bank();
     wipe();
-    void start(sameTopic, sameNotes);
+    void start(t, n);
   }, [bank, notes, start, topic, wipe]);
 
   const restart = useCallback(() => {
@@ -472,7 +437,7 @@ export function useRoundSession() {
     error,
     busyRounds,
     dropped,
-    droppedTotal: Object.values(dropped).reduce((sum, n) => sum + (n ?? 0), 0),
+    droppedTotal: Object.values(dropped).reduce((n, x) => n + (x ?? 0), 0),
     sampled,
     nextPlayable,
     best,

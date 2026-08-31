@@ -18,14 +18,7 @@ import {
   type Wire,
 } from "./room";
 
-export type Stage =
-  | "connecting"
-  | "full"
-  | "empty"
-  | "taken"
-  | "open"
-  | "closed"
-  | "error";
+export type Stage = "connecting" | "full" | "empty" | "taken" | "open" | "closed" | "error";
 
 export type Departure = { role: Role | null; at: number };
 
@@ -46,40 +39,39 @@ export type Room = {
   close: (reason: Closed) => void;
 };
 
-function tabId(): string {
-  return crypto.randomUUID().replace(/-/g, "");
-}
+// a name for this tab, for the life of this tab. not an identity
+const newId = () => crypto.randomUUID().replace(/-/g, "");
 
-function seated(members: PresenceMessage[]): PresenceMessage[] {
-  return [...members].sort(
-    (a, b) => a.timestamp - b.timestamp || a.connectionId.localeCompare(b.connectionId)
-  );
-}
+// oldest first, so both tabs agree who got here first
+const seated = (ms: PresenceMessage[]) =>
+  [...ms].sort((a, b) => a.timestamp - b.timestamp || a.connectionId.localeCompare(b.connectionId));
 
 function roleOf(m: PresenceMessage): Role | null {
-  const data = m.data as Member | undefined;
-  return data?.role === "host" || data?.role === "guest" ? data.role : null;
+  const d = m.data as Member | undefined;
+  return d?.role === "host" || d?.role === "guest" ? d.role : null;
 }
 
 export function useRoom({
   code,
   role,
-  setup: hostSetup,
+  setup: mine,
 }: {
   code: string;
   role: Role;
   setup: LiveSetup | null;
 }): Room {
   const [stage, setStage] = useState<Stage>("connecting");
-  const stageAt = useRef<Stage>("connecting");
-  stageAt.current = stage;
+  // same value, readable from a timer. setStage's updater form can't be read from outside react
+  const stageNow = useRef<Stage>("connecting");
+  stageNow.current = stage;
+
   const [error, setError] = useState<string | null>(null);
   const [closed, setClosed] = useState<Closed | null>(null);
   const [together, setTogether] = useState(false);
   const [arrived, setArrived] = useState(false);
   const [departed, setDeparted] = useState<Departure | null>(null);
   const [dropped, setDropped] = useState(false);
-  const [setup, setSetup] = useState<LiveSetup | null>(hostSetup);
+  const [setup, setSetup] = useState<LiveSetup | null>(mine);
   const [turns, setTurns] = useState<LiveTurn[]>([]);
   const [ballot, setBallot] = useState<Ballot | null>(null);
   const [desync, setDesync] = useState(false);
@@ -88,11 +80,12 @@ export function useRoom({
   const round = useRef<LiveTurn[]>([]);
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const push = useCallback(async (event: Wire) => {
+  // never throws at the screen. a speech that didn't send is bad, a white page is worse
+  const push = useCallback(async (e: Wire) => {
     try {
-      await chan.current?.publish(event.name, event.data);
+      await chan.current?.publish(e.name, e.data);
     } catch (err) {
-      console.error(`Live debate could not publish ${event.name}:`, err);
+      console.error(`wire:${e.name} failed`, err);
     }
   }, []);
 
@@ -108,76 +101,76 @@ export function useRoom({
   const closeNow = useRef(close);
   closeNow.current = close;
 
-  const stir = useCallback(() => {
+  const poke = useCallback(() => {
     if (idle.current) clearTimeout(idle.current);
     idle.current = setTimeout(() => {
-      if (stageAt.current === "open") closeNow.current("idle");
+      if (stageNow.current === "open") closeNow.current("idle");
     }, IDLE_MS);
   }, []);
 
   useEffect(() => {
     let live = true;
-    const clientId = tabId();
+    const id = newId();
     const client = new Realtime({
       authUrl: "/api/live/token",
-      authParams: { code, clientId },
-      clientId,
+      authParams: { code, clientId: id },
+      clientId: id,
       echoMessages: false,
     });
 
     const channel = client.channels.get(channelFor(code));
     chan.current = channel;
 
-    const explain = async (fallback: string) => {
+    // ably won't tell us why auth failed, so ask the route directly
+    const why = async (fb: string) => {
       try {
-        const res = await fetch(
-          `/api/live/token?code=${encodeURIComponent(code)}&clientId=${clientId}`
-        );
-        const data = (await res.json()) as { error?: string };
-        return data?.error ?? fallback;
+        const res = await fetch(`/api/live/token?code=${encodeURIComponent(code)}&clientId=${id}`);
+        const d = (await res.json()) as { error?: string };
+        return d?.error ?? fb;
       } catch {
-        return fallback;
+        return fb;
       }
     };
 
-    const giveUp = (fallback: string) => {
+    const bail = (fb: string) => {
       void (async () => {
-        const said = await explain(fallback);
+        const said = await why(fb);
         if (!live) return;
         setError(said);
         setStage("error");
       })();
     };
 
-    client.connection.on("failed", () => giveUp("The live connection could not be opened."));
+    client.connection.on("failed", () => bail("The live connection could not be opened."));
 
     const deadline = setTimeout(() => {
-      if (live && stageAt.current === "connecting") giveUp("The live connection timed out.");
+      if (live && stageNow.current === "connecting") bail("The live connection timed out.");
     }, 15_000);
 
     client.connection.on("disconnected", () => live && setDropped(true));
     client.connection.on("suspended", () => live && setDropped(true));
     client.connection.on("connected", () => live && setDropped(false));
 
-    const apply = (msg: { name?: string; data?: unknown }) => {
-      stir();
+    const onMsg = (msg: { name?: string; data?: unknown }) => {
+      poke();
       switch (msg.name) {
         case "player_joined": {
           if (role !== "guest") return;
-          const { setup: theirs, turns: theirTurns } = msg.data as Joined;
+          const { setup: theirs, turns: theirs2 } = msg.data as Joined;
           setSetup(theirs);
-          round.current = theirTurns;
-          setTurns(theirTurns);
+          round.current = theirs2;
+          setTurns(theirs2);
           setDesync(false);
           return;
         }
         case "speech_submitted": {
-          const turn = msg.data as LiveTurn;
-          round.current = [...round.current, turn];
+          const t = msg.data as LiveTurn;
+          round.current = [...round.current, t];
           setTurns(round.current);
           return;
         }
         case "turn_advanced": {
+          // their count vs ours. if they disagree a speech went missing somewhere
           const { at } = msg.data as { at: number };
           if (at === round.current.length) return;
           setDesync(true);
@@ -185,18 +178,17 @@ export function useRoom({
           return;
         }
         case "ballot_returned": {
-          const { ballot: verdict } = msg.data as { ballot: Ballot };
-          setBallot(role === "guest" ? mirror(verdict) : verdict);
+          const { ballot: b } = msg.data as { ballot: Ballot };
+          setBallot(role === "guest" ? mirror(b) : b);
           return;
         }
         case "room_closed": {
           const { reason } = msg.data as { reason: Closed };
-
+          // somebody left, the room lives on for whoever's still here
           if (reason === "left") {
             setTogether(false);
             return;
           }
-
           setClosed(reason);
           setStage("closed");
           return;
@@ -205,21 +197,17 @@ export function useRoom({
     };
 
     const onEnter = (m: PresenceMessage) => {
-      if (m.clientId === clientId) return;
-      stir();
+      if (m.clientId === id) return;
+      poke();
       setTogether(true);
       setArrived(true);
-      if (role === "host" && hostSetup) {
-        void push({
-          name: "player_joined",
-          data: { setup: hostSetup, turns: round.current },
-        });
-      }
+      if (role === "host" && mine)
+        void push({ name: "player_joined", data: { setup: mine, turns: round.current } });
     };
 
     const onLeave = (m: PresenceMessage) => {
-      if (m.clientId === clientId) return;
-      stir();
+      if (m.clientId === id) return;
+      poke();
       setTogether(false);
       setDeparted({ role: roleOf(m), at: m.timestamp });
     };
@@ -229,9 +217,9 @@ export function useRoom({
         await channel.attach();
         if (!live) return;
 
-        channel.subscribe(apply);
+        channel.subscribe(onMsg);
         channel.presence.subscribe(["enter", "update"], onEnter);
-        // measured at 15.2s from a tab closing to this firing. it's ably's timing, not ours.
+        // measured at 15.2s from a tab closing to this firing. ably's timing, not ours
         channel.presence.subscribe(["leave", "absent"], onLeave);
 
         const before = seated(await channel.presence.get());
@@ -256,29 +244,28 @@ export function useRoom({
         await channel.presence.enter({ role } satisfies Member);
         if (!live) return;
 
+        // two people can pass the check at the same instant, so check again after entering
         const after = seated(await channel.presence.get());
         if (!live) return;
-        const mine = after.findIndex((m) => m.clientId === clientId);
-        if (mine >= ROOM_SIZE) {
+        if (after.findIndex((m) => m.clientId === id) >= ROOM_SIZE) {
           await channel.presence.leave();
           if (!live) return;
           setStage("full");
           return;
         }
 
-        const others = after.filter((m) => m.clientId !== clientId);
+        const others = after.filter((m) => m.clientId !== id);
         setTogether(others.length > 0);
         setArrived(others.length > 0);
         setStage("open");
-        stir();
+        poke();
 
-        if (role === "guest" && others.length > 0) {
+        if (role === "guest" && others.length > 0)
           await channel.presence.update({ role } satisfies Member);
-        }
-      } catch (err) {
+      } catch (e) {
         if (!live) return;
-        console.error("Live debate could not join the room:", err);
-        const said = await explain("Could not join that room. Try the link again.");
+        console.error("room:join rip", e);
+        const said = await why("Could not join that room. Check the code and try again.");
         if (!live) return;
         setError(said);
         setStage("error");
@@ -299,20 +286,20 @@ export function useRoom({
   }, [code, role]);
 
   const say = useCallback(
-    async (turn: LiveTurn) => {
-      round.current = [...round.current, turn];
+    async (t: LiveTurn) => {
+      round.current = [...round.current, t];
       setTurns(round.current);
-      stir();
-      await push({ name: "speech_submitted", data: turn });
+      poke();
+      await push({ name: "speech_submitted", data: t });
       await push({ name: "turn_advanced", data: { at: round.current.length } });
     },
-    [push, stir]
+    [push, poke]
   );
 
   const publishBallot = useCallback(
-    async (verdict: Ballot) => {
-      setBallot(verdict);
-      await push({ name: "ballot_returned", data: { ballot: verdict } });
+    async (b: Ballot) => {
+      setBallot(b);
+      await push({ name: "ballot_returned", data: { ballot: b } });
     },
     [push]
   );

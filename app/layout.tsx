@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, IBM_Plex_Mono, Newsreader, Patrick_Hand, Silkscreen } from "next/font/google";
+import {
+  Archivo,
+  IBM_Plex_Mono,
+  Newsreader,
+  Patrick_Hand,
+  Silkscreen,
+} from "next/font/google";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -38,6 +44,7 @@ const silkscreen = Silkscreen({
   display: "swap",
 });
 
+// keyboard shrinks the viewport instead of shoving the page up. round mode does not scroll
 export const viewport: Viewport = {
   interactiveWidget: "resizes-visual",
 };

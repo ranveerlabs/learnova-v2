@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { type Provenance, type Question, type Round } from "./types";
 import { formatClock } from "./engine";
 
+// archivo run narrow, for the small-caps labels only
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
 const RUNGS: { key: 0 | Round; label: string }[] = [
@@ -14,11 +15,20 @@ const RUNGS: { key: 0 | Round; label: string }[] = [
   { key: 4, label: "Say it yourself" },
 ];
 
-export function LadderRail({ stage, finished = false }: { stage: 0 | Round; finished?: boolean }) {
+export function LadderRail({
+  stage,
+  finished = false,
+}: {
+  stage: 0 | Round;
+  finished?: boolean;
+}) {
   const here = RUNGS.find((r) => r.key === stage);
 
   return (
-    <nav aria-label="Session stages" className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+    <nav
+      aria-label="Session stages"
+      className="flex min-w-0 items-center gap-1.5 sm:gap-2.5"
+    >
       <span className="flex shrink-0 items-center gap-1 sm:gap-1.5">
         {RUNGS.map((rung) => {
           const done = finished || rung.key < stage;
@@ -32,11 +42,11 @@ export function LadderRail({ stage, finished = false }: { stage: 0 | Round; fini
               className="grid h-2.5 w-2.5 place-items-center"
             >
               {done ? (
-                <span className="block h-2.5 w-2.5 rounded-[2px] bg-supply-mint" />
+                <span className="block h-2.5 w-2.5 bg-supply-mint" />
               ) : current ? (
-                <span className="block h-2.5 w-2.5 rounded-full border-[2px] border-supply-gold" />
+                <span className="block h-2.5 w-2.5 border-[2px] border-supply-gold" />
               ) : (
-                <span className="block h-1.5 w-1.5 rounded-full bg-line-strong" />
+                <span className="block h-1.5 w-1.5 bg-line-strong" />
               )}
             </span>
           );
@@ -56,9 +66,16 @@ export function LadderRail({ stage, finished = false }: { stage: 0 | Round; fini
   );
 }
 
-export function RunClock({ elapsed, live }: { elapsed: () => number; live: boolean }) {
+export function RunClock({
+  elapsed,
+  live,
+}: {
+  elapsed: () => number;
+  live: boolean;
+}) {
   const [ms, setMs] = useState(0);
 
+  // raf not setInterval, a 1s tick on a clock showing tenths looks broken
   useEffect(() => {
     if (!live) {
       setMs(elapsed());
@@ -109,10 +126,14 @@ export function TimerRing({
         ...(cheering ? { ["--ring-ink" as string]: "var(--solid-mark)" } : {}),
       }}
     >
-      <span className="grid h-[86%] w-[86%] place-items-center rounded-full bg-ground">
+      <span className="grid h-[86%] w-[86%] place-items-center bg-ground">
         <span
           className={`font-mono text-[clamp(1rem,3.1vh,1.375rem)] font-semibold tabular-nums ${
-            cheering ? "text-solid-ink" : urgent ? "text-shaky-ink" : "text-ink-soft"
+            cheering
+              ? "text-solid-ink"
+              : urgent
+                ? "text-shaky-ink"
+                : "text-ink-soft"
           }`}
         >
           {seconds}
@@ -132,7 +153,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
           : "You gave a topic, not material. Every question and answer here was written by an AI model and checked against nothing. It can be confidently wrong."
       }
       style={NARROW}
-      className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[3px] border px-1.5 py-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.08em] sm:gap-1.5 sm:px-2 sm:tracking-[0.12em] ${
+      className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap border px-1.5 py-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.08em] sm:gap-1.5 sm:px-2 sm:tracking-[0.12em] ${
         grounded
           ? "border-solid-mark/40 bg-solid-tint text-solid-ink"
           : "border-line-strong bg-sunk text-ink-soft"
@@ -146,7 +167,13 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
 
 function Tick() {
   return (
-    <svg width="26" height="26" viewBox="0 0 15 15" aria-hidden className="shrink-0">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 15 15"
+      aria-hidden
+      className="shrink-0"
+    >
       <rect width="15" height="15" rx="3" fill="var(--solid-mark)" />
       <path
         d="M3.8 7.7 6.2 10.1 11.1 4.9"
@@ -163,7 +190,13 @@ function Tick() {
 
 function Cross() {
   return (
-    <svg width="26" height="26" viewBox="0 0 15 15" aria-hidden className="shrink-0">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 15 15"
+      aria-hidden
+      className="shrink-0"
+    >
       <rect
         x="0.75"
         y="0.75"
@@ -202,8 +235,10 @@ export function Verdict({
     <div
       role="status"
       aria-live="assertive"
-      className={`deal-in flex w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-[6px] border-l-[5px] py-2 pl-3 pr-3 sm:gap-x-4 sm:border-l-[6px] sm:py-3 sm:pl-5 sm:pr-5 ${
-        correct ? "border-solid-mark bg-solid-tint" : "border-broken-mark bg-broken-tint"
+      className={`deal-in flex w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-l-[5px] py-2 pl-3 pr-3 sm:gap-x-4 sm:border-l-[6px] sm:py-3 sm:pl-5 sm:pr-5 ${
+        correct
+          ? "border-solid-mark bg-solid-tint"
+          : "border-broken-mark bg-broken-tint"
       }`}
     >
       {correct ? <Tick /> : <Cross />}
@@ -225,9 +260,9 @@ export function Verdict({
       <button
         onClick={onNext}
         aria-label="Next question"
-        className="btn ml-auto flex min-h-[2.5rem] min-w-[3rem] shrink-0 items-center justify-center gap-2 rounded-[4px] border-2 border-line-strong px-3 py-1.5 font-sans text-[0.875rem] font-semibold text-ink-soft hover:border-accent hover:text-ink"
+        className="btn ml-auto flex min-h-[2.5rem] min-w-[3rem] shrink-0 items-center justify-center gap-2 border-2 border-line-strong px-3 py-1.5 font-sans text-[0.875rem] font-semibold text-ink-soft hover:border-accent hover:text-ink"
       >
-        <kbd className="rounded-[3px] bg-sunk px-2 py-0.5 font-mono text-[0.75rem] pointer-coarse:hidden">
+        <kbd className="bg-sunk px-2 py-0.5 font-mono text-[0.75rem] pointer-coarse:hidden">
           Enter
         </kbd>
         <span
@@ -257,35 +292,38 @@ export function ChoiceGrid({
   revealed: boolean;
   onPick: (index: number) => void;
 }) {
-  const options = question.options ?? [];
+  const opts = question.options ?? [];
 
+  // 1 to n picks. every presentation gets this, it is not optional
   useEffect(() => {
     if (revealed) return;
     function onKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const i = KEYS.indexOf(e.key);
-      if (i >= 0 && i < options.length) {
+      if (i >= 0 && i < opts.length) {
         e.preventDefault();
         onPick(i);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [options.length, onPick, revealed]);
+  }, [opts.length, onPick, revealed]);
 
-  const many = options.length > 2;
+  const many = opts.length > 2;
 
   return (
     <div
       className={`grid min-h-0 flex-1 content-center gap-2.5 sm:gap-3 [grid-auto-rows:minmax(0,1fr)] ${
-        many ? "max-h-[30rem] sm:max-h-[15.5rem] sm:grid-cols-2" : "max-h-[16rem]"
+        many
+          ? "max-h-[30rem] sm:max-h-[15.5rem] sm:grid-cols-2"
+          : "max-h-[16rem]"
       }`}
     >
-      {options.map((option, i) => {
-        const isAnswer = i === question.answerIndex;
-        const isChosen = i === chosen;
-        const showRight = revealed && isAnswer;
-        const showWrong = revealed && isChosen && !isAnswer;
+      {opts.map((o, i) => {
+        const right = i === question.answerIndex;
+        const mine = i === chosen;
+        const showRight = revealed && right;
+        const showWrong = revealed && mine && !right;
 
         return (
           <button
@@ -293,7 +331,7 @@ export function ChoiceGrid({
             disabled={revealed}
             onClick={() => onPick(i)}
             style={{ ["--i" as string]: i }}
-            className={`deal-in-stagger group relative flex min-h-0 items-center gap-3 overflow-hidden rounded-[6px] border-[3px] px-3.5 py-2 text-left transition-colors sm:gap-4 sm:px-5 sm:py-4 ${
+            className={`deal-in-stagger group relative flex min-h-0 items-center gap-3 overflow-hidden border-[3px] px-3.5 py-2 text-left transition-colors sm:gap-4 sm:px-5 sm:py-4 ${
               showRight
                 ? "right-flash right-pop right-sheen border-solid-mark bg-solid-tint"
                 : showWrong
@@ -305,7 +343,7 @@ export function ChoiceGrid({
           >
             <span
               aria-hidden
-              className={`grid h-[clamp(1.75rem,4.2vh,2.25rem)] w-[clamp(1.75rem,4.2vh,2.25rem)] shrink-0 place-items-center rounded-[4px] border-2 font-mono text-[0.8125rem] font-semibold sm:text-[0.9375rem] ${
+              className={`grid h-[clamp(1.75rem,4.2vh,2.25rem)] w-[clamp(1.75rem,4.2vh,2.25rem)] shrink-0 place-items-center border-2 font-mono text-[0.8125rem] font-semibold sm:text-[0.9375rem] ${
                 showRight
                   ? "border-solid-mark bg-solid-mark text-page"
                   : showWrong
@@ -317,15 +355,19 @@ export function ChoiceGrid({
             </span>
             <span
               className={`min-w-0 font-read text-[clamp(1rem,0.7rem+1.1vw+0.7vh,2.125rem)] leading-[1.2] ${
-                showRight ? "font-medium text-solid-ink" : showWrong ? "text-broken-ink" : "text-ink"
+                showRight
+                  ? "font-medium text-solid-ink"
+                  : showWrong
+                    ? "text-broken-ink"
+                    : "text-ink"
               }`}
             >
-              {option}
+              {o}
             </span>
             {showRight && (
               <span
                 aria-hidden
-                className="right-ring pointer-events-none absolute inset-0 rounded-[6px] border-[3px] border-solid-mark"
+                className="right-ring pointer-events-none absolute inset-0 border-[3px] border-solid-mark"
               />
             )}
           </button>
@@ -352,8 +394,8 @@ export function BlankField({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [before, after] = useMemo(() => {
-    const parts = question.prompt.split(/_{2,}/);
-    return [parts[0] ?? "", parts.slice(1).join(" ")];
+    const p = question.prompt.split(/_{2,}/);
+    return [p[0] ?? "", p.slice(1).join("")];
   }, [question.prompt]);
 
   useEffect(() => {
@@ -381,6 +423,7 @@ export function BlankField({
           aria-label="The missing term"
           aria-invalid={revealed && !correct}
           placeholder="?"
+          // sized off what they typed, NOT the answer. sizing it off the answer leaks the length
           size={Math.max(8, value.length + 2)}
           className={`mx-1 inline-block min-w-[6rem] max-w-full border-b-[3px] bg-transparent px-2 pb-1 text-center font-read text-[clamp(1.125rem,0.8rem+1.1vw+0.8vh,2.25rem)] font-medium text-ink caret-accent outline-none placeholder:text-ink-faint sm:min-w-[9rem] ${
             revealed
@@ -398,7 +441,7 @@ export function BlankField({
           type="submit"
           disabled={!value.trim()}
           aria-label="Submit your answer"
-          className="btn grid h-11 w-11 place-items-center rounded-[3px] bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint"
+          className="btn grid h-11 w-11 place-items-center bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint"
         >
           <span aria-hidden className="arrow">
             →
@@ -426,19 +469,18 @@ export function ChipBoard({
 }) {
   const tray = useMemo(
     () => question.tray ?? question.chips ?? [],
-    [question.tray, question.chips]
+    [question.tray, question.chips],
   );
 
+  // duplicate chips: "the" twice in the tray means using one leaves the other live
   const spent = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const chip of built) counts.set(chip, (counts.get(chip) ?? 0) + 1);
-    return tray.map((chip) => {
-      const left = counts.get(chip) ?? 0;
-      if (left > 0) {
-        counts.set(chip, left - 1);
-        return true;
-      }
-      return false;
+    const n = new Map<string, number>();
+    for (const c of built) n.set(c, (n.get(c) ?? 0) + 1);
+    return tray.map((c) => {
+      const left = n.get(c) ?? 0;
+      if (left <= 0) return false;
+      n.set(c, left - 1);
+      return true;
     });
   }, [built, tray]);
 
@@ -458,7 +500,7 @@ export function ChipBoard({
     <div className="deal-in flex min-h-0 flex-col justify-center gap-3 sm:gap-5">
       <div
         aria-label="Your sentence"
-        className={`flex min-h-[clamp(3.25rem,12vh,6rem)] shrink-0 flex-wrap items-center gap-2 rounded-[6px] border-[3px] border-dashed p-2.5 transition-colors sm:gap-2.5 sm:p-4 ${
+        className={`flex min-h-[clamp(3.25rem,12vh,6rem)] shrink-0 flex-wrap items-center gap-2 border-[3px] border-dashed p-2.5 transition-colors sm:gap-2.5 sm:p-4 ${
           revealed
             ? correct
               ? "border-solid-mark bg-solid-tint"
@@ -473,8 +515,8 @@ export function ChipBoard({
             key={`${chip}-${i}`}
             disabled={revealed}
             onClick={() => onBuild(built.filter((_, j) => j !== i))}
-            aria-label={`Remove "${chip}"`}
-            className="chip chip-snap rounded-[4px] border-2 border-accent bg-page px-3 py-1.5 font-read sm:px-4 sm:py-2 text-[clamp(0.9375rem,0.75rem+0.5vw+0.4vh,1.4375rem)] text-ink disabled:cursor-default"
+            aria-label={`Remove"${chip}"`}
+            className="chip chip-snap border-2 border-accent bg-page px-3 py-1.5 font-read sm:px-4 sm:py-2 text-[clamp(0.9375rem,0.75rem+0.5vw+0.4vh,1.4375rem)] text-ink disabled:cursor-default"
           >
             {chip}
           </button>
@@ -490,7 +532,7 @@ export function ChipBoard({
                 disabled={spent[i]}
                 onClick={() => onBuild([...built, chip])}
                 style={{ ["--i" as string]: i }}
-                className={`chip deal-in-stagger rounded-[4px] border-2 border-line-strong bg-page px-3 py-1.5 font-read text-[clamp(0.9375rem,0.75rem+0.5vw+0.4vh,1.4375rem)] text-ink hover:border-accent hover:bg-accent-wash/40 sm:px-4 sm:py-2 ${
+                className={`chip deal-in-stagger border-2 border-line-strong bg-page px-3 py-1.5 font-read text-[clamp(0.9375rem,0.75rem+0.5vw+0.4vh,1.4375rem)] text-ink hover:border-accent hover:bg-accent-wash/40 sm:px-4 sm:py-2 ${
                   spent[i] ? "chip-spent" : ""
                 }`}
               >
@@ -504,7 +546,7 @@ export function ChipBoard({
               onClick={onSubmit}
               disabled={built.length === 0}
               aria-label="Submit your sentence"
-              className="btn grid h-11 w-11 place-items-center rounded-[3px] bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint"
+              className="btn grid h-11 w-11 place-items-center bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint"
             >
               <span aria-hidden className="arrow">
                 →
@@ -514,7 +556,7 @@ export function ChipBoard({
               <button
                 onClick={() => onBuild([])}
                 aria-label="Clear your sentence"
-                className="grid h-11 w-11 place-items-center rounded-[3px] border border-line-strong font-sans text-[1.125rem] text-ink-faint hover:border-ink-faint hover:text-ink"
+                className="grid h-11 w-11 place-items-center border border-line-strong font-sans text-[1.125rem] text-ink-faint hover:border-ink-faint hover:text-ink"
               >
                 <span aria-hidden>×</span>
               </button>
@@ -525,18 +567,19 @@ export function ChipBoard({
 
       {revealed && !correct && (
         <p className="font-read text-[1rem] leading-[1.5] text-ink">
-          {(question.chips ?? []).join(" ")}
+          {(question.chips ?? []).join("")}
         </p>
       )}
     </div>
   );
 }
 
+// keyboard and screen readers only. the one way to opt out of presentations
 export function PlainEscape({ onChoose }: { onChoose: () => void }) {
   return (
     <button
       onClick={onChoose}
-      className="sr-only rounded-[3px] bg-accent px-4 py-2 font-sans text-[0.875rem] font-semibold text-on-accent focus:not-sr-only focus:absolute focus:left-0 focus:top-0 focus:z-40"
+      className="sr-only bg-accent px-4 py-2 font-sans text-[0.875rem] font-semibold text-on-accent focus:not-sr-only focus:absolute focus:left-0 focus:top-0 focus:z-40"
     >
       Switch to the plain view for the rest of this session
     </button>

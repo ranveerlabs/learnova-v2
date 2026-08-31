@@ -1,81 +1,77 @@
-const CHUNK_CHARS = 1200;
+const SIZE = 1200;
 
 export const PROMPT_BUDGET_CHARS = 12_000;
 
 export type Chunk = {
   text: string;
-  opensSentence: boolean;
-  closesSentence: boolean;
+  opens: boolean;
+  closes: boolean;
 };
 
-function cutPoint(sentence: string, limit: number): number {
-  const floor = Math.floor(limit * 0.67);
-  const window = sentence.slice(0, limit);
+// cut at a clause joint if there is one in the back third, else anywhere
+function cutAt(s: string, cap: number): number {
+  const floor = Math.floor(cap * 0.67);
+  const win = s.slice(0, cap);
 
-  for (const pattern of [/[;:]\s/g, /,\s/g, /\s/g]) {
+  for (const re of [/[;:]\s/g, /,\s/g, /\s/g]) {
     let best = -1;
-    for (const match of window.matchAll(pattern)) {
-      const end = match.index + match[0].length;
+    for (const m of win.matchAll(re)) {
+      const end = m.index + m[0].length;
       if (end >= floor) best = end;
     }
     if (best > 0) return best;
   }
-  return limit;
+  return cap;
 }
 
-export function chunkSource(source: string): Chunk[] {
-  const paragraphs = source
+export function chunkSource(src: string): Chunk[] {
+  const paras = src
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
 
-  const pieces: Chunk[] = [];
-  const whole = (text: string) =>
-    ({ text, opensSentence: true, closesSentence: true }) satisfies Chunk;
+  const out: Chunk[] = [];
+  const full = (text: string) => ({ text, opens: true, closes: true }) satisfies Chunk;
 
-  for (const paragraph of paragraphs) {
-    if (paragraph.length <= CHUNK_CHARS) {
-      pieces.push(whole(paragraph));
+  for (const p of paras) {
+    if (p.length <= SIZE) {
+      out.push(full(p));
       continue;
     }
 
-    const sentences = paragraph.match(/[^.!?]+[.!?]+[\])'"’”]*\s*|[^.!?]+$/g) ?? [paragraph];
-    let held = "";
-    for (const sentence of sentences) {
-      if (held && held.length + sentence.length > CHUNK_CHARS) {
-        pieces.push(whole(held.trim()));
-        held = "";
+    const sents = p.match(/[^.!?]+[.!?]+[\])'"’”]*\s*|[^.!?]+$/g) ?? [p];
+    let buf = "";
+
+    for (const s of sents) {
+      if (buf && buf.length + s.length > SIZE) {
+        out.push(full(buf.trim()));
+        buf = "";
       }
 
-      if (sentence.length > CHUNK_CHARS) {
-        if (held.trim()) {
-          pieces.push(whole(held.trim()));
-          held = "";
+      // one sentence bigger than a chunk, has to be cut inside
+      if (s.length > SIZE) {
+        if (buf.trim()) {
+          out.push(full(buf.trim()));
+          buf = "";
         }
-        let rest = sentence;
+        let rest = s;
         let first = true;
-        while (rest.length > CHUNK_CHARS) {
-          const at = cutPoint(rest, CHUNK_CHARS);
-          pieces.push({
-            text: rest.slice(0, at).trim(),
-            opensSentence: first,
-            closesSentence: false,
-          });
+        while (rest.length > SIZE) {
+          const at = cutAt(rest, SIZE);
+          out.push({ text: rest.slice(0, at).trim(), opens: first, closes: false });
           rest = rest.slice(at);
           first = false;
         }
-        if (rest.trim()) {
-          pieces.push({ text: rest.trim(), opensSentence: false, closesSentence: true });
-        }
+        if (rest.trim()) out.push({ text: rest.trim(), opens: false, closes: true });
         continue;
       }
 
-      held += sentence;
+      buf += s;
     }
-    if (held.trim()) pieces.push(whole(held.trim()));
+    if (buf.trim()) out.push(full(buf.trim()));
   }
 
-  return pieces.filter((c) => c.text.length > 0);
+  return out.filter((c) => c.text.length > 0);
 }
 
 export type Sampled = {
@@ -85,51 +81,39 @@ export type Sampled = {
   total: number;
 };
 
-export function sampleForPrompt(source: string, budget = PROMPT_BUDGET_CHARS): Sampled {
-  const trimmed = source.trim();
-  const chunks = chunkSource(trimmed);
+export function sampleForPrompt(src: string, budget = PROMPT_BUDGET_CHARS): Sampled {
+  const t = src.trim();
+  const cs = chunkSource(t);
 
-  if (trimmed.length <= budget || chunks.length <= 1) {
-    return { text: trimmed, sampled: false, kept: chunks.length, total: chunks.length };
-  }
+  if (t.length <= budget || cs.length <= 1)
+    return { text: t, sampled: false, kept: cs.length, total: cs.length };
 
-  const average = trimmed.length / chunks.length;
-  const room = Math.max(1, Math.floor(budget / Math.max(1, average)));
-  if (room >= chunks.length) {
-    return { text: trimmed, sampled: false, kept: chunks.length, total: chunks.length };
-  }
+  const avg = t.length / cs.length;
+  const room = Math.max(1, Math.floor(budget / Math.max(1, avg)));
+  if (room >= cs.length) return { text: t, sampled: false, kept: cs.length, total: cs.length };
 
-  const step = chunks.length / room;
-  const picked: number[] = [];
+  // even spread, not the first n
+  const step = cs.length / room;
+  const pick: number[] = [];
   for (let i = 0; i < room; i++) {
-    const index = Math.min(chunks.length - 1, Math.floor(i * step));
-    if (picked[picked.length - 1] !== index) picked.push(index);
+    const at = Math.min(cs.length - 1, Math.floor(i * step));
+    if (pick[pick.length - 1] !== at) pick.push(at);
   }
 
   const parts: string[] = [];
-  let previous = -1;
-  for (const index of picked) {
-    const chunk = chunks[index];
+  let prev = -1;
+  for (const i of pick) {
+    const c = cs[i];
 
-    if (previous === -1) {
-      parts.push(chunk.text);
-    } else if (index > previous + 1) {
-      parts.push("\n\n[...]\n\n", chunk.text);
-    } else if (!chunks[previous].closesSentence && !chunk.opensSentence) {
-      parts.push(chunk.text.startsWith(" ") ? chunk.text : ` ${chunk.text}`);
-    } else {
-      parts.push("\n\n", chunk.text);
-    }
-    previous = index;
+    if (prev === -1) parts.push(c.text);
+    else if (i > prev + 1) parts.push("\n\n[...]\n\n", c.text);
+    else if (!cs[prev].closes && !c.opens) parts.push(c.text.startsWith(" ") ? c.text : ` ${c.text}`);
+    else parts.push("\n\n", c.text);
+
+    prev = i;
   }
-  if (previous < chunks.length - 1) parts.push("\n\n[...]");
+  if (prev < cs.length - 1) parts.push("\n\n[...]");
+  if (!cs[pick[0]].opens) parts.unshift("[...] ");
 
-  if (!chunks[picked[0]].opensSentence) parts.unshift("[...] ");
-
-  return {
-    text: parts.join("").trim(),
-    sampled: true,
-    kept: picked.length,
-    total: chunks.length,
-  };
+  return { text: parts.join("").trim(), sampled: true, kept: pick.length, total: cs.length };
 }

@@ -27,118 +27,100 @@ const EMPTY: Library = { version: 1, topics: [] };
 
 const MAX_TOPICS = 40;
 
-export function topicKey(topic: string): string {
-  return topic.trim().toLowerCase().replace(/\s+/g, " ");
-}
+export const topicKey = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
 
-export function conceptKey(concept: string): string {
-  return concept
+export const conceptKey = (c: string) =>
+  c
     .trim()
     .toLowerCase()
     .replace(/^(the|a|an)\s+/, "")
     .replace(/[.,;:!?]+$/, "")
     .replace(/\s+/g, " ");
-}
 
 function read(): Library {
   if (typeof window === "undefined") return EMPTY;
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return EMPTY;
-    const parsed = JSON.parse(raw) as Library;
-    if (parsed?.version !== 1 || !Array.isArray(parsed.topics)) return EMPTY;
-    return parsed;
+    const p = JSON.parse(raw) as Library;
+    if (p?.version !== 1 || !Array.isArray(p.topics)) return EMPTY;
+    return p;
   } catch {
     return EMPTY;
   }
 }
 
-function write(library: Library): void {
+function write(lib: Library): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(library));
-  } catch {
-  }
+    window.localStorage.setItem(KEY, JSON.stringify(lib));
+  } catch {} // full or blocked, nothing to do about it
 }
 
-export function studied(): TopicRecord[] {
-  return [...read().topics].sort((a, b) => b.lastRun - a.lastRun);
-}
+export const studied = (): TopicRecord[] => [...read().topics].sort((a, b) => b.lastRun - a.lastRun);
 
-export function standingsFor(topic: string): Record<string, Standing> {
-  const record = recordFor(topic);
-  return Object.fromEntries(
-    (record?.concepts ?? []).map((c) => [conceptKey(c.concept), c.standing])
-  );
-}
+export const standingsFor = (topic: string): Record<string, Standing> =>
+  Object.fromEntries((recordFor(topic)?.concepts ?? []).map((c) => [conceptKey(c.concept), c.standing]));
 
 export function recordFor(topic: string): TopicRecord | null {
-  const key = topicKey(topic);
-  return read().topics.find((t) => t.key === key) ?? null;
+  const k = topicKey(topic);
+  return read().topics.find((t) => t.key === k) ?? null;
 }
 
-export function openConcepts(record: TopicRecord | null): string[] {
-  if (!record) return [];
-  return record.concepts.filter((c) => isOpen(c.standing)).map((c) => c.concept);
-}
+export const openConcepts = (r: TopicRecord | null): string[] =>
+  r ? r.concepts.filter((c) => isOpen(c.standing)).map((c) => c.concept) : [];
 
 export function bestFor(topic: string): number | null {
-  const record = recordFor(topic);
-  if (!record || record.runs === 0) return null;
-  // anything over 10 is an old build's weighted total. can't convert it without the
-  // denominator it was earned against, and that was never stored, so drop it.
-  return record.bestRating > 10 ? null : record.bestRating;
+  const r = recordFor(topic);
+  if (!r || !r.runs) return null;
+  // over 10 = an old build's weighted total. no denominator to convert with, bin it
+  return r.bestRating > 10 ? null : r.bestRating;
 }
 
 export function rememberRun(topic: string, data: Reveal): void {
-  const key = topicKey(topic);
-  if (!key) return;
+  const k = topicKey(topic);
+  if (!k) return;
 
-  const library = read();
+  const lib = read();
   const now = Date.now();
-  const existing = library.topics.find((t) => t.key === key);
+  const old = lib.topics.find((t) => t.key === k);
 
-  const previous = new Map((existing?.concepts ?? []).map((c) => [conceptKey(c.concept), c]));
-  const merged = new Map(previous);
+  const was = new Map((old?.concepts ?? []).map((c) => [conceptKey(c.concept), c]));
+  const now_ = new Map(was);
 
   for (const line of data.concepts) {
-    const standing = conceptStanding(line);
-    const before = previous.get(conceptKey(line.concept));
+    const st = conceptStanding(line);
+    const before = was.get(conceptKey(line.concept));
     const graded = line.outcome !== null;
 
-    merged.set(conceptKey(line.concept), {
+    now_.set(conceptKey(line.concept), {
       concept: line.concept,
-      standing:
-        before === undefined || graded || rank(standing) > rank(before.standing)
-          ? standing
-          : before.standing,
+      // a graded run overwrites, an ungraded one can only move it up
+      standing: !before || graded || rank(st) > rank(before.standing) ? st : before.standing,
       reached: Math.max(before?.reached ?? 0, line.reached),
       seen: (before?.seen ?? 0) + 1,
       lastSeen: now,
     });
   }
 
-  const record: TopicRecord = {
+  const rec: TopicRecord = {
     topic: topic.trim(),
-    key,
-    runs: (existing?.runs ?? 0) + 1,
-    bestRating: Math.max(
-      (existing?.bestRating ?? 0) > 10 ? 0 : (existing?.bestRating ?? 0),
-      data.rating.score
-    ),
+    key: k,
+    runs: (old?.runs ?? 0) + 1,
+    bestRating: Math.max((old?.bestRating ?? 0) > 10 ? 0 : old?.bestRating ?? 0, data.rating.score),
     lastRun: now,
-    concepts: [...merged.values()],
+    concepts: [...now_.values()],
   };
 
-  const topics = [record, ...library.topics.filter((t) => t.key !== key)]
+  const topics = [rec, ...lib.topics.filter((t) => t.key !== k)]
     .sort((a, b) => b.lastRun - a.lastRun)
     .slice(0, MAX_TOPICS);
 
   write({ version: 1, topics });
 }
 
-function rank(standing: Standing): number {
-  switch (standing) {
+function rank(s: Standing): number {
+  switch (s) {
     case "explained":
       return 4;
     case "almost":
@@ -153,6 +135,6 @@ function rank(standing: Standing): number {
 }
 
 export function forget(topic: string): void {
-  const key = topicKey(topic);
-  write({ version: 1, topics: read().topics.filter((t) => t.key !== key) });
+  const k = topicKey(topic);
+  write({ version: 1, topics: read().topics.filter((t) => t.key !== k) });
 }

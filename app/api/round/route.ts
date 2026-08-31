@@ -20,24 +20,15 @@ import {
 // TODO: topics and pasted notes go straight into prompts. untrusted, no hardening yet.
 // TODO: rate limits before this is open to anyone but me.
 
-function flatten(s: string): string {
-  return s
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
+const flat = (s: string) =>
+  s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim().toLowerCase();
 
-function deflate(s: string): string {
-  return flatten(s).replace(/\s+/g, "");
-}
+const tight = (s: string) => flat(s).replace(/\s+/g, "");
 
-function citationHolds(quote: string, source: string): boolean {
-  if (!quote.trim()) return false;
-  const q = flatten(quote);
-  const tight = deflate(quote);
-  return flatten(source).includes(q) || deflate(source).includes(tight);
+// no cite, no question
+function citationHolds(q: string, src: string): boolean {
+  if (!q.trim()) return false;
+  return flat(src).includes(flat(q)) || tight(src).includes(tight(q));
 }
 
 const HOUSE_RULES = `
@@ -64,9 +55,8 @@ This session has no pasted material: the student gave a topic only. Write questi
 - Stay on widely agreed, mainstream material for the topic. Do not test contested details, niche trivia, or anything you are unsure of.`;
 
 function alreadyAsked(asked: Asked[]): string {
-  if (asked.length === 0) return "";
-  const recent = asked.slice(-40);
-  const lines = recent.map((a) => `- ${a.prompt} (answer: ${a.answer})`);
+  if (!asked.length) return "";
+  const lines = asked.slice(-40).map((a) => `- ${a.prompt} (answer: ${a.answer})`);
   return `
 The student has ALREADY been asked the questions below, in earlier rounds of this same session. Every question you write must be genuinely new.
 - Do not reuse any of these. Do not reword them. Do not ask for the same answer from a different angle: if the answer below is "stroma", do not write another question whose answer is "stroma".
@@ -84,8 +74,8 @@ Do not write easier or more general questions to get around this. Go the other w
 - Ask about the boundary of a rule: where it stops applying, and what happens then.
 - Prefer "hard" and "medium" over "easy" throughout. If you cannot write a genuinely new easy question, write a medium one instead and label it honestly.`;
 
-function openSystem(provenance: Provenance): string {
-  const cite = provenance === "grounded" ? ',"citation":"..."' : "";
+function openSys(prov: Provenance): string {
+  const cite = prov === "grounded" ? ',"citation":"..."' : "";
 
   return `Open a rapid study session on the topic given. Reply with JSON only, and keep it short.
 
@@ -100,8 +90,8 @@ function openSystem(provenance: Provenance): string {
 {"concepts":["..."],"questions":[{"concept":"...","prompt":"...","options":["...","..."],"answerIndex":1,"answer":"..."${cite}}]}`;
 }
 
-function roundSystem(round: Round, concepts: string[]): string {
-  const format = ROUND_FORMAT[round];
+function roundSys(round: Round, concepts: string[]): string {
+  const fmt = ROUND_FORMAT[round];
   const list = concepts.map((c) => `"${c}"`).join(", ");
   const per = PER_TIER;
 
@@ -112,7 +102,7 @@ The concepts, which every question must be tagged with one of: ${list}
 Write exactly ${per * 3} questions: ${per} "easy", ${per} "medium", and ${per} "hard". Spread them across the concepts as evenly as the concepts allow. The student will only see some of them: which ones depends on how they are doing, so every question at a given difficulty must genuinely belong at that difficulty.
 ${HOUSE_RULES}`;
 
-  if (format === "choice") {
+  if (fmt === "choice") {
     return `${shared}
 
 This is Round 1: four-option multiple choice. Exactly four options per question, exactly one correct. "answer" repeats the correct option's text.
@@ -121,7 +111,7 @@ Respond with JSON in exactly this shape:
 {"questions": [{"concept": "...", "difficulty": "easy" | "medium" | "hard", "prompt": "...", "options": ["...", "...", "...", "..."], "answerIndex": 2, "answer": "...", "because": "...", "citation": "..."}]}`;
   }
 
-  if (format === "blank") {
+  if (fmt === "blank") {
     return `${shared}
 
 This is Round 2: fill in the blank. No options are shown, so the student must produce the term from memory.
@@ -164,27 +154,27 @@ type RawQuestion = {
   citation?: unknown;
 };
 
-const isStrings = (v: unknown): v is string[] =>
+const strs = (v: unknown): v is string[] =>
   Array.isArray(v) && v.every((x) => typeof x === "string");
 
-function isRawQuestion(v: unknown): v is RawQuestion {
+function okRaw(v: unknown): v is RawQuestion {
   if (typeof v !== "object" || v === null) return false;
   const q = v as RawQuestion;
   return typeof q.prompt === "string" && typeof q.answer === "string";
 }
 
 type OpenPayload = { concepts: unknown; questions: unknown };
-function isOpenPayload(v: unknown): v is OpenPayload {
+function okOpen(v: unknown): v is OpenPayload {
   if (typeof v !== "object" || v === null) return false;
   const p = v as OpenPayload;
-  return isStrings(p.concepts) && Array.isArray(p.questions) && p.questions.every(isRawQuestion);
+  return strs(p.concepts) && Array.isArray(p.questions) && p.questions.every(okRaw);
 }
 
 type RoundPayload = { questions: unknown };
-function isRoundPayload(v: unknown): v is RoundPayload {
+function okRound(v: unknown): v is RoundPayload {
   if (typeof v !== "object" || v === null) return false;
   const p = v as RoundPayload;
-  return Array.isArray(p.questions) && p.questions.every(isRawQuestion);
+  return Array.isArray(p.questions) && p.questions.every(okRaw);
 }
 
 type Asked = { concept: string; answer: string; prompt: string; format: Format };
@@ -193,9 +183,9 @@ const FORMATS: Format[] = ["recognition", "choice", "blank", "assemble", "open"]
 
 function readAsked(v: unknown): Asked[] {
   if (!Array.isArray(v)) return [];
-  return v.flatMap((item) => {
-    if (typeof item !== "object" || item === null) return [];
-    const a = item as Record<string, unknown>;
+  return v.flatMap((x) => {
+    if (typeof x !== "object" || x === null) return [];
+    const a = x as Record<string, unknown>;
     if (typeof a.prompt !== "string" || typeof a.answer !== "string") return [];
     return [
       {
@@ -208,70 +198,68 @@ function readAsked(v: unknown): Asked[] {
   });
 }
 
-function asDifficulty(v: unknown, fallback: Difficulty): Difficulty {
-  return TIERS.includes(v as Difficulty) ? (v as Difficulty) : fallback;
-}
+const diff = (v: unknown, fb: Difficulty): Difficulty =>
+  TIERS.includes(v as Difficulty) ? (v as Difficulty) : fb;
 
+// anything that would draw wrong or answer wrong. dropped, not patched
 function usable(q: Question): boolean {
   if (!q.prompt.trim() || !q.answer.trim()) return false;
 
   if (q.format === "recognition" || q.format === "choice") {
-    const want = q.format === "recognition" ? 2 : 4;
-    if (!q.options || q.options.length !== want) return false;
-    if (new Set(q.options.map((o) => o.trim().toLowerCase())).size !== want) return false;
-    return (
-      typeof q.answerIndex === "number" && q.answerIndex >= 0 && q.answerIndex < want
-    );
+    const n = q.format === "recognition" ? 2 : 4;
+    if (q.options?.length !== n) return false;
+    if (new Set(q.options.map((o) => o.trim().toLowerCase())).size !== n) return false;
+    return typeof q.answerIndex === "number" && q.answerIndex >= 0 && q.answerIndex < n;
   }
 
   if (q.format === "assemble") {
-    const chips = q.chips ?? [];
-    if (chips.length < 4 || chips.length > 8) return false;
-    return chips.every((c) => c.trim().length > 0);
+    const c = q.chips ?? [];
+    return c.length >= 4 && c.length <= 8 && c.every((x) => x.trim().length > 0);
   }
 
+  // blank: the gap has to actually be there
   return q.prompt.includes("_");
 }
 
 function shape(
   raw: RawQuestion,
-  format: Format,
-  fallbackDifficulty: Difficulty,
+  fmt: Format,
+  fb: Difficulty,
   concepts: string[],
-  index: number,
-  idPrefix: string
+  i: number,
+  pre: string
 ): Question {
+  // a concept we never asked for breaks the ladder. pin it to a real one
   const concept =
     typeof raw.concept === "string" && concepts.includes(raw.concept)
       ? raw.concept
-      : /* A question tagged with a concept we did not ask for would break the
-           ladder, which follows the same concepts the whole way down. Pin it
-           to a real one rather than dropping a usable question. */
-        concepts[index % Math.max(1, concepts.length)] ?? "this topic";
+      : concepts[i % Math.max(1, concepts.length)] ?? "this topic";
 
   return {
-    id: `${idPrefix}-${index}`,
+    id: `${pre}-${i}`,
     concept,
-    difficulty: asDifficulty(raw.difficulty, fallbackDifficulty),
-    format,
+    difficulty: diff(raw.difficulty, fb),
+    format: fmt,
     prompt: String(raw.prompt).trim(),
-    options: isStrings(raw.options) ? raw.options.map((o) => o.trim()) : undefined,
+    options: strs(raw.options) ? raw.options.map((o) => o.trim()) : undefined,
     answerIndex: typeof raw.answerIndex === "number" ? raw.answerIndex : undefined,
-    accepted: isStrings(raw.accepted) ? raw.accepted.filter(Boolean) : undefined,
-    chips: isStrings(raw.chips) ? raw.chips.map((c) => c.trim()).filter(Boolean) : undefined,
+    accepted: strs(raw.accepted) ? raw.accepted.filter(Boolean) : undefined,
+    chips: strs(raw.chips) ? raw.chips.map((c) => c.trim()).filter(Boolean) : undefined,
     answer: String(raw.answer).trim(),
     because: typeof raw.because === "string" ? raw.because.trim() : undefined,
     citation: typeof raw.citation === "string" ? raw.citation.trim() : undefined,
   };
 }
 
-function keepGrounded(questions: Question[], source: string): { kept: Question[]; dropped: number } {
-  const kept = questions.filter((q) => q.citation && citationHolds(q.citation, source));
-  return { kept, dropped: questions.length - kept.length };
+function keepGrounded(qs: Question[], src: string): { kept: Question[]; dropped: number } {
+  const kept = qs.filter((q) => q.citation && citationHolds(q.citation, src));
+  return { kept, dropped: qs.length - kept.length };
 }
 
+const err = (msg: string, status: number) => NextResponse.json({ error: msg }, { status });
+
 export async function POST(req: Request) {
-  let body: {
+  let b: {
     stage?: unknown;
     round?: unknown;
     topic?: unknown;
@@ -280,38 +268,33 @@ export async function POST(req: Request) {
     asked?: unknown;
   };
   try {
-    body = await req.json();
+    b = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return err("Invalid request body.", 400);
   }
 
-  const topic = typeof body.topic === "string" ? body.topic.trim() : "";
-  if (!topic) {
-    return NextResponse.json({ error: "Name something to study first." }, { status: 400 });
-  }
+  const topic = typeof b.topic === "string" ? b.topic.trim() : "";
+  if (!topic) return err("Name something to study first.", 400);
 
-  const notes = typeof body.notes === "string" ? body.notes.trim() : "";
-  if (notes.length > MAX_SOURCE_CHARS) {
-    return NextResponse.json(
-      {
-        error: `That is more material than one session can work through: ${notes.length.toLocaleString()} characters against a ceiling of ${MAX_SOURCE_CHARS.toLocaleString()}. Paste the chapter or section you are actually studying.`,
-      },
-      { status: 413 }
+  const notes = typeof b.notes === "string" ? b.notes.trim() : "";
+  if (notes.length > MAX_SOURCE_CHARS)
+    return err(
+      `More material than one session can work through: ${notes.length.toLocaleString()} characters against a ceiling of ${MAX_SOURCE_CHARS.toLocaleString()}. Paste the chapter or section you are actually studying.`,
+      413
     );
-  }
 
-  const provenance: Provenance = notes ? "grounded" : "generated";
-  const rules = provenance === "grounded" ? GROUNDED_RULES : GENERATED_RULES;
+  const prov: Provenance = notes ? "grounded" : "generated";
+  const rules = prov === "grounded" ? GROUNDED_RULES : GENERATED_RULES;
 
   const shown = sampleForPrompt(notes);
-
-  const asked = readAsked(body.asked);
+  const asked = readAsked(b.asked);
   const seen: Signature[] = asked.map(signature);
 
-  const shareable = asked.length === 0;
+  // only cacheable on the first call, before this session has its own history
+  const cacheable = !asked.length;
 
   const material =
-    provenance === "grounded"
+    prov === "grounded"
       ? `The student is studying: ${topic}\n\nTheir own material, which every question must come from:\n\n${shown.text}${
           shown.sampled
             ? `\n\n(This is an even spread of a longer document. "[...]" marks material that was left out: do not write questions about what might be in a gap, and never quote across one.)`
@@ -320,145 +303,120 @@ export async function POST(req: Request) {
       : `The student is studying: ${topic}`;
 
   try {
-    if (body.stage === "open") {
-      const key = bankKey({ stage: "open", topic, notes });
+    if (b.stage === "open") {
+      const k = bankKey({ stage: "open", topic, notes });
 
-      if (shareable) {
-        const hit = recall(key);
-        const questions =
-          hit && provenance === "grounded" ? keepGrounded(hit.questions, notes).kept : hit?.questions;
+      if (cacheable) {
+        const hit = recall(k);
+        // re-check the cached cites against the notes in hand, they may not be the same notes
+        const qs = hit && prov === "grounded" ? keepGrounded(hit.questions, notes).kept : hit?.questions;
 
-        if (hit && questions && questions.length > 0) {
+        if (hit && qs?.length) {
           return NextResponse.json({
             concepts: hit.concepts,
-            questions: placeAll(questions),
-            provenance,
+            questions: placeAll(qs),
+            provenance: prov,
             dropped: 0,
             repeats: 0,
             exhausted: false,
-            sampled: provenance === "grounded" && shown.sampled,
+            sampled: prov === "grounded" && shown.sampled,
             chunksKept: shown.kept,
             chunksTotal: shown.total,
           });
         }
       }
 
-      const payload = await chatJSON(
-        `${openSystem(provenance)}\n${rules}${alreadyAsked(asked)}`,
-        material,
-        isOpenPayload
-      );
+      const p = await chatJSON(`${openSys(prov)}\n${rules}${alreadyAsked(asked)}`, material, okOpen);
 
-      const concepts = (payload.concepts as string[])
-        .map((c) => c.trim())
-        .filter(Boolean)
-        .slice(0, 5);
+      const concepts = (p.concepts as string[]).map((c) => c.trim()).filter(Boolean).slice(0, 5);
+      if (!concepts.length)
+        return err("Nothing testable came back for that. Try naming the topic a little more fully.", 422);
 
-      if (concepts.length === 0) {
-        return NextResponse.json(
-          { error: "Nothing testable came back for that. Try naming the topic a little more fully." },
-          { status: 422 }
-        );
-      }
-
-      let questions = (payload.questions as RawQuestion[])
+      let qs = (p.questions as RawQuestion[])
         .map((raw, i) => shape(raw, "recognition", "easy", concepts, i, "open"))
         .filter(usable);
 
       let dropped = 0;
-      if (provenance === "grounded") {
-        const checked = keepGrounded(questions, notes);
-        questions = checked.kept;
-        dropped = checked.dropped;
+      if (prov === "grounded") {
+        const chk = keepGrounded(qs, notes);
+        qs = chk.kept;
+        dropped = chk.dropped;
       }
 
-      const sifted = sift(questions, seen);
-      questions = sifted.kept.slice(0, WARM_UP_COUNT);
+      const sifted = sift(qs, seen);
+      qs = sifted.kept.slice(0, WARM_UP_COUNT);
 
-      if (questions.length === 0) {
-        return NextResponse.json(
-          {
-            error:
-              provenance === "grounded"
-                ? "None of the opening questions could be traced back to your notes, so none were kept. Try pasting a fuller passage."
-                : "Hmm, nothing usable came back for that topic. Give it another go?",
-          },
-          { status: 422 }
+      if (!qs.length)
+        return err(
+          prov === "grounded"
+            ? "None of the opening questions could be traced back to your notes, so none were kept. Try pasting a fuller passage."
+            : "Hmm, nothing usable came back for that topic. Give it another go?",
+          422
         );
-      }
 
-      if (dropped > 0) {
-        console.warn(`Warm up: dropped ${dropped} question(s) with unverifiable citations.`);
-      }
-      if (sifted.repeats > 0) {
-        console.warn(`Warm up: dropped ${sifted.repeats} repeated question(s).`);
-      }
+      if (dropped) console.warn(`warm:dropped ${dropped} bad cite(s)`);
+      if (sifted.repeats) console.warn(`warm:dropped ${sifted.repeats} repeat(s)`);
 
-      if (shareable) keep(key, { concepts, questions, exhausted: false });
+      if (cacheable) keep(k, { concepts, questions: qs, exhausted: false });
 
       return NextResponse.json({
         concepts,
-        questions: placeAll(questions),
-        provenance,
+        questions: placeAll(qs),
+        provenance: prov,
         dropped,
         repeats: sifted.repeats,
         exhausted: false,
-        sampled: provenance === "grounded" && shown.sampled,
+        sampled: prov === "grounded" && shown.sampled,
         chunksKept: shown.kept,
         chunksTotal: shown.total,
       });
     }
 
-    const round = body.round;
-    if (round !== 1 && round !== 2 && round !== 3) {
-      return NextResponse.json({ error: "Unknown round." }, { status: 400 });
-    }
-    if (!isStrings(body.concepts) || body.concepts.length === 0) {
-      return NextResponse.json({ error: "This round needs the session's concepts." }, { status: 400 });
-    }
+    const round = b.round;
+    if (round !== 1 && round !== 2 && round !== 3) return err("Unknown round.", 400);
+    if (!strs(b.concepts) || !b.concepts.length)
+      return err("This round needs the session's concepts.", 400);
 
-    const concepts = body.concepts.map((c) => c.trim()).filter(Boolean);
-    const format = ROUND_FORMAT[round];
-    const wanted = PER_TIER * 3;
+    const concepts = b.concepts.map((c) => c.trim()).filter(Boolean);
+    const fmt = ROUND_FORMAT[round];
+    const want = PER_TIER * 3;
 
-    const key = bankKey({ stage: round, topic, notes, concepts });
+    const k = bankKey({ stage: round, topic, notes, concepts });
 
-    if (shareable) {
-      const hit = recall(key);
-      const questions =
-        hit && provenance === "grounded" ? keepGrounded(hit.questions, notes).kept : hit?.questions;
+    if (cacheable) {
+      const hit = recall(k);
+      const qs = hit && prov === "grounded" ? keepGrounded(hit.questions, notes).kept : hit?.questions;
 
-      if (hit && questions && questions.length > 0) {
+      if (hit && qs?.length)
         return NextResponse.json({
-          questions: placeAll(questions),
-          provenance,
+          questions: placeAll(qs),
+          provenance: prov,
           dropped: 0,
           repeats: 0,
           exhausted: hit.exhausted,
         });
-      }
     }
 
-    const draw = async (extra: string, idPrefix: string, against: Signature[]) => {
-      const payload = await chatJSON(
-        `${roundSystem(round, concepts)}\n${rules}${alreadyAsked(asked)}${extra}`,
+    const draw = async (extra: string, pre: string, against: Signature[]) => {
+      const p = await chatJSON(
+        `${roundSys(round, concepts)}\n${rules}${alreadyAsked(asked)}${extra}`,
         material,
-        isRoundPayload
+        okRound
       );
 
-      let questions = (payload.questions as RawQuestion[])
-        .map((raw, i) => shape(raw, format, "medium", concepts, i, idPrefix))
+      let qs = (p.questions as RawQuestion[])
+        .map((raw, i) => shape(raw, fmt, "medium", concepts, i, pre))
         .filter(usable);
 
       let dropped = 0;
-      if (provenance === "grounded") {
-        const checked = keepGrounded(questions, notes);
-        questions = checked.kept;
-        dropped = checked.dropped;
+      if (prov === "grounded") {
+        const chk = keepGrounded(qs, notes);
+        qs = chk.kept;
+        dropped = chk.dropped;
       }
 
-      const sifted = sift(questions, against);
-      return { kept: sifted.kept, repeats: sifted.repeats, dropped };
+      const s = sift(qs, against);
+      return { kept: s.kept, repeats: s.repeats, dropped };
     };
 
     const first = await draw("", `r${round}`, seen);
@@ -467,51 +425,34 @@ export async function POST(req: Request) {
     let dropped = first.dropped;
     let exhausted = false;
 
-    if (runningDry(kept.length, wanted)) {
-      console.warn(
-        `Round ${round}: only ${kept.length} of ${wanted} were new. Escalating rather than repeating.`
-      );
+    // topic's run dry. ask harder, never easier
+    if (runningDry(kept.length, want)) {
+      console.warn(`r${round}:dry ${kept.length}/${want} new, escalating`);
       exhausted = true;
 
-      const retry = await draw(ESCALATE, `r${round}b`, [...seen, ...kept.map(signature)]);
-      kept = [...kept, ...retry.kept];
-      repeats += retry.repeats;
-      dropped += retry.dropped;
+      const again = await draw(ESCALATE, `r${round}b`, [...seen, ...kept.map(signature)]);
+      kept = [...kept, ...again.kept];
+      repeats += again.repeats;
+      dropped += again.dropped;
     }
 
-    if (kept.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            provenance === "grounded"
-              ? "No questions for this round could be traced back to your notes."
-              : "No usable questions came back for this round.",
-        },
-        { status: 422 }
+    if (!kept.length)
+      return err(
+        prov === "grounded"
+          ? "No questions for this round could be traced back to your notes."
+          : "No usable questions came back for this round.",
+        422
       );
-    }
 
-    if (dropped > 0) {
-      console.warn(`Round ${round}: dropped ${dropped} question(s) with unverifiable citations.`);
-    }
-    if (repeats > 0) {
-      console.warn(`Round ${round}: dropped ${repeats} question(s) already asked this session.`);
-    }
+    if (dropped) console.warn(`r${round}:dropped ${dropped} bad cite(s)`);
+    if (repeats) console.warn(`r${round}:dropped ${repeats} repeat(s)`);
 
-    if (shareable) keep(key, { concepts, questions: kept, exhausted });
+    if (cacheable) keep(k, { concepts, questions: kept, exhausted });
 
-    return NextResponse.json({
-      questions: placeAll(kept),
-      provenance,
-      dropped,
-      repeats,
-      exhausted,
-    });
-  } catch (err) {
-    if (err instanceof AIError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    console.error("Round generation failed:", err);
-    return NextResponse.json({ error: "Oops! We could not build that round :( Give it another go." }, { status: 500 });
+    return NextResponse.json({ questions: placeAll(kept), provenance: prov, dropped, repeats, exhausted });
+  } catch (e) {
+    if (e instanceof AIError) return err(e.message, e.status);
+    console.error("round:rip", e);
+    return err("Oops! We could not build that round :( Give it another go.", 500);
   }
 }

@@ -4,11 +4,12 @@ export const MUSIC_VOLUME = 0.6;
 
 const TRACK = "/audio/8bit-dungeon-level.mp3";
 
-let element: HTMLAudioElement | null = null;
-let wanted = false;
+let el: HTMLAudioElement | null = null;
+let want = false;
 let armed = false;
 
-function beginOnFirstGesture(): void {
+// autoplay is blocked until somebody clicks something, so wait for the click
+function waitForGesture() {
   if (armed || typeof window === "undefined") return;
   armed = true;
 
@@ -16,50 +17,44 @@ function beginOnFirstGesture(): void {
     armed = false;
     window.removeEventListener("click", go);
     window.removeEventListener("keydown", go);
-    if (wanted) setMusic(true);
+    if (want) setMusic(true);
   };
 
   window.addEventListener("click", go, { once: true });
   window.addEventListener("keydown", go, { once: true });
 }
 
-function track(): HTMLAudioElement | null {
+function audio() {
   if (typeof window === "undefined") return null;
-  if (element) return element;
+  if (el) return el;
 
   try {
-    const audio = new Audio();
-    audio.preload = "none";
-    audio.src = TRACK;
-    audio.loop = true;
-    audio.volume = MUSIC_VOLUME;
-    element = audio;
-    return audio;
+    const a = new Audio();
+    a.preload = "none"; // don't pull 1.5mb on a page nobody turned the music on for
+    a.src = TRACK;
+    a.loop = true;
+    a.volume = MUSIC_VOLUME;
+    el = a;
+    return a;
   } catch {
     return null;
   }
 }
 
-export function setMusic(on: boolean): void {
-  wanted = on;
+export function setMusic(on: boolean) {
+  want = on;
+  if (!on && !el) return;
 
-  if (!on && !element) return;
-
-  const audio = track();
-  if (!audio) return;
+  const a = audio();
+  if (!a) return;
 
   try {
-    if (!on) {
-      audio.pause();
-      return;
-    }
+    if (!on) return a.pause();
 
-    audio.volume = MUSIC_VOLUME;
-    const started = audio.play();
-    if (started && typeof started.catch === "function") {
-      started.catch(() => beginOnFirstGesture());
-    }
+    a.volume = MUSIC_VOLUME;
+    const p = a.play();
+    if (p && typeof p.catch === "function") p.catch(() => waitForGesture());
   } catch {
-    beginOnFirstGesture();
+    waitForGesture();
   }
 }

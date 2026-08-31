@@ -13,14 +13,12 @@ export function AudioControls({ className = "" }: { className?: string }) {
     setMusic(music);
   }, [music]);
 
-  const flip = useCallback((channel: Channel, on: boolean) => {
-    setAudioWanted(channel, on);
-    if (channel === "music") {
-      setMusicOn(on);
-      setMusic(on);
-    } else {
-      setSound(on);
-    }
+  // tells the module synchronously, not through state. tone.ts reads it on the next play()
+  const flip = useCallback((ch: Channel, on: boolean) => {
+    setAudioWanted(ch, on);
+    if (ch !== "music") return setSound(on);
+    setMusicOn(on);
+    setMusic(on);
   }, []);
 
   return (

@@ -14,9 +14,8 @@ export type Speech = (typeof SPEECHES)[number];
 
 export type Side = "Pro" | "Con";
 
-export function sideWord(side: Side): "For" | "Against" {
-  return side === "Pro" ? "For" : "Against";
-}
+// nobody outside debate club says "Pro"
+export const sideWord = (s: Side) => (s === "Pro" ? "For" : "Against");
 
 export const TIERS = [
   {
@@ -39,9 +38,7 @@ export const TIERS = [
 
 export type TierId = (typeof TIERS)[number]["id"];
 
-export function tier(id: TierId | undefined) {
-  return TIERS.find((t) => t.id === id) ?? TIERS[1];
-}
+export const tier = (id: TierId | undefined) => TIERS.find((t) => t.id === id) ?? TIERS[1];
 
 export type Turn = {
   speaker: "user" | "opponent";
@@ -54,15 +51,14 @@ export const MIN_WORDS_TO_JUDGE = 20;
 export function wordsSpoken(turns: Turn[]): number {
   return turns
     .filter((t) => t.speaker === "user")
-    .reduce((sum, t) => {
-      const text = t.text.trim();
-      return sum + (text ? text.split(/\s+/).length : 0);
+    .reduce((n, t) => {
+      const x = t.text.trim();
+      return n + (x ? x.split(/\s+/).length : 0);
     }, 0);
 }
 
-export function worthJudging(turns: Turn[]): boolean {
-  return wordsSpoken(turns) >= MIN_WORDS_TO_JUDGE;
-}
+// stops the judge writing a ballot for somebody who typed "idk"
+export const worthJudging = (turns: Turn[]) => wordsSpoken(turns) >= MIN_WORDS_TO_JUDGE;
 
 export type Setup = {
   tab: Tab;

@@ -4,47 +4,78 @@ import { useEffect, useRef, useState } from "react";
 import type { Annotation, Grade, Outcome } from "../api/grade/route";
 import { isBusy, postJSON } from "../client";
 import { MarginNotes, MarkedUpText, useDissection } from "../dissection";
-import { Arrow, Aside, Ask, GhostButton, Label, Leaf, Notice, PrimaryButton, Working } from "../ui";
+import {
+  Arrow,
+  Aside,
+  Ask,
+  GhostButton,
+  Label,
+  Leaf,
+  Notice,
+  PrimaryButton,
+  Working,
+} from "../ui";
 import type { Production, Provenance, Question } from "./types";
 import { play } from "../tone";
 import { useSpeech } from "./voice";
 
-function materialFrom(concept: string, questions: Question[]): string {
-  const mine = questions.filter((q) => q.concept === concept);
-  const lines = mine.map((q) => {
-    const parts = [`${q.prompt}`, `Correct answer: ${q.answer}`];
-    if (q.because) parts.push(q.because);
-    return parts.join("\n");
-  });
+// topic-only session has no source, so the questions it already asked stand in.
+// the prompt is very loud about this being context and not a passage
+function materialFrom(concept: string, questions: Question[]) {
+  const lines = questions
+    .filter((q) => q.concept === concept)
+    .map((q) => {
+      const p = [q.prompt, `Correct answer: ${q.answer}`];
+      if (q.because) p.push(q.because);
+      return p.join("\n");
+    });
 
   return [
-    `Material on "${concept}", as presented to the student during this session.`,
+    `Material on"${concept}", as presented to the student during this session.`,
     "",
     lines.join("\n\n"),
   ].join("\n");
 }
 
-function closestScroller(from: HTMLElement | null): HTMLElement | null {
+// the page itself does not scroll, some div up the tree does. find which one
+function closestScroller(from: HTMLElement | null) {
   for (let el = from?.parentElement ?? null; el; el = el.parentElement) {
-    const overflow = getComputedStyle(el).overflowY;
-    if ((overflow === "auto" || overflow === "scroll") && el.scrollHeight > el.clientHeight) {
+    const o = getComputedStyle(el).overflowY;
+    if ((o === "auto" || o === "scroll") && el.scrollHeight > el.clientHeight)
       return el;
-    }
   }
   return null;
 }
 
 const OUTCOME: Record<Outcome, { word: string; mark: string; ink: string }> = {
-  solid: { word: "Demonstrated", mark: "var(--solid-mark)", ink: "var(--solid-ink)" },
-  shaky: { word: "Nearly there", mark: "var(--shaky-mark)", ink: "var(--shaky-ink)" },
-  "not-yet": { word: "Not yet", mark: "var(--broken-mark)", ink: "var(--broken-ink)" },
+  solid: {
+    word: "Demonstrated",
+    mark: "var(--solid-mark)",
+    ink: "var(--solid-ink)",
+  },
+  shaky: {
+    word: "Nearly there",
+    mark: "var(--shaky-mark)",
+    ink: "var(--shaky-ink)",
+  },
+  "not-yet": {
+    word: "Not yet",
+    mark: "var(--broken-mark)",
+    ink: "var(--broken-ink)",
+  },
 };
 
-function OutcomeLine({ outcome, verdict }: { outcome: Outcome; verdict: string }) {
+function OutcomeLine({
+  outcome,
+  verdict,
+}: {
+  outcome: Outcome;
+  verdict: string;
+}) {
   const o = OUTCOME[outcome];
   return (
     <div
-      className="flex flex-col gap-2 rounded-[3px] border-l-[3px] py-1 pl-4"
+      className="flex flex-col gap-2 border-l-[3px] py-1 pl-4"
       style={{ borderLeftColor: o.mark }}
     >
       <span
@@ -53,13 +84,15 @@ function OutcomeLine({ outcome, verdict }: { outcome: Outcome; verdict: string }
       >
         {o.word}
       </span>
-      <p className="font-read text-[1.125rem] leading-[1.5] text-ink">{verdict}</p>
+      <p className="font-read text-[1.125rem] leading-[1.5] text-ink">
+        {verdict}
+      </p>
     </div>
   );
 }
 
 function LeftOut({ items }: { items: string[] }) {
-  if (items.length === 0) return null;
+  if (!items.length) return null;
   return (
     <section className="flex max-w-[42rem] flex-col gap-3">
       <div className="flex items-baseline justify-between gap-4">
@@ -115,11 +148,11 @@ export function TeachBack({
   useEffect(() => {
     if (!grade) return;
 
-    const scroller = closestScroller(marked.current);
-    const top = () => scroller?.scrollTo({ top: 0 });
+    const sc = closestScroller(marked.current);
+    const top = () => sc?.scrollTo({ top: 0 });
     top();
-    const frame = requestAnimationFrame(top);
-    return () => cancelAnimationFrame(frame);
+    const raf = requestAnimationFrame(top);
+    return () => cancelAnimationFrame(raf);
   }, [grade]);
 
   const speech = useSpeech();
@@ -127,9 +160,12 @@ export function TeachBack({
   const source = usesNotes ? notes : materialFrom(concept, questions);
   const dissection = useDissection(explanation, grade?.annotations ?? []);
 
-  const heard = [speech.transcript, speech.interim].filter(Boolean).join(" ").trim();
+  const heard = [speech.transcript, speech.interim]
+    .filter(Boolean)
+    .join("")
+    .trim();
 
-  function takeTranscript() {
+  function keepHeard() {
     if (!heard) return;
     setExplanation((prev) => (prev ? `${prev.trim()} ${heard}` : heard));
     setUsedVoice(true);
@@ -143,25 +179,26 @@ export function TeachBack({
     setError(null);
     setWasBusy(false);
     try {
-      const result = await postJSON<Grade>("/api/grade", {
+      const via = usedVoice ? "voice" : "typed";
+      const g = await postJSON<Grade>("/api/grade", {
         source,
         concept,
         explanation: said,
         brief: true,
-        via: usedVoice ? "voice" : "typed",
+        via,
         grounded: usesNotes,
       });
-      setGrade(result);
-      play(result.outcome === "not-yet" ? "wrong" : "right", result.outcome === "solid" ? 1 : 0.4);
-      onDone({
-        concept,
-        explanation: said,
-        via: usedVoice ? "voice" : "typed",
-        outcome: result.outcome,
-      });
-    } catch (err) {
-      setWasBusy(isBusy(err));
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setGrade(g);
+      play(
+        g.outcome === "not-yet" ? "wrong" : "right",
+        g.outcome === "solid" ? 1 : 0.4,
+      );
+      onDone({ concept, explanation: said, via, outcome: g.outcome });
+    } catch (e) {
+      setWasBusy(isBusy(e));
+      setError(
+        e instanceof Error ? e.message : "That did not get marked. Try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -185,9 +222,10 @@ export function TeachBack({
 
           {!usesNotes && (
             <p className="max-w-[62ch] font-sans text-[0.8125rem] leading-[1.6] text-ink-faint">
-              Nothing here was checked against a source. You pasted no material, so these marks are
-              one AI model&rsquo;s opinion, and it can be wrong while sounding certain. If you have
-              reason to think a mark has the facts wrong, back yourself and go and check.
+              Nothing here was checked against a source. You pasted no material,
+              so these marks are one AI model&rsquo;s opinion, and it can be
+              wrong while sounding certain. If you have reason to think a mark
+              has the facts wrong, back yourself and go and check.
             </p>
           )}
         </div>
@@ -197,7 +235,10 @@ export function TeachBack({
             style={{ fontVariationSettings: '"wdth" 88' }}
             className="inline-flex cursor-pointer list-none items-center gap-1.5 self-start font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
           >
-            <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+            <span
+              aria-hidden
+              className="inline-block transition-transform group-open:rotate-90"
+            >
               ›
             </span>
             See why
@@ -237,7 +278,10 @@ export function TeachBack({
           </div>
         </details>
 
-        <div className="rise flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 4 }}>
+        <div
+          className="rise flex flex-wrap items-center gap-3"
+          style={{ ["--i" as string]: 4 }}
+        >
           {more ? (
             <PrimaryButton onClick={onNext}>
               Next concept <Arrow />
@@ -262,8 +306,9 @@ export function TeachBack({
         <Ask>Explain {concept} in your own words.</Ask>
 
         <p className="max-w-[54ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-          One or two sentences is plenty. Nothing on screen will help you this time, and that is the
-          only reason this round tells you anything the others could not.
+          One or two sentences is plenty. Nothing on screen will help you this
+          time, and that is the only reason this round tells you anything the
+          others could not.
         </p>
       </div>
 
@@ -272,19 +317,28 @@ export function TeachBack({
           {wasBusy ? <Aside>{error}</Aside> : <Notice>{error}</Notice>}
           <div className="flex flex-wrap items-center gap-3">
             {index + 1 < total && (
-              <GhostButton onClick={onNext}>Try a different concept</GhostButton>
+              <GhostButton onClick={onNext}>
+                Try a different concept
+              </GhostButton>
             )}
-            <GhostButton onClick={onStop}>Skip this and see your results</GhostButton>
+            <GhostButton onClick={onStop}>
+              Skip this and see your results
+            </GhostButton>
           </div>
         </div>
       )}
 
       {speech.supported && (
-        <div className="rise flex flex-col gap-3" style={{ ["--i" as string]: 1 }}>
+        <div
+          className="rise flex flex-col gap-3"
+          style={{ ["--i" as string]: 1 }}
+        >
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() => (speech.listening ? speech.stop() : speech.start())}
-              className={`btn inline-flex items-center gap-2.5 rounded-[3px] border-2 px-4 py-2.5 font-sans text-[0.875rem] font-semibold transition-colors ${
+              onClick={() =>
+                speech.listening ? speech.stop() : speech.start()
+              }
+              className={`btn inline-flex items-center gap-2.5 border-2 px-4 py-2.5 font-sans text-[0.875rem] font-semibold transition-colors ${
                 speech.listening
                   ? "border-broken-mark bg-broken-tint text-broken-ink"
                   : "border-line-strong text-ink-soft hover:border-accent hover:text-accent"
@@ -292,7 +346,7 @@ export function TeachBack({
             >
               <span
                 aria-hidden
-                className={`block h-2.5 w-2.5 rounded-full ${
+                className={`block h-2.5 w-2.5 ${
                   speech.listening ? "listening bg-broken-mark" : "bg-ink-faint"
                 }`}
               />
@@ -301,8 +355,8 @@ export function TeachBack({
 
             {heard && !speech.listening && (
               <button
-                onClick={takeTranscript}
-                className="btn rounded-[3px] bg-accent px-4 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent"
+                onClick={keepHeard}
+                className="btn bg-accent px-4 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent"
               >
                 Use this text
               </button>
@@ -319,7 +373,7 @@ export function TeachBack({
 
           {(heard || speech.listening) && (
             <div
-              className={`rounded-[3px] border border-l-[3px] border-line bg-sunk/60 p-3.5 ${
+              className={`border border-l-[3px] border-line bg-sunk/60 p-3.5 ${
                 speech.listening ? "transcript-live" : ""
               }`}
             >
@@ -331,21 +385,29 @@ export function TeachBack({
               </p>
               <p className="font-read text-[1rem] leading-[1.6] text-ink">
                 {speech.transcript}
-                {speech.interim && <span className="text-ink-faint"> {speech.interim}</span>}
+                {speech.interim && (
+                  <span className="text-ink-faint"> {speech.interim}</span>
+                )}
                 {!heard && <span className="text-ink-faint">Listening…</span>}
               </p>
             </div>
           )}
 
           {speech.error && (
-            <p role="alert" className="font-sans text-[0.8125rem] text-broken-ink">
+            <p
+              role="alert"
+              className="font-sans text-[0.8125rem] text-broken-ink"
+            >
               {speech.error}
             </p>
           )}
         </div>
       )}
 
-      <div className="rise flex flex-col gap-4" style={{ ["--i" as string]: 2 }}>
+      <div
+        className="rise flex flex-col gap-4"
+        style={{ ["--i" as string]: 2 }}
+      >
         <Leaf
           value={explanation}
           onChange={setExplanation}
@@ -358,7 +420,10 @@ export function TeachBack({
         />
 
         <div className="flex flex-wrap items-center gap-3">
-          <PrimaryButton onClick={submit} disabled={loading || !explanation.trim()}>
+          <PrimaryButton
+            onClick={submit}
+            disabled={loading || !explanation.trim()}
+          >
             {loading ? "Marking…" : "Submit"} {!loading && <Arrow />}
           </PrimaryButton>
 
@@ -368,9 +433,10 @@ export function TeachBack({
               style={{ fontVariationSettings: '"wdth" 88' }}
               className="font-sans text-[0.75rem] text-ink-faint pointer-coarse:hidden"
             >
-              <kbd className="rounded-[3px] border border-line-strong bg-sunk px-1.5 py-0.5 font-mono text-[0.6875rem]">
+              <kbd className="border border-line-strong bg-sunk px-1.5 py-0.5 font-mono text-[0.6875rem]">
                 Enter
-              </kbd>{" "}
+              </kbd>
+              {""}
               to send, <kbd className="font-mono">Shift</kbd>+
               <kbd className="font-mono">Enter</kbd> for a new line
             </span>

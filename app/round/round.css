@@ -1,3 +1,5 @@
+/* round mode only. cards dealing in, marks flashing, the clock ring. */
+
 @keyframes deal-in {
   from {
     opacity: 0;
@@ -49,10 +51,19 @@
 }
 
 @keyframes miss-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  50% { transform: translateX(3px); }
-  75% { transform: translateX(-2px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
 }
 
 .miss-shake {
@@ -71,9 +82,15 @@
 }
 
 @keyframes right-pop {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.035); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.035);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .right-pop {
@@ -81,8 +98,12 @@
 }
 
 @keyframes right-sheen {
-  from { transform: translateX(-110%); }
-  to { transform: translateX(110%); }
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(110%);
+  }
 }
 
 .right-sheen {
@@ -103,9 +124,18 @@
 }
 
 @keyframes verdict-in {
-  0% { opacity: 0; transform: translateY(8px) scale(0.94); }
-  60% { opacity: 1; transform: translateY(0) scale(1.03); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .verdict-in {
@@ -113,8 +143,13 @@
 }
 
 @keyframes clock-cheer {
-  0%, 100% { transform: scale(1); }
-  45% { transform: scale(1.14); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.14);
+  }
 }
 
 .clock-cheer {
@@ -123,18 +158,24 @@
 
 .ring {
   --t: 1;
-  background:
-    conic-gradient(
-      var(--ring-ink, var(--accent)) calc(var(--t) * 360deg),
-      var(--line) 0
-    );
+  background: conic-gradient(
+    var(--ring-ink, var(--accent)) calc(var(--t) * 360deg),
+    var(--line) 0
+  );
   border-radius: 50%;
   transition: background 0.12s linear;
 }
 
 @keyframes urgent-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.09); opacity: 0.82; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.09);
+    opacity: 0.82;
+  }
 }
 
 .urgent {
@@ -160,9 +201,18 @@
 }
 
 @keyframes chip-snap {
-  0% { transform: scale(0.82); opacity: 0; }
-  65% { transform: scale(1.06); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .chip-snap {
@@ -190,6 +240,7 @@
   border-left-color: var(--accent);
 }
 
+/* everything above switches off here. the round is fully playable with it all off */
 @media (prefers-reduced-motion: reduce) {
   .deal-in,
   .deal-in-stagger,
@@ -200,7 +251,6 @@
   .clock-cheer,
   .miss-shake,
   .miss-mark,
-
   .urgent,
   .split-land,
   .chip-snap,

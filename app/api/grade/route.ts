@@ -6,10 +6,10 @@ export type Outcome = "solid" | "shaky" | "not-yet";
 export type AnnotationType = "right" | "imprecise" | "wrong";
 
 export type Annotation = {
-  quote: string; // verbatim span from the student's explanation
+  quote: string; // their words, verbatim
   type: AnnotationType;
-  comment: string; // what the source claims instead (empty for "right")
-  sourceQuote: string; // verbatim span from the source backing the comment ("" if none/unverified)
+  comment: string; // what the source says instead
+  sourceQuote: string; // verbatim from source, "" if unverified
 };
 
 export type Grade = {
@@ -19,7 +19,7 @@ export type Grade = {
   outcome: Outcome;
 };
 
-const SYSTEM = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Dissect their explanation phrase by phrase against the provided source material ONLY, not against your own knowledge of the topic.
+const SYS = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Dissect their explanation phrase by phrase against the provided source material ONLY, not against your own knowledge of the topic.
 
 Do not use em dashes anywhere in your output. Use commas, colons or separate sentences instead.
 
@@ -39,7 +39,8 @@ Judge the explanation against WHAT WAS ASKED, not against the most complete poss
 Respond with JSON exactly in this shape:
 {"annotations": [{"quote": "...", "type": "right" | "imprecise" | "wrong", "comment": "...", "sourceQuote": "..."}], "missed": ["..."], "verdict": "...", "outcome": "solid" | "shaky" | "not-yet"}`;
 
-const TOPIC_SYSTEM = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Judge their explanation against ordinary, well established knowledge of that concept, the kind any competent textbook would agree on.
+// same job, no source. every sourceQuote must come back empty
+const SYS_TOPIC = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Judge their explanation against ordinary, well established knowledge of that concept, the kind any competent textbook would agree on.
 
 THERE IS NO SOURCE MATERIAL IN THIS SESSION. The student did not paste anything. You may be shown a record of the questions this session asked them, and that record is context for what was covered, nothing more. It is a list of quiz questions, not a passage, and it is not the standard the explanation is measured against.
 - Never treat a question as a statement of fact or as the definition of anything.
@@ -64,7 +65,7 @@ Judge the explanation against WHAT WAS ASKED, not against the most complete poss
 Respond with JSON exactly in this shape:
 {"annotations": [{"quote": "...", "type": "right" | "imprecise" | "wrong", "comment": "...", "sourceQuote": "..."}], "missed": ["..."], "verdict": "...", "outcome": "solid" | "shaky" | "not-yet"}`;
 
-function isAnnotation(v: unknown): v is Annotation {
+function okAnn(v: unknown): v is Annotation {
   if (typeof v !== "object" || v === null) return false;
   const a = v as Annotation;
   return (
@@ -75,77 +76,62 @@ function isAnnotation(v: unknown): v is Annotation {
   );
 }
 
-function flatten(s: string): string {
-  return s
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
+const flat = (s: string) =>
+  s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim().toLowerCase();
 
-function deflate(s: string): string {
-  return flatten(s).replace(/\s+/g, "");
-}
+const tight = (s: string) => flat(s).replace(/\s+/g, "");
 
-function present(quote: string, haystack: string, tight: string): boolean {
-  return haystack.includes(flatten(quote)) || tight.includes(deflate(quote));
-}
+// loose match, punctuation and spacing drift is fine
+const inThere = (q: string, hay: string, hayTight: string) =>
+  hay.includes(flat(q)) || hayTight.includes(tight(q));
 
-export function verifyCitations(
-  grade: Grade,
-  source: string,
-  explanation: string,
-  grounded: boolean
-): Grade {
-  const said = flatten(explanation);
-  const saidTight = deflate(explanation);
-  const inSource = flatten(source);
-  const sourceTight = deflate(source);
+export function verifyCitations(g: Grade, src: string, exp: string, grounded: boolean): Grade {
+  const said = flat(exp);
+  const saidT = tight(exp);
+  const from = flat(src);
+  const fromT = tight(src);
 
-  let lostQuotes = 0;
-  let lostCitations = 0;
+  let noQ = 0, noSrc = 0;
 
-  const annotations = grade.annotations.map((a) => {
+  const anns = g.annotations.map((a) => {
     let out = a;
 
-    if (out.quote && !present(out.quote, said, saidTight)) {
-      lostQuotes++;
+    // quoted something they never said
+    if (out.quote && !inThere(out.quote, said, saidT)) {
+      noQ++;
       out = { ...out, quote: "" };
     }
-
-    if (out.sourceQuote && (!grounded || !present(out.sourceQuote, inSource, sourceTight))) {
-      if (grounded) lostCitations++;
+    // cited something not in the source, or there is no source
+    if (out.sourceQuote && (!grounded || !inThere(out.sourceQuote, from, fromT))) {
+      if (grounded) noSrc++;
       out = { ...out, sourceQuote: "" };
     }
 
     return out;
   });
 
-  if (lostQuotes > 0) {
-    console.warn(`Dropped ${lostQuotes} quote(s) not found in the student's explanation.`);
-  }
-  if (lostCitations > 0) {
-    console.warn(`Dropped ${lostCitations} sourceQuote(s) not found verbatim in the source.`);
-  }
+  if (noQ) console.warn(`grade:dropped ${noQ} quote(s), not in their answer`);
+  if (noSrc) console.warn(`grade:dropped ${noSrc} citation(s), not in the source`);
 
-  return { ...grade, annotations: annotations.filter((a) => a.quote || a.comment.trim()) };
+  return { ...g, annotations: anns.filter((a) => a.quote || a.comment.trim()) };
 }
 
-function isGrade(v: unknown): v is Grade {
+function okGrade(v: unknown): v is Grade {
   if (typeof v !== "object" || v === null) return false;
   const g = v as Grade;
   return (
     Array.isArray(g.annotations) &&
-    g.annotations.every(isAnnotation) &&
+    g.annotations.every(okAnn) &&
     isStringArray(g.missed) &&
     typeof g.verdict === "string" &&
     (g.outcome === "solid" || g.outcome === "shaky" || g.outcome === "not-yet")
   );
 }
 
+const err = (msg: string, status: number) => NextResponse.json({ error: msg }, { status });
+
 export async function POST(req: Request) {
-  let body: {
+  let b: {
     source?: unknown;
     concept?: unknown;
     explanation?: unknown;
@@ -154,50 +140,45 @@ export async function POST(req: Request) {
     grounded?: unknown;
   };
   try {
-    body = await req.json();
+    b = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
-  }
-  const { source, concept, explanation } = body;
-  if (
-    typeof source !== "string" || !source.trim() ||
-    typeof concept !== "string" || !concept.trim() ||
-    typeof explanation !== "string" || !explanation.trim()
-  ) {
-    return NextResponse.json(
-      { error: "source, concept, and explanation are all required." },
-      { status: 400 }
-    );
+    return err("Invalid request body.", 400);
   }
 
-  const brief = body.brief === true;
-  const spoken = body.via === "voice";
-  const conditions = brief
-    ? `\n\n---\n\nHow this answer was given: the student was asked for a quick explanation in one or two sentences${
-        spoken ? ", spoken aloud and transcribed" : ", typed under no time pressure"
-      }. Judge it as such. Do not treat its length${
-        spoken ? ", its lack of punctuation, or its spoken phrasing" : ""
-      } as a gap.`
-    : "";
+  const { source: src, concept, explanation: exp } = b;
+  const str = (v: unknown) => typeof v === "string" && !!v.trim();
+  if (!str(src) || !str(concept) || !str(exp))
+    return err("source, concept, and explanation are all required.", 400);
 
-  const grounded = body.grounded !== false;
+  const s = src as string, c = concept as string, e = exp as string;
+
+  // tell the model how the answer was given, or it marks a spoken sentence down for being one
+  const spoken = b.via === "voice";
+  const how =
+    b.brief === true
+      ? `\n\n---\n\nHow this answer was given: the student was asked for a quick explanation in one or two sentences${
+          spoken ? ", spoken aloud and transcribed" : ", typed under no time pressure"
+        }. Judge it as such. Do not treat its length${
+          spoken ? ", its lack of punctuation, or its spoken phrasing" : ""
+        } as a gap.`
+      : "";
+
+  const grounded = b.grounded !== false;
 
   const material = grounded
-    ? `Source material:\n\n${source}`
-    : `For context only, the questions this session asked the student about "${concept}". This is a record of what was covered. It is NOT source material, it is NOT a passage, and it is NOT the standard the explanation is judged against:\n\n${source}`;
+    ? `Source material:\n\n${s}`
+    : `For context only, the questions this session asked the student about "${c}". This is a record of what was covered. It is NOT source material, it is NOT a passage, and it is NOT the standard the explanation is judged against:\n\n${s}`;
 
   try {
-    const grade = await chatJSON(
-      grounded ? SYSTEM : TOPIC_SYSTEM,
-      `${material}\n\n---\n\nConcept being explained: ${concept}\n\nStudent's explanation:\n\n${explanation}${conditions}`,
-      isGrade
+    const g = await chatJSON(
+      grounded ? SYS : SYS_TOPIC,
+      `${material}\n\n---\n\nConcept being explained: ${c}\n\nStudent's explanation:\n\n${e}${how}`,
+      okGrade
     );
-    return NextResponse.json(verifyCitations(grade, source, explanation, grounded));
-  } catch (err) {
-    if (err instanceof AIError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    console.error("Grading failed:", err);
-    return NextResponse.json({ error: "Oops! We could not mark that one :( Give it another go." }, { status: 500 });
+    return NextResponse.json(verifyCitations(g, s, e, grounded));
+  } catch (x) {
+    if (x instanceof AIError) return err(x.message, x.status);
+    console.error("grade:rip", x);
+    return err("Oops! We could not mark that one :( Give it another go.", 500);
   }
 }

@@ -12,62 +12,55 @@ export type Role = "host" | "guest";
 
 export type Member = { role: Role };
 
-// four characters somebody has to say out loud. not a secret, and it only ever
-// collides with rooms that are open right now.
+// four chars somebody says out loud. not a secret, only ever collides with rooms open right now
 export function makeCode(): string {
-  const bytes = new Uint32Array(CODE_LENGTH);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (n) => ALPHABET[n % ALPHABET.length]).join("");
+  const b = new Uint32Array(CODE_LENGTH);
+  crypto.getRandomValues(b);
+  return Array.from(b, (n) => ALPHABET[n % ALPHABET.length]).join("");
 }
 
 export function readCode(v: unknown): string | null {
   if (typeof v !== "string") return null;
-  const code = v.trim().toUpperCase();
-  if (code.length !== CODE_LENGTH) return null;
-  for (const ch of code) if (!ALPHABET.includes(ch)) return null;
-  return code;
+  const c = v.trim().toUpperCase();
+  if (c.length !== CODE_LENGTH) return null;
+  for (const ch of c) if (!ALPHABET.includes(ch)) return null;
+  return c;
 }
 
-export function channelFor(code: string): string {
-  return `debate-live:${code}`;
-}
+export const channelFor = (code: string) => `debate-live:${code}`;
 
 export type LiveTurn = { side: Side; speech: Speech; text: string };
 
-export function otherSide(side: Side): Side {
-  return side === "Pro" ? "Con" : "Pro";
-}
+export const otherSide = (s: Side): Side => (s === "Pro" ? "Con" : "Pro");
 
-export function toSpeak(turns: LiveTurn[]): { side: Side; speech: Speech } | null {
-  if (turns.length >= SPEECH_ORDER.length * 2) return null;
+// whose turn, worked out from the count. no turn state anywhere
+export function toSpeak(ts: LiveTurn[]): { side: Side; speech: Speech } | null {
+  if (ts.length >= SPEECH_ORDER.length * 2) return null;
   return {
-    side: turns.length % 2 === 0 ? "Pro" : "Con",
-    speech: SPEECH_ORDER[Math.floor(turns.length / 2)],
+    side: ts.length % 2 === 0 ? "Pro" : "Con",
+    speech: SPEECH_ORDER[Math.floor(ts.length / 2)],
   };
 }
 
-export function asTranscript(turns: LiveTurn[], mine: Side): Turn[] {
-  return turns.map((t) => ({
+export const asTranscript = (ts: LiveTurn[], mine: Side): Turn[] =>
+  ts.map((t) => ({
     speaker: t.side === mine ? "user" : "opponent",
     speech: t.speech,
     text: t.text,
   }));
-}
 
-export function mirror(ballot: Ballot): Ballot {
-  return {
-    ...ballot,
-    winner:
-      ballot.winner === "user" ? "opponent" : ballot.winner === "opponent" ? "user" : "draw",
-    scores: { user: ballot.scores.opponent, opponent: ballot.scores.user },
-    key_moments: ballot.key_moments.map((m) => ({
-      ...m,
-      speaker: m.speaker === "user" ? "opponent" : "user",
-    })),
-    feedback: ballot.feedback_opponent,
-    feedback_opponent: ballot.feedback,
-  };
-}
+// one ballot, flipped for the other chair
+export const mirror = (b: Ballot): Ballot => ({
+  ...b,
+  winner: b.winner === "user" ? "opponent" : b.winner === "opponent" ? "user" : "draw",
+  scores: { user: b.scores.opponent, opponent: b.scores.user },
+  key_moments: b.key_moments.map((m) => ({
+    ...m,
+    speaker: m.speaker === "user" ? "opponent" : "user",
+  })),
+  feedback: b.feedback_opponent,
+  feedback_opponent: b.feedback,
+});
 
 export type LiveSetup = Omit<Setup, "tierId">;
 

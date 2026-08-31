@@ -4,15 +4,15 @@ import { audioWanted } from "./audio";
 
 type Tone = "right" | "wrong" | "combo" | "done" | "gavel" | "speech";
 
-let audio: AudioContext | null = null;
+let ac: AudioContext | null = null;
 
-function context(): AudioContext | null {
+function ctxOf(): AudioContext | null {
   if (typeof window === "undefined") return null;
   try {
-    audio ??= new AudioContext();
-    return audio;
+    ac ??= new AudioContext();
+    return ac;
   } catch {
-    return null;
+    return null; // no audio, no problem
   }
 }
 
@@ -29,31 +29,30 @@ const TONES: Record<Tone, { freq: number[]; ms: number; gain: number; type: Osci
 export function play(tone: Tone, heat = 0): void {
   if (!audioWanted().sound) return;
 
-  const ctx = context();
+  const ctx = ctxOf();
   if (!ctx) return;
 
   try {
     if (ctx.state === "suspended") void ctx.resume();
 
-    const spec = TONES[tone];
+    const s = TONES[tone];
     const now = ctx.currentTime;
-    const step = spec.ms / 1000 / spec.freq.length;
+    const step = s.ms / 1000 / s.freq.length;
 
-    spec.freq.forEach((base, i) => {
+    s.freq.forEach((f, i) => {
       const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = spec.type;
-      osc.frequency.value = base * (1 + heat * 0.18);
+      const g = ctx.createGain();
+      osc.type = s.type;
+      osc.frequency.value = f * (1 + heat * 0.18); // combo pitches it up
 
       const at = now + i * step;
-      gain.gain.setValueAtTime(0, at);
-      gain.gain.linearRampToValueAtTime(spec.gain, at + 0.008);
-      gain.gain.exponentialRampToValueAtTime(0.0001, at + step);
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(s.gain, at + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + step);
 
-      osc.connect(gain).connect(ctx.destination);
+      osc.connect(g).connect(ctx.destination);
       osc.start(at);
       osc.stop(at + step + 0.02);
     });
-  } catch {
-  }
+  } catch {} // autoplay policy, whatever
 }

@@ -1,38 +1,37 @@
 import { STARTERS } from "@/app/round/starters";
 
-let started = false;
+let on = false;
 
-const REWARM_MS = 25 * 60 * 1000;
+const EVERY = 25 * 60 * 1000;
 
-async function warmOnce(): Promise<void> {
+async function warm(): Promise<void> {
   const { POST } = await import("@/app/api/round/route");
 
-  for (const topic of STARTERS) {
+  for (const t of STARTERS) {
     try {
       const res = await POST(
         new Request("http://warm.local/api/round", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ stage: "open", topic, notes: "", asked: [] }),
+          body: JSON.stringify({ stage: "open", topic: t, notes: "", asked: [] }),
         })
       );
-      console.log(`Warmed "${topic}": HTTP ${res.status}`);
-    } catch (err) {
-      console.warn(`Could not warm "${topic}":`, err);
+      console.log(`warm:${t} ${res.status}`);
+    } catch (e) {
+      console.warn(`warm:dead ${t}`, e);
     }
   }
 }
 
 export function warmStarters(): void {
-  if (started) return;
-  started = true;
+  if (on) return;
+  on = true;
 
   if (process.env.NODE_ENV !== "production") return;
-  const token = process.env.HACKCLUB_AI_KEY;
-  if (!token || token === "PLACEHOLDER") return;
+  const k = process.env.HACKCLUB_AI_KEY;
+  if (!k || k === "PLACEHOLDER") return;
 
-  void warmOnce();
-
-  const timer = setInterval(() => void warmOnce(), REWARM_MS);
-  timer.unref?.();
+  void warm();
+  const t = setInterval(() => void warm(), EVERY);
+  t.unref?.();
 }

@@ -14,7 +14,10 @@ const MARK_CLASS: Record<Annotation["type"], string> = {
   wrong: "mk mk-broken px-0.5",
 };
 
-const NOTE_KIND: Record<Flagged, { word: string; mark: string; ink: string; tint: string }> = {
+const NOTE_KIND: Record<
+  Flagged,
+  { word: string; mark: string; ink: string; tint: string }
+> = {
   imprecise: {
     word: "Imprecise",
     mark: "var(--shaky-mark)",
@@ -29,13 +32,19 @@ const NOTE_KIND: Record<Flagged, { word: string; mark: string; ink: string; tint
   },
 };
 
-function wrongWord(grounded: boolean): string {
-  return grounded ? NOTE_KIND.wrong.word : "Model disagrees";
-}
+// no source in a topic-only session, so nothing can "contradict" one
+const wrongWord = (grounded: boolean) =>
+  grounded ? NOTE_KIND.wrong.word : "Model disagrees";
 
 export type Segment =
   | { kind: "text"; value: string }
-  | { kind: "mark"; value: string; id: number; type: Annotation["type"]; n?: number };
+  | {
+      kind: "mark";
+      value: string;
+      id: number;
+      type: Annotation["type"];
+      n?: number;
+    };
 
 export type Card = {
   id: number;
@@ -46,28 +55,28 @@ export type Card = {
   sourceQuote: string;
 };
 
-function normalize(s: string): string {
-  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
-}
+const norm = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 
-function overlaps(s: number, e: number, taken: [number, number][]): boolean {
-  return taken.some(([a, b]) => s < b && e > a);
-}
+const overlaps = (s: number, e: number, taken: [number, number][]) =>
+  taken.some(([a, b]) => s < b && e > a);
 
+// exact match first, then a whitespace-tolerant regex. models re-wrap quotes constantly
 function findRange(
   normText: string,
   normQuote: string,
-  taken: [number, number][]
-): { start: number; end: number } | null {
+  taken: [number, number][],
+) {
   if (!normQuote) return null;
-  for (let from = 0; ; ) {
+  for (let from = 0; ;) {
     const i = normText.indexOf(normQuote, from);
     if (i < 0) break;
     const e = i + normQuote.length;
     if (!overlaps(i, e, taken)) return { start: i, end: e };
     from = i + 1;
   }
-  const escaped = normQuote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  const escaped = normQuote
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\s+/g, "\\s+");
   let re: RegExp;
   try {
     re = new RegExp(escaped, "gi");
@@ -85,9 +94,9 @@ function findRange(
 
 export function buildDissection(
   text: string,
-  annotations: Annotation[]
+  annotations: Annotation[],
 ): { segments: Segment[]; cards: Card[] } {
-  const normText = normalize(text);
+  const normText = norm(text);
   const taken: [number, number][] = [];
   const matched: {
     start: number;
@@ -99,9 +108,10 @@ export function buildDissection(
   }[] = [];
   const unmatched: Card[] = [];
 
+  // a note whose quote is nowhere in their text still gets shown, just without a mark on it
   annotations.forEach((ann, id) => {
     const quote = ann.quote.trim();
-    const range = quote ? findRange(normText, normalize(quote), taken) : null;
+    const range = quote ? findRange(normText, norm(quote), taken) : null;
     if (range) {
       taken.push([range.start, range.end]);
       matched.push({
@@ -124,14 +134,16 @@ export function buildDissection(
 
   matched.sort((a, b) => a.start - b.start);
 
-  let counter = 0;
+  // numbered in reading order, not in the order the model listed them
+  let n = 0;
   const numById = new Map<number, number>();
-  for (const m of matched) if (m.type !== "right") numById.set(m.id, ++counter);
+  for (const m of matched) if (m.type !== "right") numById.set(m.id, ++n);
 
   const segments: Segment[] = [];
   let cursor = 0;
   for (const m of matched) {
-    if (m.start > cursor) segments.push({ kind: "text", value: text.slice(cursor, m.start) });
+    if (m.start > cursor)
+      segments.push({ kind: "text", value: text.slice(cursor, m.start) });
     segments.push({
       kind: "mark",
       value: text.slice(m.start, m.end),
@@ -141,7 +153,8 @@ export function buildDissection(
     });
     cursor = m.end;
   }
-  if (cursor < text.length) segments.push({ kind: "text", value: text.slice(cursor) });
+  if (cursor < text.length)
+    segments.push({ kind: "text", value: text.slice(cursor) });
 
   const cards: Card[] = [];
   for (const m of matched) {
@@ -177,7 +190,9 @@ export function MarkedUpText({
   setActive: (id: number | null) => void;
   grounded: boolean;
 }) {
-  const hasSolid = segments.some((s) => s.kind === "mark" && s.type === "right");
+  const hasSolid = segments.some(
+    (s) => s.kind === "mark" && s.type === "right",
+  );
   const kinds = Array.from(new Set(cards.map((c) => c.type)));
 
   let markNo = -1;
@@ -193,7 +208,7 @@ export function MarkedUpText({
         )}
       </figcaption>
 
-      <div className="prose-read whitespace-pre-wrap rounded-[3px] border border-line bg-page px-6 py-5 text-ink">
+      <div className="prose-read whitespace-pre-wrap border border-line bg-page px-6 py-5 text-ink">
         {segments.map((seg, i) => {
           if (seg.kind === "text") return <span key={i}>{seg.value}</span>;
 
@@ -202,7 +217,11 @@ export function MarkedUpText({
 
           if (seg.type === "right") {
             return (
-              <span key={i} style={step} className={`${MARK_CLASS.right} ink-in`}>
+              <span
+                key={i}
+                style={step}
+                className={`${MARK_CLASS.right} ink-in`}
+              >
                 {seg.value}
               </span>
             );
@@ -224,7 +243,10 @@ export function MarkedUpText({
             >
               <span className="text-ink">{seg.value}</span>
               {seg.n !== undefined && (
-                <sup style={step} className="siglum-in ml-px font-mono text-[0.625rem] font-semibold">
+                <sup
+                  style={step}
+                  className="siglum-in ml-px font-mono text-[0.625rem] font-semibold"
+                >
                   {seg.n}
                 </sup>
               )}
@@ -259,7 +281,9 @@ function MarkKey({
     <ul className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1">
       {entries.map((e) => (
         <li key={e.word} className="font-sans text-[0.75rem] text-ink-soft">
-          <span className={`${e.cls} font-read text-[0.9375rem] text-ink`}>Aa</span>
+          <span className={`${e.cls} font-read text-[0.9375rem] text-ink`}>
+            Aa
+          </span>
           <span className="ml-2">{e.word}</span>
         </li>
       ))}
@@ -297,7 +321,7 @@ export function MarginNotes({
               onMouseLeave={() => setActive(null)}
             >
               <div
-                className="lift rounded-[3px] border-l-[3px] py-3 pl-3.5 pr-3.5"
+                className="lift border-l-[3px] py-3 pl-3.5 pr-3.5"
                 style={{
                   borderLeftColor: kind.mark,
                   background: on ? kind.tint : "var(--sunk)",
@@ -322,7 +346,9 @@ export function MarginNotes({
 
                 {card.quote && (
                   <p className="mt-1.5 font-read text-[0.9375rem] leading-[1.55] text-ink">
-                    <span className={MARK_CLASS[card.type]}>“{card.quote}”</span>
+                    <span className={MARK_CLASS[card.type]}>
+                      “{card.quote}”
+                    </span>
                   </p>
                 )}
 

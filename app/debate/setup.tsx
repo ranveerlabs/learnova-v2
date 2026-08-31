@@ -43,10 +43,10 @@ export function Setup({
 
   const [going, setGoing] = useState(false);
 
-  const field = useRef<HTMLTextAreaElement>(null);
-  useAutoGrow(field, motion, 2);
+  const box = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(box, motion, 2);
   useEffect(() => {
-    field.current?.focus();
+    box.current?.focus();
   }, []);
 
   const ready = motion.trim().length > 0;
@@ -62,11 +62,9 @@ export function Setup({
       format: tab === "competitive" ? format : undefined,
     };
 
-    if (!live) {
-      onBegin(chosen);
-      return;
-    }
+    if (!live) return onBegin(chosen);
 
+    // no tier in a live room, the opponent is a person
     setGoing(true);
     const { tierId: _tier, ...forRoom } = chosen;
     const code = makeCode();
@@ -80,17 +78,24 @@ export function Setup({
 
       <div className="flex flex-col items-start gap-4">
         <div
-          className="note sticky flex min-h-[7.5rem] w-full max-w-[20rem] rounded-[2px] pb-7 pl-5 pr-6 pt-5"
+          className="note sticky flex min-h-[7.5rem] w-full max-w-[20rem] pb-7 pl-5 pr-6 pt-5"
           style={{ ["--tilt" as string]: "-1.1deg" }}
         >
           <textarea
-            ref={field}
+            ref={box}
             value={motion}
             onChange={(e) => {
               setMotion(e.target.value);
             }}
             onKeyDown={(e) => {
-              if (e.key !== "Enter" || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+              if (
+                e.key !== "Enter" ||
+                e.shiftKey ||
+                e.metaKey ||
+                e.ctrlKey ||
+                e.altKey
+              )
+                return;
               e.preventDefault();
               begin("Pro");
             }}
@@ -100,7 +105,6 @@ export function Setup({
             className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-hand text-[1.5rem] leading-[1.15] text-[#262626] caret-[#262626] placeholder:text-[#7c6f4f]"
           />
         </div>
-
       </div>
 
       <div className="grid gap-3 sm:max-w-[30rem] sm:grid-cols-2">
@@ -153,16 +157,32 @@ function SideSlab({
   return (
     <button
       {...props}
-      style={{ ["--tilt" as string]: tilt, ["--swing" as string]: swing, background: paper }}
-      className="stuck sticker flex min-h-[4.5rem] items-center justify-center rounded-[3px] border-[2.5px] border-sheet-ink px-5 py-4 font-pixel text-[0.9375rem] leading-none text-[#262626] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
+      style={{
+        ["--tilt" as string]: tilt,
+        ["--swing" as string]: swing,
+        background: paper,
+      }}
+      className="stuck sticker flex min-h-[4.5rem] items-center justify-center border-[2.5px] border-sheet-ink px-5 py-4 font-pixel text-[0.9375rem] leading-none text-[#262626] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
     >
       {word}
     </button>
   );
 }
 
-function Opponent({ value, onPick }: { value: Against; onPick: (v: Against) => void }) {
-  const options: { id: Against; name: string; sprite: "clip" | "star"; title: string }[] = [
+// first thing on the screen. model or a person, everything else is the same either way
+function Opponent({
+  value,
+  onPick,
+}: {
+  value: Against;
+  onPick: (v: Against) => void;
+}) {
+  const options: {
+    id: Against;
+    name: string;
+    sprite: "clip" | "star";
+    title: string;
+  }[] = [
     {
       id: "model",
       name: "Model",
@@ -180,7 +200,11 @@ function Opponent({ value, onPick }: { value: Against; onPick: (v: Against) => v
   ];
 
   return (
-    <div role="group" aria-label="Who you are arguing against" className="flex flex-wrap gap-2">
+    <div
+      role="group"
+      aria-label="Who you are arguing against"
+      className="flex flex-wrap gap-2"
+    >
       {options.map((o) => {
         const on = value === o.id;
         return (
@@ -189,7 +213,7 @@ function Opponent({ value, onPick }: { value: Against; onPick: (v: Against) => v
             onClick={() => onPick(o.id)}
             aria-pressed={on}
             title={o.title}
-            className={`key inline-flex items-center gap-2 rounded-[3px] border-2 px-3 py-2 font-pixel text-[0.625rem] leading-none ${
+            className={`key inline-flex items-center gap-2 border-2 px-3 py-2 font-pixel text-[0.625rem] leading-none ${
               on
                 ? "translate-y-[2px] border-sheet-ink bg-accent-wash text-ink shadow-[inset_0_2px_0_rgb(20_26_38/0.18)]"
                 : "border-line-strong text-ink-soft shadow-[0_2px_0_var(--line-strong)] hover:border-accent hover:text-ink"
@@ -221,14 +245,15 @@ function Join() {
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={code}
+          // filtered as they type, the alphabet has no O/I/S/Z so misheard letters just do not land
           onChange={(e) =>
             setCode(
               e.target.value
                 .toUpperCase()
                 .split("")
-                .filter((ch) => ALPHABET.includes(ch))
+                .filter((c) => ALPHABET.includes(c))
                 .join("")
-                .slice(0, CODE_LENGTH)
+                .slice(0, CODE_LENGTH),
             )
           }
           placeholder={"–".repeat(CODE_LENGTH)}
@@ -236,11 +261,11 @@ function Join() {
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
-          className="leaf w-[7.5rem] rounded-[3px] border border-line bg-page text-center font-mono text-[1.375rem] uppercase tracking-[0.3em] text-ink caret-accent placeholder:tracking-[0.3em] placeholder:text-ink-faint"
+          className="leaf w-[7.5rem] border border-line bg-page text-center font-mono text-[1.375rem] uppercase tracking-[0.3em] text-ink caret-accent placeholder:tracking-[0.3em] placeholder:text-ink-faint"
           style={{ padding: "0.625rem 0.5rem 0.625rem 0.8rem" }}
         />
         <PrimaryButton type="submit" disabled={!good}>
-          Join{" "}
+          Join{""}
           <span aria-hidden className="slotted">
             ↓
           </span>
@@ -269,18 +294,27 @@ function Options({
   onTier: (t: TierId) => void;
   live: boolean;
 }) {
+  // read once. it must not slam shut while somebody is using it
   const [startOpen] = useState(open);
 
   return (
-    <details open={startOpen} className="group flex flex-col gap-4 border-t border-line pt-4">
+    <details
+      open={startOpen}
+      className="group flex flex-col gap-4 border-t border-line pt-4"
+    >
       <summary
         style={{ fontVariationSettings: '"wdth" 88' }}
         className="inline-flex cursor-pointer list-none items-center gap-1.5 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
       >
-        <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+        <span
+          aria-hidden
+          className="inline-block transition-transform group-open:rotate-90"
+        >
           ›
         </span>
-        {live ? "Tournament formats" : "Tournament formats and opponent strength"}
+        {live
+          ? "Tournament formats"
+          : "Tournament formats and opponent strength"}
       </summary>
 
       <div className="mt-4 flex flex-col gap-5">
@@ -290,7 +324,8 @@ function Options({
             {
               id: "casual",
               name: "Open debate",
-              title: "No format rules. Judged on whether the argument holds up.",
+              title:
+                "No format rules. Judged on whether the argument holds up.",
             },
             {
               id: "competitive",
@@ -309,7 +344,8 @@ function Options({
             options={FORMATS.map((f) => ({
               id: f,
               name: f,
-              title: "The ballot is written by these conventions and no others.",
+              title:
+                "The ballot is written by these conventions and no others.",
             }))}
             value={format}
             onPick={(v) => onFormat(v as Format)}
@@ -319,7 +355,11 @@ function Options({
         {!live && (
           <Choice
             label="Opponent"
-            options={TIERS.map((t) => ({ id: t.id, name: t.name, title: t.brief }))}
+            options={TIERS.map((t) => ({
+              id: t.id,
+              name: t.name,
+              title: t.brief,
+            }))}
             value={tierId}
             onPick={(v) => onTier(v as TierId)}
           />
@@ -350,7 +390,7 @@ function Choice({
             onClick={() => onPick(o.id)}
             aria-pressed={value === o.id}
             title={o.title}
-            className={`key inline-flex min-h-[2.5rem] items-center rounded-[3px] border-2 px-3.5 py-1.5 font-sans text-[0.875rem] font-medium ${
+            className={`key inline-flex min-h-[2.5rem] items-center border-2 px-3.5 py-1.5 font-sans text-[0.875rem] font-medium ${
               value === o.id
                 ? "translate-y-[2px] border-sheet-ink bg-accent-wash text-ink shadow-[inset_0_2px_0_rgb(20_26_38/0.18)]"
                 : "border-line-strong text-ink-soft shadow-[0_2px_0_var(--line-strong)] hover:border-accent hover:text-ink"

@@ -6,6 +6,9 @@ import type { Presentation, PresentationProps } from "../types";
 
 type Point = { x: number; y: number };
 
+// drag a wire from the stem to an option. the buttons underneath are still real buttons,
+// so tab and enter work even though the number keys are off in here
+
 function Wire({
   from,
   to,
@@ -19,6 +22,7 @@ function Wire({
   dashed?: boolean;
   width?: number;
 }) {
+  // bezier with a bit of sag, so it hangs like a cable instead of a straight line
   const dx = Math.max(30, Math.abs(to.x - from.x) * 0.55);
   const sag = Math.min(16, Math.abs(to.y - from.y) * 0.12 + 6);
   const d = `M ${from.x} ${from.y} C ${from.x + dx} ${from.y + sag}, ${to.x - dx} ${
@@ -40,6 +44,7 @@ function Wire({
   );
 }
 
+// the ghost wire that shows you what to do. gone the moment you touch anything
 function HintWire({ from, reach }: { from: Point; reach: number }) {
   const end = { x: from.x + reach, y: from.y + 9 };
   const d = `M ${from.x} ${from.y} C ${from.x + reach * 0.6} ${from.y + 14}, ${
@@ -69,7 +74,10 @@ function HintWire({ from, reach }: { from: Point; reach: number }) {
 }
 
 function WireSurface(props: PresentationProps) {
-  const { options, pick, moodOf, revealed, chosen, answer } = useOptions(props, { keys: false });
+  const { options, pick, moodOf, revealed, chosen, answer } = useOptions(
+    props,
+    { keys: false },
+  );
   const questionId = props.question.id;
 
   const board = useRef<HTMLDivElement>(null);
@@ -82,38 +90,42 @@ function WireSurface(props: PresentationProps) {
   const [over, setOver] = useState<number | null>(null);
   const [held, setHeld] = useState(false);
 
+  // svg coords are relative to the board, so everything gets measured off its box
   const measure = useCallback(() => {
     const box = board.current?.getBoundingClientRect();
     const from = stem.current?.getBoundingClientRect();
     if (!box || !from) return;
 
-    setStart({ x: from.right - box.left, y: from.top + from.height / 2 - box.top });
+    setStart({
+      x: from.right - box.left,
+      y: from.top + from.height / 2 - box.top,
+    });
     setEnds(
       rows.current.map((row) => {
         if (!row) return { x: 0, y: 0 };
         const r = row.getBoundingClientRect();
         return { x: r.left - box.left, y: r.top + r.height / 2 - box.top };
-      })
+      }),
     );
   }, []);
 
   useLayoutEffect(() => {
     measure();
-    const observer = new ResizeObserver(measure);
-    if (board.current) observer.observe(board.current);
+    const ro = new ResizeObserver(measure);
+    if (board.current) ro.observe(board.current);
     window.addEventListener("resize", measure);
     return () => {
-      observer.disconnect();
+      ro.disconnect();
       window.removeEventListener("resize", measure);
     };
   }, [measure, questionId]);
 
-  function rowAt(clientX: number, clientY: number): number | null {
+  // hit test on the row boxes, not the pointer target. the svg sits over everything
+  function rowAt(x: number, y: number) {
     for (let i = 0; i < rows.current.length; i++) {
       const r = rows.current[i]?.getBoundingClientRect();
-      if (r && clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+      if (r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)
         return i;
-      }
     }
     return null;
   }
@@ -127,10 +139,10 @@ function WireSurface(props: PresentationProps) {
   }
 
   function endDrag(e: React.PointerEvent) {
-    const target = rowAt(e.clientX, e.clientY);
+    const hit = rowAt(e.clientX, e.clientY);
     setPointer(null);
     setOver(null);
-    if (target !== null) pick(target);
+    if (hit !== null) pick(hit);
   }
 
   const live = pointer !== null;
@@ -138,7 +150,10 @@ function WireSurface(props: PresentationProps) {
   const showHint = !revealed && !held && !live && start !== null && gap > 18;
 
   return (
-    <Stage revealed={revealed} className="flex min-h-0 flex-1 flex-col gap-[2vh]">
+    <Stage
+      revealed={revealed}
+      className="flex min-h-0 flex-1 flex-col gap-[2vh]"
+    >
       {!revealed && (
         <p
           style={{ fontVariationSettings: '"wdth" 88' }}
@@ -164,11 +179,25 @@ function WireSurface(props: PresentationProps) {
         >
           {showHint && start && <HintWire from={start} reach={gap * 0.72} />}
           {revealed && start && ends[answer] && (
-            <Wire from={start} to={ends[answer]} colour="var(--solid-mark)" width={4} />
+            <Wire
+              from={start}
+              to={ends[answer]}
+              colour="var(--solid-mark)"
+              width={4}
+            />
           )}
-          {revealed && chosen !== null && chosen !== answer && start && ends[chosen] && (
-            <Wire from={start} to={ends[chosen]} colour="var(--broken-mark)" dashed />
-          )}
+          {revealed &&
+            chosen !== null &&
+            chosen !== answer &&
+            start &&
+            ends[chosen] && (
+              <Wire
+                from={start}
+                to={ends[chosen]}
+                colour="var(--broken-mark)"
+                dashed
+              />
+            )}
           {!revealed && live && start && pointer && (
             <Wire
               from={start}
@@ -186,9 +215,10 @@ function WireSurface(props: PresentationProps) {
             e.preventDefault();
             setHeld(true);
             const box = board.current?.getBoundingClientRect();
-            if (box) setPointer({ x: e.clientX - box.left, y: e.clientY - box.top });
+            if (box)
+              setPointer({ x: e.clientX - box.left, y: e.clientY - box.top });
           }}
-          className={`flex touch-none select-none flex-col items-center justify-center gap-1.5 self-center justify-self-center rounded-[6px] border-[3px] px-2.5 py-3 sm:gap-2 sm:px-5 sm:py-5 ${
+          className={`flex touch-none select-none flex-col items-center justify-center gap-1.5 self-center justify-self-center border-[3px] px-2.5 py-3 sm:gap-2 sm:px-5 sm:py-5 ${
             revealed
               ? "border-line bg-page"
               : "cursor-grab border-accent bg-accent-wash/50 active:cursor-grabbing"
@@ -202,12 +232,15 @@ function WireSurface(props: PresentationProps) {
               Drag
             </span>
           )}
-          <span aria-hidden className="relative grid h-5 w-5 place-items-center sm:h-6 sm:w-6">
+          <span
+            aria-hidden
+            className="relative grid h-5 w-5 place-items-center sm:h-6 sm:w-6"
+          >
             {!revealed && !live && (
-              <span className="plug-ready absolute inset-0 rounded-full bg-accent" />
+              <span className="plug-ready absolute inset-0 bg-accent" />
             )}
             <span
-              className={`relative block h-4 w-4 rounded-full sm:h-5 sm:w-5 ${
+              className={`relative block h-4 w-4 sm:h-5 sm:w-5 ${
                 revealed ? "bg-line-strong" : "bg-accent"
               }`}
             />
@@ -215,7 +248,7 @@ function WireSurface(props: PresentationProps) {
         </div>
 
         <div className="flex min-h-0 w-full flex-col justify-center gap-[1.5vh]">
-          {options.map((option, i) => {
+          {options.map((o, i) => {
             const mood = moodOf(i);
             const targeted = !revealed && over === i;
 
@@ -229,16 +262,16 @@ function WireSurface(props: PresentationProps) {
               >
                 <Pick
                   index={i}
-                  option={option}
+                  option={o}
                   mood={mood}
                   revealed={revealed}
-                  className={`rise-in relative flex w-full items-center gap-2.5 overflow-hidden rounded-[6px] border-[3px] px-3 py-2 sm:gap-4 sm:px-5 sm:py-4 ${
+                  className={`rise-in relative flex w-full items-center gap-2.5 overflow-hidden border-[3px] px-3 py-2 sm:gap-4 sm:px-5 sm:py-4 ${
                     mood === "right" ? "right-pop right-sheen" : ""
                   } ${targeted ? "border-accent bg-accent-wash" : tone(mood, { hover: false })}`}
                 >
                   <span
                     aria-hidden
-                    className={`block h-3.5 w-3.5 shrink-0 rounded-full border-[3px] sm:h-4 sm:w-4 ${
+                    className={`block h-3.5 w-3.5 shrink-0 border-[3px] sm:h-4 sm:w-4 ${
                       mood === "right"
                         ? "border-solid-mark bg-solid-mark"
                         : mood === "wrong"
@@ -251,13 +284,13 @@ function WireSurface(props: PresentationProps) {
                   <Mark
                     index={i}
                     mood={mood}
-                    className="h-[clamp(1.75rem,4.2vh,2.25rem)] w-[clamp(1.75rem,4.2vh,2.25rem)] rounded-[4px] border-2 text-[0.8125rem] sm:text-[0.9375rem]"
+                    className="h-[clamp(1.75rem,4.2vh,2.25rem)] w-[clamp(1.75rem,4.2vh,2.25rem)] border-2 text-[0.8125rem] sm:text-[0.9375rem]"
                   />
                   <Say
                     mood={mood}
                     className="min-w-0 text-[clamp(1rem,0.7rem+1.1vw+0.7vh,2.125rem)]"
                   >
-                    {option}
+                    {o}
                   </Say>
                 </Pick>
               </div>
@@ -273,6 +306,6 @@ export const wire: Presentation = {
   id: "wire",
   name: "Wire connect",
   presents: ["choice"],
-  supports: (q) => (q.options?.length ?? 0) >= 3,
+  supports: (q) => (q.options?.length ?? 0) >= 3, // two rows of wire looks like a mistake
   Component: WireSurface,
 };

@@ -3,17 +3,47 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 
-const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
+// the window. a title bar and a body, and every screen sits in one. the dark
+// ground behind it is desktop and never carries text
+export function Win({
+  title,
+  closeHref,
+  children,
+  className = "",
+  bodyClassName = "",
+}: {
+  title: React.ReactNode;
+  closeHref?: string;
+  children: React.ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
+  return (
+    <section className={`win flex min-h-0 flex-col ${className}`}>
+      <header className="title-bar shrink-0">
+        <span className="grip">{title}</span>
+        {closeHref && (
+          <Link href={closeHref} className="title-btn" aria-label="Close">
+            <span aria-hidden>X</span>
+          </Link>
+        )}
+      </header>
+      <div className={`min-h-0 flex-1 overflow-auto ${bodyClassName}`}>
+        {children}
+      </div>
+    </section>
+  );
+}
 
 export function Wordmark({ mode = "Round Mode" }: { mode?: string }) {
   return (
     <Link
       href="/"
       title="Both modes"
-      className="shrink-0 whitespace-nowrap font-read text-[1.15rem] font-medium tracking-[-0.01em] text-ink transition-colors hover:text-accent sm:text-[1.3rem]"
+      className="shrink-0 whitespace-nowrap font-pixel text-[1rem] text-ink hover:text-accent sm:text-[1.15rem]"
     >
       Learnova
-      <span className="ml-2 hidden align-[0.15em] font-sans text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-ink-faint sm:inline">
+      <span className="ml-2 hidden align-[0.1em] font-pixel text-[0.6rem] text-ink-faint sm:inline">
         {mode}
       </span>
     </Link>
@@ -29,8 +59,7 @@ export function Label({
 }) {
   return (
     <p
-      style={NARROW}
-      className={`font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-ink-faint ${className}`}
+      className={`font-pixel text-[0.6875rem] uppercase text-ink-faint ${className}`}
     >
       {children}
     </p>
@@ -41,7 +70,7 @@ export function Notice({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="alert"
-      className="settle max-w-[44rem] rounded-[3px] border-l-[3px] border-supply-pink bg-supply-pink/12 px-4 py-3 font-sans text-[0.875rem] leading-[1.6] text-ink"
+      className="settle max-w-[44rem] border-2 border-line bg-supply-pink/25 px-4 py-3 font-sans text-[0.875rem] leading-[1.6] text-ink"
     >
       {children}
     </p>
@@ -52,7 +81,7 @@ export function Aside({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="status"
-      className="settle max-w-[44rem] rounded-[3px] border border-line bg-sunk/60 px-4 py-3 font-sans text-[0.875rem] leading-[1.6] text-ink-soft"
+      className="settle max-w-[44rem] border-2 border-line bg-sunk px-4 py-3 font-sans text-[0.875rem] leading-[1.6] text-ink-soft"
     >
       {children}
     </p>
@@ -83,7 +112,7 @@ export function PrimaryButton({
   return (
     <button
       {...props}
-      className={`btn inline-flex items-center gap-2 self-start rounded-[3px] bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover hover:shadow-[0_8px_20px_-10px_var(--accent)] disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint disabled:shadow-none ${className}`}
+      className={`btn xp-btn xp-btn-go self-start ${className}`}
     >
       {children}
     </button>
@@ -96,19 +125,17 @@ export function GhostButton({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      {...props}
-      className={`btn inline-flex items-center gap-2 self-start rounded-[3px] border border-line-strong px-5 py-2.5 font-sans text-[0.875rem] font-medium text-ink-soft hover:border-ink-faint hover:text-ink disabled:cursor-not-allowed disabled:border-line disabled:text-ink-faint ${className}`}
-    >
+    <button {...props} className={`btn xp-btn self-start ${className}`}>
       {children}
     </button>
   );
 }
 
+// auto -> scrollHeight, in that order. skipping the auto step means it only ever grows
 export function useAutoGrow(
   ref: React.RefObject<HTMLTextAreaElement | null>,
   value: string,
-  minRows: number
+  minRows: number,
 ) {
   useEffect(() => {
     const el = ref.current;
@@ -143,24 +170,29 @@ export function Leaf({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
+          // enter sends, shift+enter newlines
           if (!onSubmit) return;
-          if (e.key !== "Enter" || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+          if (
+            e.key !== "Enter" ||
+            e.shiftKey ||
+            e.metaKey ||
+            e.ctrlKey ||
+            e.altKey
+          )
+            return;
           e.preventDefault();
           onSubmit();
         }}
         placeholder={placeholder}
         rows={minRows}
         autoFocus={autoFocus}
-        className="leaf prose-read w-full resize-none overflow-hidden rounded-[3px] border border-line bg-page text-ink caret-accent placeholder:text-ink-faint"
-      />
-      <span
-        aria-hidden
-        className="sweep pointer-events-none absolute inset-x-0 bottom-0 h-[2px] rounded-b-[3px] bg-accent"
+        className="leaf xp-field prose-read w-full resize-none overflow-hidden bg-page text-ink caret-accent placeholder:text-ink-faint"
       />
     </div>
   );
 }
 
+// mint on, pink off. the glyph carries it too, colour is never doing this alone
 function AudioToggle({
   on,
   onToggle,
@@ -178,10 +210,8 @@ function AudioToggle({
       aria-pressed={on}
       aria-label={`${label}: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
       title={`${label} ${on ? "on" : "off"}`}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-[3px] border-2 font-sans text-[1.125rem] leading-none transition-colors sm:h-10 sm:w-10 ${
-        on
-          ? "border-sheet-ink bg-supply-mint text-[#262626]"
-          : "border-sheet-ink bg-supply-pink text-[#262626]"
+      className={`xp-btn h-9 w-9 shrink-0 !px-0 text-[1.125rem] sm:h-10 sm:w-10 ${
+        on ? "bg-supply-mint text-[#101010]" : "bg-supply-pink text-[#101010]"
       }`}
     >
       <span aria-hidden>{on ? glyph[0] : glyph[1]}</span>
@@ -189,22 +219,38 @@ function AudioToggle({
   );
 }
 
-export function MusicToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return <AudioToggle on={on} onToggle={onToggle} label="Music" glyph={["♫", "♫̸"]} />;
+export function MusicToggle({
+  on,
+  onToggle,
+}: {
+  on: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <AudioToggle on={on} onToggle={onToggle} label="Music" glyph={["♫", "♫̸"]} />
+  );
 }
 
-export function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return <AudioToggle on={on} onToggle={onToggle} label="Sound" glyph={["♪", "♪̸"]} />;
+export function SoundToggle({
+  on,
+  onToggle,
+}: {
+  on: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <AudioToggle on={on} onToggle={onToggle} label="Sound" glyph={["♪", "♪̸"]} />
+  );
 }
 
 export function Credits({ className = "" }: { className?: string }) {
   return (
     <details className={`group self-start ${className}`}>
-      <summary
-        style={NARROW}
-        className="inline-flex cursor-pointer list-none items-center gap-1.5 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
-      >
-        <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 font-pixel text-[0.6875rem] uppercase text-ink-faint hover:text-ink-soft">
+        <span
+          aria-hidden
+          className="inline-block transition-transform group-open:rotate-90"
+        >
           ›
         </span>
         Credits
@@ -230,21 +276,15 @@ export function Credits({ className = "" }: { className?: string }) {
   );
 }
 
+// only looping animation in the app. eight cells, stepped, no easing
 function Meter({ small = false }: { small?: boolean }) {
-  const height = small ? "0.85rem" : "2rem";
+  const cells = small ? 5 : 8;
+  const height = small ? "0.7rem" : "1.4rem";
 
   return (
-    <span
-      aria-hidden
-      className={`inline-flex items-end ${small ? "gap-[3px]" : "gap-1.5"}`}
-      style={{ height }}
-    >
-      {[0, 1, 2, 3].map((i) => (
-        <span
-          key={i}
-          className={`working-bar block rounded-[1px] bg-accent ${small ? "w-[3px]" : "w-2"}`}
-          style={{ height, animationDelay: `${i * 125}ms` }}
-        />
+    <span aria-hidden className="xp-meter" style={{ height }}>
+      {Array.from({ length: cells }, (_, i) => (
+        <span key={i} style={{ animationDelay: `${i * 110}ms` }} />
       ))}
     </span>
   );
@@ -252,19 +292,29 @@ function Meter({ small = false }: { small?: boolean }) {
 
 export function Working({ label }: { label?: string }) {
   return (
-    <span role="status" className="inline-flex items-center gap-2.5 align-baseline">
+    <span
+      role="status"
+      className="inline-flex items-center gap-2.5 align-baseline"
+    >
       <Meter small />
-      {label && <span className="font-sans text-[0.8125rem] text-ink-soft">{label}</span>}
+      {label && (
+        <span className="font-sans text-[0.8125rem] text-ink-soft">
+          {label}
+        </span>
+      )}
     </span>
   );
 }
 
 export function Waiting({ title, sub }: { title: string; sub: string }) {
   return (
-    <div role="status" className="settle flex flex-col items-center gap-6 py-16">
+    <div
+      role="status"
+      className="settle flex flex-col items-center gap-6 py-16"
+    >
       <Meter />
       <div className="text-center">
-        <p className="font-sans text-[1rem] font-semibold text-ink">{title}</p>
+        <p className="font-pixel text-[0.9rem] text-ink">{title}</p>
         <p className="mt-1 font-sans text-[0.875rem] text-ink-soft">{sub}</p>
       </div>
     </div>

@@ -1,201 +1,160 @@
-const BASE_URL = "https://ai.hackclub.com/proxy/v1";
-const ENDPOINT = `${BASE_URL}/chat/completions`;
+const URL_BASE = "https://ai.hackclub.com/proxy/v1";
+const EP = `${URL_BASE}/chat/completions`;
 const MODEL = process.env.HACKCLUB_AI_MODEL ?? "~deepseek/deepseek-v4-flash-latest";
 
 export class AIError extends Error {
-  constructor(message: string, public status = 502) {
-    super(message);
+  constructor(msg: string, public status = 502) {
+    super(msg);
   }
 }
 
-export const BUSY =
-  "Everyone is studying at once! Give it a moment and try again.";
+export const BUSY = "Everyone is studying at once! Give it a moment and try again.";
+export const UNAVAILABLE = "Oops! We cannot reach our marker right now, this one is on us :(";
 
-export const UNAVAILABLE =
-  "Oops! We cannot reach our marker right now, this one is on us :(";
+// 401/402/403 = key or credit. never clears on retry
+const dead = (s: number) => s === 401 || s === 402 || s === 403;
 
-function spent(status: number): boolean {
-  return status === 401 || status === 402 || status === 403;
-}
+async function bad(res: Response, where: string): Promise<AIError> {
+  const body = await res.text().catch(() => "");
+  console.error(`ai:${where} ${res.status} [${MODEL}]`, body);
 
-async function failed(res: Response, where: string): Promise<AIError> {
-  const detail = await res.text().catch(() => "");
-  console.error(`Hack Club AI API ${where} error ${res.status} (model ${MODEL}):`, detail);
-
-  if (spent(res.status)) {
-    console.error(
-      `HTTP ${res.status} is a credit or credential fault and will not clear on its own. ` +
-        `Check the balance and the key on the account behind HACKCLUB_AI_KEY; ` +
-        `no change in this repository will fix it.`
-    );
+  if (dead(res.status)) {
+    console.error("ai:key dead. check balance/key behind HACKCLUB_AI_KEY, no code fix for this");
     return new AIError(UNAVAILABLE, 503);
   }
-
   if (res.status === 429) return new AIError(BUSY, 429);
   return new AIError(`Oops! Something went wrong on our end (HTTP ${res.status}) :( Give it another go.`);
 }
 
-const REASONING = { enabled: false } as const;
+type Opts = { json: boolean; temperature?: number; stream?: boolean };
 
-async function request(
-  token: string,
-  system: string,
-  user: string,
-  opts: { json: boolean; temperature?: number; stream?: boolean }
-): Promise<Response> {
-  return fetch(ENDPOINT, {
+function hit(tok: string, sys: string, usr: string, o: Opts) {
+  return fetch(EP, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
     body: JSON.stringify({
       model: MODEL,
       messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
+        { role: "system", content: sys },
+        { role: "user", content: usr },
       ],
-      ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-      ...(opts.stream ? { stream: true } : {}),
-      temperature: opts.temperature ?? 0.3,
-      reasoning: REASONING,
+      ...(o.json ? { response_format: { type: "json_object" } } : {}),
+      ...(o.stream ? { stream: true } : {}),
+      temperature: o.temperature ?? 0.3,
+      reasoning: { enabled: false },
     }),
   });
 }
 
 function key(): string {
-  const token = process.env.HACKCLUB_AI_KEY;
-  if (!token || token === "PLACEHOLDER") {
-    throw new AIError(
-      "HACKCLUB_AI_KEY is not set. Add your real key to .env.local and restart the dev server.",
-      500
-    );
-  }
-  return token;
+  const t = process.env.HACKCLUB_AI_KEY;
+  if (!t || t === "PLACEHOLDER")
+    throw new AIError("HACKCLUB_AI_KEY is not set. Add your real key to .env.local and restart the dev server.", 500);
+  return t;
 }
 
-async function callModel(
-  system: string,
-  user: string,
-  opts: { json: boolean; temperature?: number }
-): Promise<string> {
-  const token = key();
+async function ask(sys: string, usr: string, o: Opts): Promise<string> {
+  const tok = key();
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const res = await request(token, system, user, opts);
+  // two goes, models sometimes hand back an empty message
+  for (let n = 1; n <= 2; n++) {
+    const res = await hit(tok, sys, usr, o);
+    if (!res.ok) throw await bad(res, "call");
 
-    if (!res.ok) throw await failed(res, "call");
+    const d = await res.json();
+    const c: unknown = d?.choices?.[0]?.message?.content;
+    if (typeof c === "string" && c.trim()) return c;
 
-    const data = await res.json();
-    const content: unknown = data?.choices?.[0]?.message?.content;
-    if (typeof content === "string" && content.trim()) return content;
-
-    console.error(
-      `Hack Club AI API returned no message content (attempt ${attempt} of 2):`,
-      JSON.stringify(data).slice(0, 2000)
-    );
+    console.error(`ai:empty ${n}/2`, JSON.stringify(d).slice(0, 2000));
   }
 
   throw new AIError("Hmm, the AI drew a blank there. Give it another go?");
 }
 
-function withoutThinking(s: string): string {
-  return (
-    s
-      .replace(/<think>[\s\S]*?<\/think>/gi, "")
-      .replace(/^[\s\S]*?<\/think>/i, "")
-      .trim()
-  );
-}
+const unthink = (s: string) =>
+  s
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/^[\s\S]*?<\/think>/i, "")
+    .trim();
 
-function candidates(raw: string): string[] {
-  const text = withoutThinking(raw);
-  const spans = [text];
+// try the whole thing, then the fence, then anything between the outer braces
+function tries(raw: string): string[] {
+  const t = unthink(raw);
+  const out = [t];
 
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced) spans.push(fenced[1]);
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) out.push(fence[1]);
 
-  const first = text.indexOf("{");
-  const last = text.lastIndexOf("}");
-  if (first !== -1 && last > first) spans.push(text.slice(first, last + 1));
+  const a = t.indexOf("{");
+  const b = t.lastIndexOf("}");
+  if (a !== -1 && b > a) out.push(t.slice(a, b + 1));
 
-  return spans;
+  return out;
 }
 
 export function extractJSON(raw: string): { value: unknown } | null {
-  for (const span of candidates(raw)) {
-    const text = span.trim();
-    if (!text) continue;
+  for (const s of tries(raw)) {
+    const t = s.trim();
+    if (!t) continue;
     try {
-      return { value: JSON.parse(text) };
-    } catch {
-    }
+      return { value: JSON.parse(t) };
+    } catch {}
   }
   return null;
 }
 
 export async function chatJSON<T>(
-  system: string,
-  user: string,
-  isValid: (data: unknown) => data is T
+  sys: string,
+  usr: string,
+  ok: (d: unknown) => d is T
 ): Promise<T> {
-  const content = await callModel(system, user, { json: true });
+  const c = await ask(sys, usr, { json: true });
 
-  const found = extractJSON(content);
-  if (!found) {
-    console.error("Failed to parse model output as JSON:", content.slice(0, 2000));
+  const got = extractJSON(c);
+  if (!got) {
+    console.error("ai:unparseable", c.slice(0, 2000));
     throw new AIError("Hmm, the AI said something we could not read. Give it another go?");
   }
-  const parsed = found.value;
-
-  if (!isValid(parsed)) {
-    console.error("Model output failed shape validation:", content.slice(0, 2000));
+  if (!ok(got.value)) {
+    console.error("ai:badshape", c.slice(0, 2000));
     throw new AIError("Hmm, the AI answered in a shape we did not expect. Give it another go?");
   }
-  return parsed;
+  return got.value;
 }
 
-export async function* chatStream(
-  system: string,
-  user: string,
-  temperature = 0.4
-): AsyncGenerator<string> {
-  const res = await request(key(), system, user, { json: false, temperature, stream: true });
+export async function* chatStream(sys: string, usr: string, temp = 0.4): AsyncGenerator<string> {
+  const res = await hit(key(), sys, usr, { json: false, temperature: temp, stream: true });
+  if (!res.ok || !res.body) throw await bad(res, "stream");
 
-  if (!res.ok || !res.body) throw await failed(res, "stream");
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
+  const rd = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
 
   try {
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await rd.read();
       if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+      buf += dec.decode(value, { stream: true });
 
-      let cut: number;
-      while ((cut = buffer.indexOf("\n")) !== -1) {
-        const line = buffer.slice(0, cut).trim();
-        buffer = buffer.slice(cut + 1);
+      let i: number;
+      while ((i = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, i).trim();
+        buf = buf.slice(i + 1);
 
         if (!line.startsWith("data:")) continue;
-        const payload = line.slice(5).trim();
-        if (payload === "[DONE]") return;
+        const p = line.slice(5).trim();
+        if (p === "[DONE]") return;
 
         try {
-          const parsed = JSON.parse(payload);
-          const delta: unknown = parsed?.choices?.[0]?.delta?.content;
-          if (typeof delta === "string" && delta) yield delta;
-        } catch {
-        }
+          const d = JSON.parse(p)?.choices?.[0]?.delta?.content;
+          if (typeof d === "string" && d) yield d;
+        } catch {}
       }
     }
   } finally {
-    await reader.cancel().catch(() => {});
+    await rd.cancel().catch(() => {});
   }
 }
 
-export function isStringArray(v: unknown): v is string[] {
-  return Array.isArray(v) && v.every((x) => typeof x === "string");
-}
+export const isStringArray = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.every((x) => typeof x === "string");

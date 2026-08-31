@@ -7,7 +7,7 @@ export type Concept = {
   prompt: string;
 };
 
-const SYSTEM = `You are helping build a Teach-Back study session. Given source material a student pasted (notes, a passage), identify the distinct concepts in it that are worth testing for real understanding.
+const SYS = `You are helping build a Teach-Back study session. Given source material a student pasted (notes, a passage), identify the distinct concepts in it that are worth testing for real understanding.
 
 Rules:
 - Only pick concepts actually present in the source material.
@@ -21,9 +21,9 @@ Respond with JSON in exactly one of these two shapes:
 {"concepts": [{"name": "...", "prompt": "..."}]}
 {"concepts": [], "insufficient": "one or two sentences, addressed to the student as \\"you\\", saying what is missing from the material"}`;
 
-type ConceptsPayload = { concepts: Concept[]; insufficient?: string };
+type Payload = { concepts: Concept[]; insufficient?: string };
 
-function isConceptsPayload(v: unknown): v is ConceptsPayload {
+function ok(v: unknown): v is Payload {
   if (typeof v !== "object" || v === null) return false;
   const { concepts, insufficient } = v as { concepts?: unknown; insufficient?: unknown };
   if (insufficient !== undefined && typeof insufficient !== "string") return false;
@@ -31,53 +31,45 @@ function isConceptsPayload(v: unknown): v is ConceptsPayload {
     Array.isArray(concepts) &&
     concepts.every(
       (c) =>
-        typeof c === "object" && c !== null &&
+        typeof c === "object" &&
+        c !== null &&
         typeof (c as Concept).name === "string" &&
         typeof (c as Concept).prompt === "string"
     )
   );
 }
 
+const err = (msg: string, status: number) => NextResponse.json({ error: msg }, { status });
+
 export async function POST(req: Request) {
-  let source: unknown;
+  let src: unknown;
   try {
-    ({ source } = await req.json());
+    ({ source: src } = await req.json());
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return err("Invalid request body.", 400);
   }
-  if (typeof source !== "string") {
-    return NextResponse.json({ error: "Paste some source material first." }, { status: 400 });
-  }
-  const problem = sourceProblem(source);
-  if (problem) {
-    return NextResponse.json({ error: problem }, { status: 400 });
-  }
+  if (typeof src !== "string") return err("Paste some source material first.", 400);
+
+  const bad = sourceProblem(src);
+  if (bad) return err(bad, 400);
 
   try {
-    const { concepts, insufficient } = await chatJSON(
-      SYSTEM,
-      `Source material:\n\n${source}`,
-      isConceptsPayload
-    );
+    const { concepts, insufficient } = await chatJSON(SYS, `Source material:\n\n${src}`, ok);
 
-    if (concepts.length === 0) {
+    // empty array is a real answer here, not a failure
+    if (!concepts.length) {
       const said = insufficient?.trim();
-      return NextResponse.json(
-        {
-          error: said
-            ? said.slice(0, 300)
-            : "There is not enough substance in that to build a session from. Paste fuller notes or a longer passage, one that explains ideas rather than just naming them.",
-        },
-        { status: 422 }
+      return err(
+        said?.slice(0, 300) ??
+          "There is not enough substance in that to build a session from. Paste fuller notes or a longer passage, one that explains ideas rather than just naming them.",
+        422
       );
     }
 
     return NextResponse.json({ concepts });
-  } catch (err) {
-    if (err instanceof AIError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    console.error("Concept extraction failed:", err);
-    return NextResponse.json({ error: "Oops! We could not pull the concepts out of that :( Give it another go." }, { status: 500 });
+  } catch (e) {
+    if (e instanceof AIError) return err(e.message, e.status);
+    console.error("concepts:rip", e);
+    return err("Oops! We could not pull the concepts out of that :( Give it another go.", 500);
   }
 }

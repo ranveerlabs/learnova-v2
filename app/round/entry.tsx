@@ -19,7 +19,7 @@ export function Entry({
   const [notes, setNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [notesProblem, setNotesProblem] = useState<string | null>(null);
-  const field = useRef<HTMLInputElement>(null);
+  const box = useRef<HTMLInputElement>(null);
 
   const [history, setHistory] = useState<TopicRecord[]>([]);
   useEffect(() => {
@@ -27,9 +27,10 @@ export function Entry({
   }, []);
 
   useEffect(() => {
-    field.current?.focus();
+    box.current?.focus();
   }, []);
 
+  // ?demo fills it with the tritoflex spec sheet, for showing people
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has("demo")) return;
     setTopic(DEMO_TOPIC);
@@ -41,24 +42,27 @@ export function Entry({
     const t = topic.trim();
     if (!t) return;
 
-    const trimmed = notes.trim();
-    if (trimmed) {
-      const problem = sourceProblem(trimmed);
-      if (problem) {
-        setNotesProblem(problem);
+    // checked here as well as on the server, so they see it before the round opens
+    const n = notes.trim();
+    if (n) {
+      const bad = sourceProblem(n);
+      if (bad) {
+        setNotesProblem(bad);
         setShowNotes(true);
         return;
       }
     }
     setNotesProblem(null);
-    onStart(t, trimmed);
+    onStart(t, n);
   }
 
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2 sm:gap-8">
       <div className="rise flex flex-col gap-5">
         <div className="flex items-center gap-2">
-          <PixelTag className="press-on -rotate-2">10 seconds to your first question</PixelTag>
+          <PixelTag className="press-on -rotate-2">
+            10 seconds to your first question
+          </PixelTag>
           <PixelSprite
             name="star"
             scale={2}
@@ -74,12 +78,16 @@ export function Entry({
         </h1>
 
         <p className="max-w-[46ch] font-hand text-[1.5rem] leading-[1.3] text-ink-soft">
-          Name it and start guessing. You will be wrong at first, on purpose. Then the help gets
-          taken away one step at a time until you are explaining it yourself.
+          Name it and start guessing. You will be wrong at first, on purpose.
+          Then the help gets taken away one step at a time until you are
+          explaining it yourself.
         </p>
       </div>
 
-      <div className="rise flex flex-col gap-4" style={{ ["--i" as string]: 1 }}>
+      <div
+        className="rise flex flex-col gap-4"
+        style={{ ["--i" as string]: 1 }}
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -89,17 +97,17 @@ export function Entry({
         >
           <div className="relative flex min-w-0 flex-1 flex-col">
             <input
-              ref={field}
+              ref={box}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="Anything. One concept is enough."
               aria-label="What are you studying?"
-              className="leaf w-full rounded-[3px] border border-line bg-page font-read text-[1.25rem] text-ink caret-accent placeholder:text-ink-faint"
+              className="leaf w-full border border-line bg-page font-read text-[1.25rem] text-ink caret-accent placeholder:text-ink-faint"
               style={{ padding: "1rem 1.125rem" }}
             />
             <span
               aria-hidden
-              className="sweep pointer-events-none absolute inset-x-0 bottom-0 h-[2px] rounded-b-[3px] bg-accent"
+              className="sweep pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-accent"
             />
           </div>
 
@@ -107,10 +115,12 @@ export function Entry({
             type="submit"
             disabled={!topic.trim()}
             style={{ ["--tilt" as string]: "-1.4deg" }}
-            className="stuck sticker inline-flex shrink-0 items-center gap-2 self-start rounded-[3px] border-[2.5px] border-sheet-ink bg-supply-gold px-6 py-4 font-pixel text-[0.8125rem] leading-none text-[#262626] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
+            className="stuck sticker inline-flex shrink-0 items-center gap-2 self-start border-[2.5px] border-sheet-ink bg-supply-gold px-6 py-4 font-pixel text-[0.8125rem] leading-none text-[#262626] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
           >
             start
-            <span aria-hidden className="arrow">→</span>
+            <span aria-hidden className="arrow">
+              →
+            </span>
           </button>
         </form>
 
@@ -123,9 +133,9 @@ export function Entry({
               Pick up where you left off
             </p>
             <ul className="flex flex-col gap-1.5">
-              {history.slice(0, 3).map((record) => (
-                <li key={record.key}>
-                  <Resume record={record} onStart={(t) => onStart(t, "")} />
+              {history.slice(0, 3).map((r) => (
+                <li key={r.key}>
+                  <Resume record={r} onStart={(t) => onStart(t, "")} />
                 </li>
               ))}
             </ul>
@@ -137,11 +147,13 @@ export function Entry({
 
       <details
         open={showNotes}
-        onToggle={(e) => setShowNotes((e.currentTarget as HTMLDetailsElement).open)}
+        onToggle={(e) =>
+          setShowNotes((e.currentTarget as HTMLDetailsElement).open)
+        }
         className="rise group flex flex-col gap-3"
         style={{ ["--i" as string]: 2 }}
       >
-        <summary className="fold-key inline-flex w-fit cursor-pointer list-none items-center gap-2 rounded-[3px] border border-line-strong px-3 py-2 font-sans text-[0.875rem] font-medium text-accent group-open:border-line-strong group-open:text-ink-soft">
+        <summary className="fold-key inline-flex w-fit cursor-pointer list-none items-center gap-2 border border-line-strong px-3 py-2 font-sans text-[0.875rem] font-medium text-accent group-open:border-line-strong group-open:text-ink-soft">
           <span
             aria-hidden
             className="inline-block text-[0.75rem] leading-none transition-transform duration-200 group-open:rotate-90"
@@ -165,12 +177,11 @@ export function Entry({
           {notesProblem && <Notice>{notesProblem}</Notice>}
         </div>
       </details>
-
     </section>
   );
 }
 
-function ago(when: number): string {
+function ago(when: number) {
   const days = Math.floor((Date.now() - when) / 86_400_000);
   if (days <= 0) return "today";
   if (days === 1) return "yesterday";
@@ -180,20 +191,27 @@ function ago(when: number): string {
   return `${Math.floor(days / 30)} months ago`;
 }
 
-function Resume({ record, onStart }: { record: TopicRecord; onStart: (topic: string) => void }) {
+function Resume({
+  record,
+  onStart,
+}: {
+  record: TopicRecord;
+  onStart: (topic: string) => void;
+}) {
   const open = openConcepts(record);
-  const said =
-    open.length === 0
-      ? "all explained"
-      : `${open.length} still to explain`;
+  const said = open.length
+    ? `${open.length} still to explain`
+    : "all explained";
 
   return (
     <button
       onClick={() => onStart(record.topic)}
-      className="lift group flex w-full items-center gap-3 rounded-[3px] border border-line bg-page px-3.5 py-2.5 text-left hover:border-accent"
+      className="lift group flex w-full items-center gap-3 border border-line bg-page px-3.5 py-2.5 text-left hover:border-accent"
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-read text-[1.0625rem] text-ink">{record.topic}</span>
+        <span className="block truncate font-read text-[1.0625rem] text-ink">
+          {record.topic}
+        </span>
         <span className="mt-0.5 block font-sans text-[0.75rem] text-ink-faint">
           {said} · {ago(record.lastRun)}
         </span>

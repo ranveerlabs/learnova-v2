@@ -4,7 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AudioControls } from "../audio-controls";
 import { isBusy, postJSON, postStream } from "../client";
 import { play } from "../tone";
-import { Aside, GhostButton, Leaf, Notice, PrimaryButton, Waiting, Working, Wordmark } from "../ui";
+import {
+  Aside,
+  GhostButton,
+  Leaf,
+  Notice,
+  PrimaryButton,
+  Waiting,
+  Working,
+  Wordmark,
+} from "../ui";
 import { PixelTag } from "../paper";
 import { Ballot as BallotCard } from "./ballot";
 import { DEFAULTS, type Defaults, Setup as SetupScreen } from "./setup";
@@ -40,11 +49,15 @@ export default function DebatePage() {
   const speech: Speech = SPEECH_ORDER[Math.min(round, SPEECH_ORDER.length - 1)];
   const finished = turns.length >= SPEECH_ORDER.length * 2;
 
-  const transcript = useRef<HTMLDivElement>(null);
+  const tape = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "smooth" });
+    tape.current?.scrollTo({
+      top: tape.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [turns, thinking, live]);
 
+  // no dep array on purpose. eighth speech lands, this fires, nobody presses anything
   const sent = useRef(false);
   useEffect(() => {
     if (!finished || sent.current || phase !== "arguing" || thinking) return;
@@ -87,18 +100,25 @@ export default function DebatePage() {
       const text = await postStream(
         "/api/debate",
         { action: "reply", setup, turns: withMine, speech },
-        (chunk) => setLive((said) => said + chunk)
+        (c) => setLive((prev) => prev + c),
       );
 
-      if (!text.trim()) {
-        throw new Error("Your opponent lost their train of thought. Send it again.");
-      }
+      // the whole reply was packaging and the scrub ate all of it
+      if (!text.trim())
+        throw new Error(
+          "Your opponent lost their train of thought. Send it again.",
+        );
 
-      setTurns([...withMine, { speaker: "opponent", speech, text: text.trim() }]);
+      setTurns([
+        ...withMine,
+        { speaker: "opponent", speech, text: text.trim() },
+      ]);
       play("speech");
-    } catch (err) {
-      setWasBusy(isBusy(err));
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } catch (e) {
+      setWasBusy(isBusy(e));
+      setError(
+        e instanceof Error ? e.message : "That did not go through. Try again.",
+      );
     } finally {
       setThinking(false);
       setLive("");
@@ -113,18 +133,18 @@ export default function DebatePage() {
     setWasBusy(false);
 
     try {
-      const { ballot: verdict } = await postJSON<{ ballot: Ballot }>("/api/debate", {
+      const { ballot: b } = await postJSON<{ ballot: Ballot }>("/api/debate", {
         action: "judge",
         setup,
         turns,
       });
 
-      setBallot(verdict);
+      setBallot(b);
       setPhase("ballot");
       play("gavel");
-    } catch (err) {
-      setWasBusy(isBusy(err));
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } catch (e) {
+      setWasBusy(isBusy(e));
+      setError(e instanceof Error ? e.message : "Something went wrong.");
       setPhase("arguing");
     }
   }
@@ -149,7 +169,11 @@ export default function DebatePage() {
     return (
       <div className={SHELL}>
         {bar}
-        <BallotCard ballot={ballot} setup={setup} onAgain={() => setPhase("setup")} />
+        <BallotCard
+          ballot={ballot}
+          setup={setup}
+          onAgain={() => setPhase("setup")}
+        />
       </div>
     );
   }
@@ -176,13 +200,13 @@ export default function DebatePage() {
       </header>
 
       <div
-        ref={transcript}
-        className="flex max-h-[52vh] min-h-[8rem] flex-col gap-3 overflow-y-auto rounded-[3px] border border-line bg-sunk/40 p-3"
+        ref={tape}
+        className="flex max-h-[52vh] min-h-[8rem] flex-col gap-3 overflow-y-auto border border-line bg-sunk/40 p-3"
       >
         {turns.length === 0 && <Opening said="You open." />}
 
-        {turns.map((turn, i) => (
-          <Said key={i} turn={turn} tierName={opponent.name} />
+        {turns.map((t, i) => (
+          <Said key={i} turn={t} tierName={opponent.name} />
         ))}
 
         {thinking && (
@@ -215,7 +239,10 @@ export default function DebatePage() {
             />
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <PrimaryButton onClick={send} disabled={thinking || !draft.trim()}>
+              <PrimaryButton
+                onClick={send}
+                disabled={thinking || !draft.trim()}
+              >
                 {thinking ? "Waiting…" : "Send"}
                 {!thinking && (
                   <span aria-hidden className="thrown">
@@ -235,10 +262,12 @@ export default function DebatePage() {
         ) : (
           <div className="flex flex-col gap-3">
             <Notice>
-              There is not enough here to judge. You wrote {spoken}{" "}
-              {spoken === 1 ? "word" : "words"} across the round, and a ballot needs at least{" "}
-              {MIN_WORDS_TO_JUDGE}, which is about one real sentence of argument. Nothing was sent
-              to the judge and your rating has not moved.
+              There is not enough here to judge. You wrote {spoken}
+              {""}
+              {spoken === 1 ? "word" : "words"} across the round, and a ballot
+              needs at least{""}
+              {MIN_WORDS_TO_JUDGE}, which is about one real sentence of
+              argument. Nothing went to the judge.
             </Notice>
             <div className="flex flex-wrap items-center gap-3">
               <PrimaryButton onClick={() => setPhase("setup")}>

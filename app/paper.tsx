@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAutoGrow } from "./ui";
 
+// one char per pixel, palette maps char to a css var so they flip with the theme
 type Sprite = { rows: string[]; palette: Record<string, string> };
 
 const PENCIL: Sprite = {
@@ -61,7 +62,10 @@ const ERASER: Sprite = {
     ".RRRRRRRRR.",
     "..RRRRRRR..",
   ],
-  palette: { R: "var(--supply-pink)", W: "color-mix(in srgb, var(--supply-gold) 14%, #fff)" },
+  palette: {
+    R: "var(--supply-pink)",
+    W: "color-mix(in srgb, var(--supply-gold) 14%, #fff)",
+  },
 };
 
 const CLIP: Sprite = {
@@ -82,7 +86,12 @@ const CLIP: Sprite = {
   palette: { C: "var(--supply-metal)" },
 };
 
-export const SPRITES = { pencil: PENCIL, star: STAR, eraser: ERASER, clip: CLIP };
+export const SPRITES = {
+  pencil: PENCIL,
+  star: STAR,
+  eraser: ERASER,
+  clip: CLIP,
+};
 
 export function PixelSprite({
   name,
@@ -99,7 +108,7 @@ export function PixelSprite({
 }) {
   const { rows, palette } = SPRITES[name];
   const h = rows.length;
-  const w = rows[0].length;
+  const w = rows[0].length; // assumes every row is the same length. they are
 
   return (
     <svg
@@ -115,15 +124,28 @@ export function PixelSprite({
       {rows.flatMap((row, y) =>
         [...row].map((ch, x) =>
           palette[ch] ? (
-            <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={palette[ch]} />
-          ) : null
-        )
+            <rect
+              key={`${x}-${y}`}
+              x={x}
+              y={y}
+              width="1"
+              height="1"
+              fill={palette[ch]}
+            />
+          ) : null,
+        ),
       )}
     </svg>
   );
 }
 
-export function Tape({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+export function Tape({
+  className = "",
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return <span aria-hidden className={`tape ${className}`} style={style} />;
 }
 
@@ -140,6 +162,7 @@ export function PunchHoles() {
   );
 }
 
+// pencil scratches while you type, settles when you stop
 export function useScribbling(value: string, quietAfter = 480) {
   const [scribbling, setScribbling] = useState(false);
 
@@ -234,7 +257,7 @@ export function PixelTag({
 
   return (
     <span
-      className={`inline-block rounded-[2px] px-2 py-1 font-pixel text-[0.5625rem] leading-none text-[#262626] ${className}`}
+      className={`inline-block px-2 py-1 font-pixel text-[0.5625rem] leading-none text-[#262626] ${className}`}
       style={{ background: bg, ...style }}
     >
       {children}

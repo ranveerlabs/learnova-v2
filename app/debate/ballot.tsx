@@ -36,12 +36,26 @@ export function Ballot({
 }) {
   const won = ballot.winner === "user";
   const drew = ballot.winner === "draw";
+  // live rounds pass a name in, single player falls back to the tier
   const opponent = { name: opponentName ?? tier(setup.tierId).name };
 
+  // word + ink + wash. any one of them carries it alone
   const word = won ? "You won it" : drew ? "A draw" : "You lost it";
-  const ink = won ? "text-solid-ink" : drew ? "text-shaky-ink" : "text-broken-ink";
-  const rule = won ? "border-solid-mark" : drew ? "border-shaky-mark" : "border-broken-mark";
-  const wash = won ? "bg-solid-tint" : drew ? "bg-shaky-tint" : "bg-broken-tint";
+  const ink = won
+    ? "text-solid-ink"
+    : drew
+      ? "text-shaky-ink"
+      : "text-broken-ink";
+  const rule = won
+    ? "border-solid-mark"
+    : drew
+      ? "border-shaky-mark"
+      : "border-broken-mark";
+  const wash = won
+    ? "bg-solid-tint"
+    : drew
+      ? "bg-shaky-tint"
+      : "bg-broken-tint";
 
   return (
     <section className="flex w-full flex-col gap-6 pb-4">
@@ -51,15 +65,17 @@ export function Ballot({
           {setup.tierId ? ` · ${opponent.name}` : ""} · {sideWord(setup.side)}
         </Label>
         <div
-          className="sticky flex min-h-[7.5rem] w-fit min-w-[11rem] max-w-[20rem] items-start rounded-[2px] pb-6 pl-5 pr-6 pt-5"
+          className="sticky flex min-h-[7.5rem] w-fit min-w-[11rem] max-w-[20rem] items-start pb-6 pl-5 pr-6 pt-5"
           style={{ ["--tilt" as string]: "-1.3deg" }}
         >
-          <p className="font-hand text-[1.5rem] leading-[1.15]">{setup.motion}</p>
+          <p className="font-hand text-[1.5rem] leading-[1.15]">
+            {setup.motion}
+          </p>
         </div>
       </div>
 
       <div
-        className={`flex w-fit min-w-[18rem] max-w-full flex-col gap-4 rounded-[3px] border-l-[5px] py-4 pl-4 pr-8 ${rule} ${wash}`}
+        className={`flex w-fit min-w-[18rem] max-w-full flex-col gap-4 border-l-[5px] py-4 pl-4 pr-8 ${rule} ${wash}`}
       >
         <h2
           className={`stamp self-start border-[3px] px-3.5 py-2.5 font-pixel text-[clamp(1.125rem,0.85rem+1.1vw,1.75rem)] leading-none ${rule} ${ink}`}
@@ -68,7 +84,7 @@ export function Ballot({
         </h2>
       </div>
 
-      <div className="flex flex-col gap-1 rounded-[3px] border-l-[4px] border-accent bg-accent-wash py-3 pl-4 pr-4">
+      <div className="flex flex-col gap-1 border-l-[4px] border-accent bg-accent-wash py-3 pl-4 pr-4">
         <span
           style={NARROW}
           className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-accent"
@@ -85,12 +101,15 @@ export function Ballot({
           <Label>Where it turned</Label>
           <ul className="flex flex-col gap-2">
             {ballot.key_moments.map((m, i) => {
+              // yours vs theirs, told apart by colour. three grey cards read as one voice
               const mine = m.speaker === "user";
               return (
                 <li
                   key={i}
-                  className={`rounded-[3px] border-l-[4px] px-4 py-3 ${
-                    mine ? "border-accent bg-accent-wash" : "border-gap-mark bg-gap-tint"
+                  className={`border-l-[4px] px-4 py-3 ${
+                    mine
+                      ? "border-accent bg-accent-wash"
+                      : "border-gap-mark bg-gap-tint"
                   }`}
                 >
                   <p className="font-read text-[1rem] leading-[1.5] text-ink">
@@ -104,8 +123,8 @@ export function Ballot({
                       }`}
                     >
                       {mine ? "You" : opponent.name}
-                    </span>{" "}
-                    · {m.why_it_mattered}
+                    </span>
+                    {""}· {m.why_it_mattered}
                   </p>
                 </li>
               );
@@ -143,10 +162,15 @@ function Detail({
         style={NARROW}
         className="inline-flex cursor-pointer list-none items-center gap-1.5 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
       >
-        <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
+        <span
+          aria-hidden
+          className="inline-block transition-transform group-open:rotate-90"
+        >
           ›
         </span>
-        {setup.tab === "competitive" ? "Speaks and the full scoresheet" : "The full scoresheet"}
+        {setup.tab === "competitive"
+          ? "Speaks and the full scoresheet"
+          : "The full scoresheet"}
       </summary>
 
       <div className="mt-4 flex flex-col gap-5">
@@ -167,16 +191,26 @@ function Detail({
         </div>
 
         <div className="flex flex-col gap-3">
-          <Note kind="Strongest" said={ballot.feedback.biggest_strength} tone="solid" />
-          <Note kind="Weakest" said={ballot.feedback.biggest_weakness} tone="broken" />
+          <Note
+            kind="Strongest"
+            said={ballot.feedback.biggest_strength}
+            tone="solid"
+          />
+          <Note
+            kind="Weakest"
+            said={ballot.feedback.biggest_weakness}
+            tone="broken"
+          />
         </div>
       </div>
     </details>
   );
 }
 
-function speakerPoints(scores: Scores): number {
-  const mean = DIMENSIONS.reduce((sum, d) => sum + scores[d], 0) / DIMENSIONS.length;
+// derived from the 5 scores. asking the model straight up gives 28.5 every time
+function speakerPoints(scores: Scores) {
+  const mean =
+    DIMENSIONS.reduce((n, d) => n + scores[d], 0) / DIMENSIONS.length;
   return Math.round((25 + mean / 20) * 2) / 2;
 }
 
@@ -190,7 +224,7 @@ function Table({
   opponentName: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-[3px] border border-line">
+    <div className="overflow-hidden border border-line">
       <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b border-line bg-sunk/60 px-3.5 py-2">
         <span
           style={NARROW}
@@ -219,10 +253,16 @@ function Table({
             key={d}
             className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b border-line px-3.5 py-2 last:border-b-0"
           >
-            <span className="font-sans text-[0.875rem] text-ink">{LABEL[d]}</span>
+            <span className="font-sans text-[0.875rem] text-ink">
+              {LABEL[d]}
+            </span>
             <span
               className={`w-10 text-right font-mono text-[0.875rem] font-semibold tabular-nums ${
-                ahead ? "text-solid-ink" : behind ? "text-broken-ink" : "text-ink"
+                ahead
+                  ? "text-solid-ink"
+                  : behind
+                    ? "text-broken-ink"
+                    : "text-ink"
               }`}
             >
               {user[d]}
@@ -237,7 +277,15 @@ function Table({
   );
 }
 
-function Note({ kind, said, tone }: { kind: string; said: string; tone: "solid" | "broken" }) {
+function Note({
+  kind,
+  said,
+  tone,
+}: {
+  kind: string;
+  said: string;
+  tone: "solid" | "broken";
+}) {
   const rule = tone === "solid" ? "border-solid-mark" : "border-broken-mark";
   return (
     <div className={`flex flex-col gap-1 border-l-[3px] pl-3.5 ${rule}`}>
@@ -247,7 +295,9 @@ function Note({ kind, said, tone }: { kind: string; said: string; tone: "solid" 
       >
         {kind}
       </span>
-      <p className="font-read text-[1.0625rem] leading-[1.5] text-ink">{said}</p>
+      <p className="font-read text-[1.0625rem] leading-[1.5] text-ink">
+        {said}
+      </p>
     </div>
   );
 }

@@ -119,7 +119,7 @@ NEVER WRITE THE LETTERS. "A" and "B" are how this prompt tells the two of you ap
 
 WHO EVERY "YOU" REFERS TO. In "feedback", Debater A and nobody else: all three lines there are about what A did, written to A as "you". In "feedback_opponent" you write the same three lines about Debater B, addressed to B as "you" in exactly the same voice. Two separate ballots, one for each chair, and neither of them contains a letter.
 
-The two must not be the same ballot twice. If A's weakness was dropping the cost turn, that is A's weakness, and B's ballot says what B did — very likely that B pressed the cost turn and never got an answer. Writing one debater's comments into both fields tells the losing debater they made the winner's arguments, and the person reading it has no way to know it happened.
+The two must not be the same ballot twice. If A's weakness was dropping the cost turn, that is A's weakness, and B's ballot says what B did, very likely that B pressed the cost turn and never got an answer. Writing one debater's comments into both fields tells the losing debater they made the winner's arguments, and the person reading it has no way to know it happened.
 
 Before you write a line of praise, find the speech it came from and check whose it is. Crediting A with an argument B made is the worst thing you can do on this ballot: it is the one error the student cannot catch, because it tells them they made a point they never thought of, and they will walk into the next round believing it. If the good argument in this round was B's, that belongs in "biggest_weakness" as something A failed to answer, or in a key moment with "speaker": "opponent". It never belongs in "biggest_strength".
 
@@ -216,9 +216,9 @@ Keep it honest and keep it kind. This is practice, not a pile-on. If a debater i
 ${CONTRACT}`;
 }
 
-function clamp(n: unknown, lo: number, hi: number, fallback: number): number {
-  const value = typeof n === "number" && Number.isFinite(n) ? n : fallback;
-  return Math.min(hi, Math.max(lo, Math.round(value)));
+function clamp(n: unknown, lo: number, hi: number, fb: number): number {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : fb;
+  return Math.min(hi, Math.max(lo, Math.round(v)));
 }
 
 function scoresOf(v: unknown): Ballot["scores"]["user"] {
@@ -228,7 +228,8 @@ function scoresOf(v: unknown): Ballot["scores"]["user"] {
   return out;
 }
 
-function isBallotish(v: unknown): v is Record<string, unknown> {
+// a winner and some scores is enough to work with, the rest gets patched
+function ballotish(v: unknown): v is Record<string, unknown> {
   if (typeof v !== "object" || v === null) return false;
   const b = v as Record<string, unknown>;
   return (
@@ -239,15 +240,13 @@ function isBallotish(v: unknown): v is Record<string, unknown> {
 }
 
 function tidy(raw: Record<string, unknown>): Ballot {
-  const scores = (raw.scores ?? {}) as Record<string, unknown>;
-  const said = (v: unknown, fallback: string) =>
-    typeof v === "string" && v.trim() ? v.trim() : fallback;
-
+  const sc = (raw.scores ?? {}) as Record<string, unknown>;
+  const said = (v: unknown, fb: string) => (typeof v === "string" && v.trim() ? v.trim() : fb);
   const moments = Array.isArray(raw.key_moments) ? raw.key_moments : [];
 
   return {
     winner: raw.winner as Ballot["winner"],
-    scores: { user: scoresOf(scores.user), opponent: scoresOf(scores.opponent) },
+    scores: { user: scoresOf(sc.user), opponent: scoresOf(sc.opponent) },
     margin: clamp(raw.margin, 1, 10, 3),
     key_moments: moments
       .filter((m): m is Record<string, unknown> => typeof m === "object" && m !== null)
@@ -263,7 +262,7 @@ function tidy(raw: Record<string, unknown>): Ballot {
   };
 }
 
-const AUXILIARY: Record<string, string> = {
+const AUX: Record<string, string> = {
   is: "are",
   was: "were",
   has: "have",
@@ -274,35 +273,31 @@ const AUXILIARY: Record<string, string> = {
   "doesn't": "don't",
 };
 
+// take the judge's own A/B notation back off. nobody reading a ballot has seen it
 function deletter(text: string, me: "A" | "B"): string {
   const them = me === "A" ? "B" : "A";
-  const aux = Object.keys(AUXILIARY)
+  const aux = Object.keys(AUX)
     .map((v) => v.replace("'", "['’]"))
     .join("|");
 
   let out = text;
 
-  // possessives first, or the plain-name rule below eats the "A" out of "Debater A's"
+  // possessives first, or the rule below eats the "A" out of "Debater A's"
   out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${me}['’]s\\b`, "g"), "your");
   out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${them}['’]s\\b`, "g"), "their");
 
-  const named = (letter: string) =>
-    new RegExp(`\\bDebater\\s+${letter}\\b(\\s+(?:${aux}))?`, "g");
+  const named = (l: string) => new RegExp(`\\bDebater\\s+${l}\\b(\\s+(?:${aux}))?`, "g");
+  const verbOf = (v: string) => AUX[v.trim().toLowerCase().replace(/[’]/g, "'")];
 
-  out = out.replace(named(me), (_m, verb?: string) =>
-    verb ? `you ${AUXILIARY[verb.trim().toLowerCase().replace(/[’]/g, "'")]}` : "you"
-  );
-  out = out.replace(named(them), (_m, verb?: string) =>
-    verb ? `they ${AUXILIARY[verb.trim().toLowerCase().replace(/[’]/g, "'")]}` : "they"
-  );
+  out = out.replace(named(me), (_m, v?: string) => (v ? `you ${verbOf(v)}` : "you"));
+  out = out.replace(named(them), (_m, v?: string) => (v ? `they ${verbOf(v)}` : "they"));
 
   return out.charAt(0).toUpperCase() + out.slice(1);
 }
 
 function readFeedback(v: unknown, me: "A" | "B"): Ballot["feedback"] {
   const f = (v ?? {}) as Record<string, unknown>;
-  const said = (x: unknown) =>
-    typeof x === "string" && x.trim() ? deletter(x.trim(), me) : "Not given.";
+  const said = (x: unknown) => (typeof x === "string" && x.trim() ? deletter(x.trim(), me) : "Not given.");
   return {
     biggest_strength: said(f.biggest_strength),
     biggest_weakness: said(f.biggest_weakness),
@@ -310,135 +305,124 @@ function readFeedback(v: unknown, me: "A" | "B"): Ballot["feedback"] {
   };
 }
 
-function render(turns: Turn[]): string {
-  return turns
-    .map((t) => `[${t.speaker === "user" ? "A" : "B"} · ${t.speech}]\n${t.text.trim()}`)
-    .join("\n\n");
-}
+// judge sees two anonymous sides
+const render = (ts: Turn[]) =>
+  ts.map((t) => `[${t.speaker === "user" ? "A" : "B"} · ${t.speech}]\n${t.text.trim()}`).join("\n\n");
 
-function renderForOpponent(turns: Turn[]): string {
-  return turns
-    .map((t) => `[${t.speaker === "user" ? "THEM" : "YOU"} · ${t.speech}]\n${t.text.trim()}`)
-    .join("\n\n");
-}
+// the opponent sees itself as YOU
+const renderForOpponent = (ts: Turn[]) =>
+  ts.map((t) => `[${t.speaker === "user" ? "THEM" : "YOU"} · ${t.speech}]\n${t.text.trim()}`).join("\n\n");
 
 function readSetup(v: unknown): Setup | null {
   if (typeof v !== "object" || v === null) return null;
   const s = v as Record<string, unknown>;
+
   const tab = s.tab === "competitive" ? "competitive" : s.tab === "casual" ? "casual" : null;
   if (!tab) return null;
   if (typeof s.motion !== "string" || !s.motion.trim()) return null;
   if (s.side !== "Pro" && s.side !== "Con") return null;
-  const tierId = s.tierId;
-  if (tierId !== undefined && tierId !== "novice" && tierId !== "varsity" && tierId !== "circuit") {
-    return null;
-  }
+
+  const t = s.tierId;
+  if (t !== undefined && t !== "novice" && t !== "varsity" && t !== "circuit") return null;
   if (tab === "competitive" && typeof s.format !== "string") return null;
 
   return {
     tab,
     motion: s.motion.trim().slice(0, 400),
     side: s.side,
-    tierId,
+    tierId: t,
     format: tab === "competitive" ? (s.format as Format) : undefined,
   };
 }
 
-function readSpeech(v: unknown): Speech {
-  return SPEECHES.includes(v as Speech) ? (v as Speech) : "Constructive";
-}
+const readSpeech = (v: unknown): Speech =>
+  SPEECHES.includes(v as Speech) ? (v as Speech) : "Constructive";
 
 function readTurns(v: unknown): Turn[] | null {
   if (!Array.isArray(v)) return null;
-  const turns: Turn[] = [];
-  for (const t of v) {
-    if (typeof t !== "object" || t === null) return null;
-    const turn = t as Record<string, unknown>;
-    if (turn.speaker !== "user" && turn.speaker !== "opponent") return null;
-    if (typeof turn.text !== "string" || !turn.text.trim()) return null;
-    turns.push({
-      speaker: turn.speaker,
-      speech: readSpeech(turn.speech),
-      text: turn.text.trim().slice(0, 4000),
-    });
+  const out: Turn[] = [];
+  for (const x of v) {
+    if (typeof x !== "object" || x === null) return null;
+    const t = x as Record<string, unknown>;
+    if (t.speaker !== "user" && t.speaker !== "opponent") return null;
+    if (typeof t.text !== "string" || !t.text.trim()) return null;
+    // capped, the transcript IS the prompt
+    out.push({ speaker: t.speaker, speech: readSpeech(t.speech), text: t.text.trim().slice(0, 4000) });
   }
-  return turns;
+  return out;
 }
 
+const err = (msg: string, status: number) => NextResponse.json({ error: msg }, { status });
+
 export async function POST(req: Request) {
-  let body: Record<string, unknown>;
+  let b: Record<string, unknown>;
   try {
-    body = await req.json();
+    b = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return err("Invalid request body.", 400);
   }
 
-  const setup = readSetup(body.setup);
-  const turns = readTurns(body.turns);
-  if (!setup || !turns) {
-    return NextResponse.json({ error: "setup and turns are required." }, { status: 400 });
-  }
+  const setup = readSetup(b.setup);
+  const turns = readTurns(b.turns);
+  if (!setup || !turns) return err("setup and turns are required.", 400);
 
   try {
-    if (body.action === "reply") {
-      if (!setup.tierId) {
-        return NextResponse.json(
-          { error: "An opponent strength is required to write a reply." },
-          { status: 400 }
-        );
-      }
-      const speech = readSpeech(body.speech);
+    if (b.action === "reply") {
+      if (!setup.tierId) return err("An opponent strength is required to write a reply.", 400);
+
+      const sp = readSpeech(b.speech);
 
       const nudge =
-        speech === "Constructive"
+        sp === "Constructive"
           ? `Write your Constructive. They have spoken, so you may open by taking one line off them, but this speech is where you put YOUR case on the table. Most of it should be your own argument.`
-          : `Write your ${speech}. Answer what they actually said, not what you wish they had said.`;
+          : `Write your ${sp}. Answer what they actually said, not what you wish they had said.`;
 
-      const said = turns.length
+      const usr = turns.length
         ? `The round so far. Speeches marked YOU are ones you already gave, arguing ${
             setup.side === "Pro" ? "Con" : "Pro"
           }. Speeches marked THEM are your opponent's, arguing ${setup.side}. Never answer your own speech.\n\n${renderForOpponent(
             turns
           )}\n\n${nudge}`
-        : `Open the round. Write your ${speech}.`;
+        : `Open the round. Write your ${sp}.`;
 
-      const stream = chatStream(opponentSystem(setup, speech, setup.tierId), said, 0.6);
+      const s = chatStream(opponentSystem(setup, sp, setup.tierId), usr, 0.6);
 
-      const opening = await stream.next();
+      // first chunk here, inside the try, so a dead key is a 5xx and not a broken stream
+      const head = await s.next();
 
-      const filter = createSpeechFilter(BUDGET[speech][setup.tierId]);
-      const encode = new TextEncoder();
+      const f = createSpeechFilter(BUDGET[sp][setup.tierId]);
+      const enc = new TextEncoder();
 
       return new Response(
         new ReadableStream<Uint8Array>({
-          async start(controller) {
-            let said = "";
+          async start(c) {
+            let got = "";
 
-            const write = (text: string) => {
-              if (!text) return;
-              said += text;
-              controller.enqueue(encode.encode(text));
+            const put = (t: string) => {
+              if (!t) return;
+              got += t;
+              c.enqueue(enc.encode(t));
             };
 
-            controller.enqueue(encode.encode(" ".repeat(1024)));
+            // a kb of nothing first, or a proxy sits on the body
+            c.enqueue(enc.encode(" ".repeat(1024)));
 
             try {
-              if (!opening.done) write(filter.push(opening.value));
+              if (!head.done) put(f.push(head.value));
 
-              if (!filter.finished()) {
-                for await (const delta of stream) {
-                  write(filter.push(delta));
-                  if (filter.finished()) break;
+              if (!f.finished()) {
+                for await (const d of s) {
+                  put(f.push(d));
+                  if (f.finished()) break;
                 }
               }
 
-              write(filter.end());
-
-              if (!said.trim()) console.error("Debate reply produced no speech.");
-            } catch (err) {
-              console.error("Debate reply stream failed:", err);
+              put(f.end());
+              if (!got.trim()) console.error("debate:reply empty");
+            } catch (e) {
+              console.error("debate:stream rip", e);
             } finally {
-              controller.close();
+              c.close();
             }
           },
         }),
@@ -453,36 +437,25 @@ export async function POST(req: Request) {
       );
     }
 
-    if (body.action === "judge") {
-      if (turns.length < 2) {
-        return NextResponse.json(
-          { error: "There is not enough of a round here to judge." },
-          { status: 400 }
-        );
-      }
+    if (b.action === "judge") {
+      if (turns.length < 2) return err("There is not enough of a round here to judge.", 400);
 
-      if (!worthJudging(turns)) {
-        return NextResponse.json(
-          {
-            error:
-              "There is no round here to judge yet. Make an argument, in a sentence or two, and the ballot will have something to mark.",
-          },
-          { status: 400 }
+      // nobody actually argued
+      if (!worthJudging(turns))
+        return err(
+          "There is no round here to judge yet. Make an argument, in a sentence or two, and the ballot will have something to mark.",
+          400
         );
-      }
 
-      const system =
-        setup.tab === "competitive" ? competitiveSystem(setup) : casualSystem(setup);
-      const raw = await chatJSON(system, render(turns), isBallotish);
+      const sys = setup.tab === "competitive" ? competitiveSystem(setup) : casualSystem(setup);
+      const raw = await chatJSON(sys, render(turns), ballotish);
       return NextResponse.json({ ballot: tidy(raw) });
     }
 
-    return NextResponse.json({ error: "Unknown action." }, { status: 400 });
-  } catch (err) {
-    if (err instanceof AIError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    console.error("Debate route failed:", err);
-    return NextResponse.json({ error: "Oops! Something went wrong on our end :(" }, { status: 500 });
+    return err("Unknown action.", 400);
+  } catch (e) {
+    if (e instanceof AIError) return err(e.message, e.status);
+    console.error("debate:rip", e);
+    return err("Oops! Something went wrong on our end :(", 500);
   }
 }

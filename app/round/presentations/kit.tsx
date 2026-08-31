@@ -13,6 +13,7 @@ export function useOptions(props: PresentationProps, { keys = true } = {}) {
   const options = useMemo(() => question.options ?? [], [question.options]);
   const answer = question.answerIndex ?? -1;
 
+  // one answer per question. a fast double tap must not count twice
   const spent = useRef(false);
   useEffect(() => {
     spent.current = false;
@@ -25,9 +26,10 @@ export function useOptions(props: PresentationProps, { keys = true } = {}) {
       spent.current = true;
       onAnswer(i);
     },
-    [onAnswer, options.length, revealed]
+    [onAnswer, options.length, revealed],
   );
 
+  // every presentation gets number keys from here. do not hand-roll this
   useEffect(() => {
     if (revealed || !keys) return;
     function onKey(e: KeyboardEvent) {
@@ -49,13 +51,13 @@ export function useOptions(props: PresentationProps, { keys = true } = {}) {
       if (i === chosen) return "wrong";
       return "dimmed";
     },
-    [answer, chosen, revealed]
+    [answer, chosen, revealed],
   );
 
   return { options, answer, chosen, revealed, pick, moodOf };
 }
 
-export function tone(mood: Mood, { hover = true } = {}): string {
+export function tone(mood: Mood, { hover = true } = {}) {
   switch (mood) {
     case "right":
       return "border-solid-mark bg-solid-tint";
@@ -70,7 +72,7 @@ export function tone(mood: Mood, { hover = true } = {}): string {
   }
 }
 
-export function ink(mood: Mood): string {
+export function ink(mood: Mood) {
   switch (mood) {
     case "right":
       return "font-medium text-solid-ink";
@@ -92,14 +94,19 @@ export function Mark({
   round?: boolean;
   className?: string;
 }) {
+  // glyph as well as colour, always
   const face =
-    mood === "right" ? "✓" : mood === "wrong" ? "✕" : KEYS[index] ?? String(index + 1);
+    mood === "right"
+      ? "✓"
+      : mood === "wrong"
+        ? "✕"
+        : (KEYS[index] ?? String(index + 1));
 
   return (
     <span
       aria-hidden
       className={`grid shrink-0 place-items-center border font-mono font-semibold ${
-        round ? "rounded-full" : "rounded-[2px]"
+        round ? "" : ""
       } ${
         mood === "right"
           ? "border-solid-mark bg-solid-mark text-page"
@@ -123,18 +130,26 @@ export function Say({
   className?: string;
 }) {
   return (
-    <span className={`font-read leading-[1.3] ${ink(mood)} ${className || "text-[1.0625rem]"}`}>
+    <span
+      className={`font-read leading-[1.3] ${ink(mood)} ${className || "text-[1.0625rem]"}`}
+    >
       {children}
     </span>
   );
 }
 
-export function label(index: number, option: string, mood: Mood): string {
+// accessible name built in. do not hand-roll this
+export function label(index: number, option: string, mood: Mood) {
   const state =
-    mood === "right" ? ", the correct answer" : mood === "wrong" ? ", your answer, wrong" : "";
+    mood === "right"
+      ? ", the correct answer"
+      : mood === "wrong"
+        ? ", your answer, wrong"
+        : "";
   return `${index + 1}. ${option}${state}`;
 }
 
+// button while it is live, div after
 export function Pick({
   index,
   option,
@@ -190,7 +205,10 @@ export function Stage({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`stage deal-in ${className}`} data-settled={revealed ? "true" : "false"}>
+    <div
+      className={`stage deal-in ${className}`}
+      data-settled={revealed ? "true" : "false"}
+    >
       {children}
     </div>
   );
@@ -211,7 +229,7 @@ export function Commit({
       onClick={onSubmit}
       disabled={disabled}
       aria-label="Submit your answer"
-      className={`btn grid h-11 w-11 place-items-center rounded-[3px] bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint ${className}`}
+      className={`btn grid h-11 w-11 place-items-center bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint ${className}`}
     >
       <span aria-hidden className="arrow">
         →
