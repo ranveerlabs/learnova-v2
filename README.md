@@ -250,6 +250,20 @@ one honest caveat: if the model returns output that cant be parsed, up to 2000
 chars of it go to the server log. in a grounded session that output can quote
 material you pasted.
 
+### the feed page talks to github, not about you
+
+`/feed` lists the repo's own commits and whether each one deployed. the server
+asks `api.github.com` for them, unauthenticated, and holds the answer in memory
+for 60 seconds so every visitor in that minute is served the same copy rather
+than spending the 60 requests an hour that an unauthenticated ip gets. nothing
+about you goes into that request and nothing about you comes back: its commit
+messages, shas, author names off the commits, and deployment states. no student
+text, no topic, no notes, no answers. the cache is one object, it holds public
+repo data only, and it is gone on restart.
+
+the known limitations and chaos lists on that page are static, written in
+`app/feed/limits.ts`, and are not fetched from anywhere.
+
 ## whats actually been checked
 
 deployed and working, both modes playable end to end. stated precisely rather than
