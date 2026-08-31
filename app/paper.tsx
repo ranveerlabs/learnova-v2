@@ -83,11 +83,28 @@ const CLIP: Sprite = {
   palette: { C: "var(--supply-metal)" },
 };
 
+// the wordmark. same nine row star as the sprite, chevrons either side of it
+const LOGO: Sprite = {
+  rows: [
+    "....BB.....X.....BB....",
+    "...BB......X......BB...",
+    "..BB......XXX......BB..",
+    ".BB....XXXXXXXXX....BB.",
+    "BB......XXXXXXX......BB",
+    ".BB......XXXXX......BB.",
+    "..BB.....XX.XX.....BB..",
+    "...BB...XX...XX...BB...",
+    "....BB..X.....X..BB....",
+  ],
+  palette: { B: "var(--ink)", X: "var(--supply-gold)" },
+};
+
 export const SPRITES = {
   pencil: PENCIL,
   star: STAR,
   eraser: ERASER,
   clip: CLIP,
+  logo: LOGO,
 };
 
 export function PixelSprite({

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { PixelSprite } from "./paper";
 
 // the window. a title bar and a body, and every screen sits in one. the dark
 // ground behind it is desktop and never carries text
@@ -40,10 +41,13 @@ export function Wordmark({ mode = "Round Mode" }: { mode?: string }) {
     <Link
       href="/"
       title="Both modes"
-      className="shrink-0 whitespace-nowrap font-pixel text-[1rem] text-ink hover:text-accent sm:text-[1.15rem]"
+      className="group flex shrink-0 items-center gap-2.5 whitespace-nowrap"
     >
-      Learnova
-      <span className="ml-2 hidden align-[0.1em] font-pixel text-[0.6rem] text-ink-faint sm:inline">
+      <PixelSprite name="logo" scale={2} title="Learnova" />
+      <span className="font-pixel text-[1rem] text-ink group-hover:text-accent sm:text-[1.15rem]">
+        Learnova
+      </span>
+      <span className="hidden font-pixel text-[0.6rem] text-ink-faint sm:inline">
         {mode}
       </span>
     </Link>

@@ -1,38 +1,92 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Learnova">
   <title>Learnova</title>
   <desc>
-    A chalk L between two chevrons, with a gold star on its shoulder.
+    Two chevrons around a star, drawn cell by cell off the same nine row grid
+    as the LOGO sprite in app/paper.tsx. Change one and change the other.
 
-    The colours are the app's own rather than an icon palette invented
-    beside it. #1d1d1d is the dark theme's page, #fdfcdf is its cream,
-    #f5c243 is the supply gold (the same gold as the stars pinned around
-    Round Mode's front door), and #7cc9a6 is the supply mint (the mint on
-    the music toggle and on "for it"). All four are in app/globals.css.
-
-    The two chevrons are that one mint at two opacities rather than two
-    different hues. A second colour would have had to come from outside
-    the set the app actually owns, and an icon is where a fifth colour
-    starts looking like it belongs elsewhere too.
+    #f5c243 is the supply gold, the same gold as the stars pinned around Round
+    Mode's front door, and it is in app/globals.css. #101010 is the ink and
+    #fdfcdf the cream.
 
     The ground is painted rather than left transparent. A favicon sits on
-    whatever the browser's tab strip happens to be, and a cream L on a
-    light tab is an invisible one.
+    whatever the browser's tab strip happens to be, and dark chevrons on a dark
+    tab are invisible ones. Square, because nothing in this theme is rounded.
 
-    (No XML comments in here: a double hyphen is illegal inside one, and
-    every token name in this app has two.)
+    (No XML comments in here: a double hyphen is illegal inside one, and every
+    token name in this app has two.)
   </desc>
 
-  <rect width="64" height="64" rx="12" fill="#1d1d1d"/>
-
-  <path d="M25 15 V45 Q25 47.5 27.5 47.5 H39"
-        fill="none" stroke="#fdfcdf" stroke-width="6.5"
-        stroke-linecap="round" stroke-linejoin="round"/>
-
-  <path d="M43.5 12.5 L45.9 18 L51.8 18.6 L47.3 22.6 L48.6 28.4 L43.5 25.4 L38.4 28.4 L39.7 22.6 L35.2 18.6 L41.1 18 Z"
-        fill="#f5c243"/>
-
-  <path d="M15.5 26.5 L9.5 32 L15.5 37.5" fill="none" stroke="#7cc9a6"
-        stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
-  <path d="M48.5 26.5 L54.5 32 L48.5 37.5" fill="none" stroke="#7cc9a6"
-        stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect width="64" height="64" fill="#fdfcdf"/>
+  <rect x="17" y="23" width="2" height="2" fill="#101010"/>
+  <rect x="19" y="23" width="2" height="2" fill="#101010"/>
+  <rect x="31" y="23" width="2" height="2" fill="#f5c243"/>
+  <rect x="43" y="23" width="2" height="2" fill="#101010"/>
+  <rect x="45" y="23" width="2" height="2" fill="#101010"/>
+  <rect x="15" y="25" width="2" height="2" fill="#101010"/>
+  <rect x="17" y="25" width="2" height="2" fill="#101010"/>
+  <rect x="31" y="25" width="2" height="2" fill="#f5c243"/>
+  <rect x="45" y="25" width="2" height="2" fill="#101010"/>
+  <rect x="47" y="25" width="2" height="2" fill="#101010"/>
+  <rect x="13" y="27" width="2" height="2" fill="#101010"/>
+  <rect x="15" y="27" width="2" height="2" fill="#101010"/>
+  <rect x="29" y="27" width="2" height="2" fill="#f5c243"/>
+  <rect x="31" y="27" width="2" height="2" fill="#f5c243"/>
+  <rect x="33" y="27" width="2" height="2" fill="#f5c243"/>
+  <rect x="47" y="27" width="2" height="2" fill="#101010"/>
+  <rect x="49" y="27" width="2" height="2" fill="#101010"/>
+  <rect x="11" y="29" width="2" height="2" fill="#101010"/>
+  <rect x="13" y="29" width="2" height="2" fill="#101010"/>
+  <rect x="23" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="25" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="27" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="29" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="31" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="33" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="35" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="37" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="39" y="29" width="2" height="2" fill="#f5c243"/>
+  <rect x="49" y="29" width="2" height="2" fill="#101010"/>
+  <rect x="51" y="29" width="2" height="2" fill="#101010"/>
+  <rect x="9" y="31" width="2" height="2" fill="#101010"/>
+  <rect x="11" y="31" width="2" height="2" fill="#101010"/>
+  <rect x="25" y="31" width="2" height="2" fill="#f5c243"/>
+  <rect x="27" y="31" width="2" height="2" fill="#f5c243"/>
+  <rect x="29" y="31" width="2" height="2" fill="#f5c243"/>
+  <rect x="31" y="31" width="2" height="2" fill="#f5c243"/>
+  <rect x="33" y="31" width="2" height="2" fill="#f5c243"/>
+  <rect x="35" y="31" width="2" height="2" fill="#f5c243"/>
+  <rect x="37" y="31" width="2" height="2" fill="#f5c243"/>
+  <rect x="51" y="31" width="2" height="2" fill="#101010"/>
+  <rect x="53" y="31" width="2" height="2" fill="#101010"/>
+  <rect x="11" y="33" width="2" height="2" fill="#101010"/>
+  <rect x="13" y="33" width="2" height="2" fill="#101010"/>
+  <rect x="27" y="33" width="2" height="2" fill="#f5c243"/>
+  <rect x="29" y="33" width="2" height="2" fill="#f5c243"/>
+  <rect x="31" y="33" width="2" height="2" fill="#f5c243"/>
+  <rect x="33" y="33" width="2" height="2" fill="#f5c243"/>
+  <rect x="35" y="33" width="2" height="2" fill="#f5c243"/>
+  <rect x="49" y="33" width="2" height="2" fill="#101010"/>
+  <rect x="51" y="33" width="2" height="2" fill="#101010"/>
+  <rect x="13" y="35" width="2" height="2" fill="#101010"/>
+  <rect x="15" y="35" width="2" height="2" fill="#101010"/>
+  <rect x="27" y="35" width="2" height="2" fill="#f5c243"/>
+  <rect x="29" y="35" width="2" height="2" fill="#f5c243"/>
+  <rect x="33" y="35" width="2" height="2" fill="#f5c243"/>
+  <rect x="35" y="35" width="2" height="2" fill="#f5c243"/>
+  <rect x="47" y="35" width="2" height="2" fill="#101010"/>
+  <rect x="49" y="35" width="2" height="2" fill="#101010"/>
+  <rect x="15" y="37" width="2" height="2" fill="#101010"/>
+  <rect x="17" y="37" width="2" height="2" fill="#101010"/>
+  <rect x="25" y="37" width="2" height="2" fill="#f5c243"/>
+  <rect x="27" y="37" width="2" height="2" fill="#f5c243"/>
+  <rect x="35" y="37" width="2" height="2" fill="#f5c243"/>
+  <rect x="37" y="37" width="2" height="2" fill="#f5c243"/>
+  <rect x="45" y="37" width="2" height="2" fill="#101010"/>
+  <rect x="47" y="37" width="2" height="2" fill="#101010"/>
+  <rect x="17" y="39" width="2" height="2" fill="#101010"/>
+  <rect x="19" y="39" width="2" height="2" fill="#101010"/>
+  <rect x="25" y="39" width="2" height="2" fill="#f5c243"/>
+  <rect x="37" y="39" width="2" height="2" fill="#f5c243"/>
+  <rect x="43" y="39" width="2" height="2" fill="#101010"/>
+  <rect x="45" y="39" width="2" height="2" fill="#101010"/>
 </svg>
