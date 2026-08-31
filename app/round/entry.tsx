@@ -102,12 +102,8 @@ export function Entry({
               onChange={(e) => setTopic(e.target.value)}
               placeholder="Anything. One concept is enough."
               aria-label="What are you studying?"
-              className="leaf w-full border border-line bg-page font-read text-[1.25rem] text-ink caret-accent placeholder:text-ink-faint"
+              className="xp-field w-full px-4 py-3.5 font-read text-[1.25rem] text-ink caret-accent placeholder:text-ink-faint"
               style={{ padding: "1rem 1.125rem" }}
-            />
-            <span
-              aria-hidden
-              className="sweep pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-accent"
             />
           </div>
 
@@ -115,7 +111,7 @@ export function Entry({
             type="submit"
             disabled={!topic.trim()}
             style={{ ["--tilt" as string]: "-1.4deg" }}
-            className="stuck sticker inline-flex shrink-0 items-center gap-2 self-start border-[2.5px] border-sheet-ink bg-supply-gold px-6 py-4 font-pixel text-[0.8125rem] leading-none text-[#262626] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
+            className="xp-btn xp-btn-go shrink-0 self-start px-6 py-4"
           >
             start
             <span aria-hidden className="arrow">
@@ -128,7 +124,7 @@ export function Entry({
           <div className="flex flex-col gap-2">
             <p
               style={{ fontVariationSettings: '"wdth" 88' }}
-              className="font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-ink-faint"
+              className="font-pixel text-[0.6875rem] uppercase text-ink-faint"
             >
               Pick up where you left off
             </p>
@@ -153,7 +149,7 @@ export function Entry({
         className="rise group flex flex-col gap-3"
         style={{ ["--i" as string]: 2 }}
       >
-        <summary className="fold-key inline-flex w-fit cursor-pointer list-none items-center gap-2 border border-line-strong px-3 py-2 font-sans text-[0.875rem] font-medium text-accent group-open:border-line-strong group-open:text-ink-soft">
+        <summary className="fold-key xp-btn w-fit cursor-pointer list-none">
           <span
             aria-hidden
             className="inline-block text-[0.75rem] leading-none transition-transform duration-200 group-open:rotate-90"
@@ -206,7 +202,7 @@ function Resume({
   return (
     <button
       onClick={() => onStart(record.topic)}
-      className="lift group flex w-full items-center gap-3 border border-line bg-page px-3.5 py-2.5 text-left hover:border-accent"
+      className="lift group flex w-full items-center gap-3 border-2 border-line bg-page px-3.5 py-2.5 text-left hover:bg-accent-wash"
     >
       <span className="min-w-0 flex-1">
         <span className="block truncate font-read text-[1.0625rem] text-ink">

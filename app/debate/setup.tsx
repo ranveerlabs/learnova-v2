@@ -162,7 +162,7 @@ function SideSlab({
         ["--swing" as string]: swing,
         background: paper,
       }}
-      className="stuck sticker flex min-h-[4.5rem] items-center justify-center border-[2.5px] border-sheet-ink px-5 py-4 font-pixel text-[0.9375rem] leading-none text-[#262626] disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-sunk disabled:text-ink-faint"
+      className="xp-btn min-h-[4.5rem] w-full px-5 py-4 text-[0.9375rem] text-[#101010]"
     >
       {word}
     </button>
@@ -213,10 +213,10 @@ function Opponent({
             onClick={() => onPick(o.id)}
             aria-pressed={on}
             title={o.title}
-            className={`key inline-flex items-center gap-2 border-2 px-3 py-2 font-pixel text-[0.625rem] leading-none ${
+            className={`key inline-flex items-center gap-2 border-2 border-line px-3 py-2 font-pixel text-[0.625rem] leading-none ${
               on
-                ? "translate-y-[2px] border-sheet-ink bg-accent-wash text-ink shadow-[inset_0_2px_0_rgb(20_26_38/0.18)]"
-                : "border-line-strong text-ink-soft shadow-[0_2px_0_var(--line-strong)] hover:border-accent hover:text-ink"
+                ? "translate-x-[2px] translate-y-[2px] bg-accent-wash text-ink"
+                : "bg-page text-ink-soft shadow-[2px_2px_0_var(--line)] hover:bg-accent-wash"
             }`}
           >
             <PixelSprite name={o.sprite} scale={2} />
@@ -390,10 +390,10 @@ function Choice({
             onClick={() => onPick(o.id)}
             aria-pressed={value === o.id}
             title={o.title}
-            className={`key inline-flex min-h-[2.5rem] items-center border-2 px-3.5 py-1.5 font-sans text-[0.875rem] font-medium ${
+            className={`key inline-flex min-h-[2.5rem] items-center border-2 border-line px-3.5 py-1.5 font-pixel text-[0.6875rem] ${
               value === o.id
-                ? "translate-y-[2px] border-sheet-ink bg-accent-wash text-ink shadow-[inset_0_2px_0_rgb(20_26_38/0.18)]"
-                : "border-line-strong text-ink-soft shadow-[0_2px_0_var(--line-strong)] hover:border-accent hover:text-ink"
+                ? "translate-x-[2px] translate-y-[2px] bg-accent-wash text-ink"
+                : "bg-page text-ink-soft shadow-[2px_2px_0_var(--line)] hover:bg-accent-wash"
             }`}
           >
             {o.name}
