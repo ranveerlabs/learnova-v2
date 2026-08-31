@@ -2,6 +2,9 @@ import Link from "next/link";
 import { AudioControls } from "./audio-controls";
 import { PixelSprite, PixelTag } from "./paper";
 import { Credits, Win } from "./ui";
+import { Clippy } from "./clippy";
+import { openCount } from "./feed/limits";
+import { BUILD } from "@/lib/build";
 
 export default function Landing() {
   return (
@@ -60,6 +63,8 @@ export default function Landing() {
           </div>
         </main>
       </Win>
+
+      <Clippy sha={BUILD.sha} limits={openCount} />
     </div>
   );
 }
