@@ -24,17 +24,20 @@
   --ink-soft: #3f3f3f;
   --ink-faint: #6e6e6e;
 
-  --accent: #0b3fd8;
-  --accent-hover: #0930a8;
-  --accent-wash: #b9e9f5;
+  /* the blue in here was lifted off a reference and was the last colour in the
+     app from outside its own set. it painted ::selection, the focus ring, the
+     go button and the scrollbar thumb */
+  --accent: #27664c;
+  --accent-hover: #1b4936;
+  --accent-wash: color-mix(in srgb, var(--supply-mint) 42%, #ffffff);
   --on-accent: #ffffff;
 
-  /* title bar. graphite, lifting slightly toward the close button. no hue in
-     here on purpose, every colour this app owns is a --supply-* and a fifth one
-     on the largest surface in the ui would have come from outside the set */
-  --title-from: #262626;
-  --title-to: #555555;
-  --title-ink: var(--cream);
+  /* title bar. the mint the mascot has for eyes, darkened at the caption end and
+     arriving at the token itself by the close button. both ends are one colour
+     mixed, so there is nothing here from outside the supply set */
+  --title-from: color-mix(in srgb, var(--supply-mint) 62%, #0b2b1f);
+  --title-to: var(--supply-mint);
+  --title-ink: #101010;
   --title-h: 2.5rem;
 
   /* borders are structural here, so they get their own names */
