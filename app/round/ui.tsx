@@ -128,7 +128,7 @@ export function TimerRing({
     >
       <span
         className={`relative grid h-full w-full place-items-center font-pixel text-[clamp(0.9rem,2.8vh,1.25rem)] ${
-          cheering ? "text-solid-ink" : urgent ? "text-shaky-ink" : "text-ink"
+          cheering ? "text-solid-ink" : urgent ? "text-broken-ink" : "text-ink"
         }`}
       >
         {seconds}

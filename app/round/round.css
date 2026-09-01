@@ -188,7 +188,7 @@
 }
 
 .urgent {
-  --ring-ink: var(--shaky-mark);
+  --ring-ink: var(--broken-mark);
   animation: urgent-pulse 0.62s ease-in-out infinite;
 }
 
@@ -277,6 +277,6 @@
   }
 
   .urgent {
-    --ring-ink: var(--shaky-mark);
+    --ring-ink: var(--broken-mark);
   }
 }

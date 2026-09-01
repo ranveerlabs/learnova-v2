@@ -24,13 +24,14 @@
   --ink-soft: #3f3f3f;
   --ink-faint: #6e6e6e;
 
-  /* the blue in here was lifted off a reference and was the last colour in the
-     app from outside its own set. it painted ::selection, the focus ring, the
-     go button and the scrollbar thumb */
-  --accent: #27664c;
-  --accent-hover: #1b4936;
-  --accent-wash: color-mix(in srgb, var(--supply-mint) 42%, #ffffff);
-  --on-accent: #ffffff;
+  /* chrome is ink and the highlighter, nothing else. mint gold and pink are the
+     three marking hues and they only ever appear on a marked up answer, so the
+     go button, the focus ring, the hover wash and the scrollbar cannot borrow
+     one and start meaning "right" */
+  --accent: var(--ink);
+  --accent-hover: var(--ink-soft);
+  --accent-wash: color-mix(in srgb, var(--highlight) 55%, #ffffff);
+  --on-accent: var(--cream);
 
   /* title bar. the logo's cream, warmed toward the star's gold at the caption and
      arriving at the cream itself by the close button. both ends are tokens this
