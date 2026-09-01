@@ -32,11 +32,11 @@
   --accent-wash: color-mix(in srgb, var(--supply-mint) 42%, #ffffff);
   --on-accent: #ffffff;
 
-  /* title bar. the mint the mascot has for eyes, darkened at the caption end and
-     arriving at the token itself by the close button. both ends are one colour
-     mixed, so there is nothing here from outside the supply set */
-  --title-from: color-mix(in srgb, var(--supply-mint) 62%, #0b2b1f);
-  --title-to: var(--supply-mint);
+  /* title bar. the logo's cream, warmed toward the star's gold at the caption and
+     arriving at the cream itself by the close button. both ends are tokens this
+     app already owns */
+  --title-from: color-mix(in srgb, var(--cream) 58%, var(--supply-gold));
+  --title-to: var(--cream);
   --title-ink: #101010;
   --title-h: 2.5rem;
 
@@ -203,6 +203,7 @@ body {
   height: var(--title-h);
   padding: 0 0.5rem 0 0.75rem;
   background: linear-gradient(to right, var(--title-from), var(--title-to));
+  border-bottom: var(--bevel-strong) solid var(--line);
   color: var(--title-ink);
   font-family: var(--font-pixel), ui-monospace, monospace;
   font-size: 0.9rem;
