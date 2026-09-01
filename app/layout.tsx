@@ -6,6 +6,7 @@ import {
   Patrick_Hand,
   Silkscreen,
 } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -68,6 +69,7 @@ export default function RootLayout({
       <body className="flex h-full flex-col overflow-hidden">
         <div className="page-glow" aria-hidden />
         {children}
+        <Analytics />
       </body>
     </html>
   );

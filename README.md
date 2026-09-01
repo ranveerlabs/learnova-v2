@@ -225,6 +225,21 @@ that one channel and expires in twenty minutes, so a token for one room is usele
 on another. the per-tab id is generated in memory, isnt an identity, isnt stored
 anywhere at either end.
 
+### vercel analytics counts page views
+
+`@vercel/analytics` is in the root layout, so every page you open is counted by
+vercel, a fourth third party. it records which route was opened, not what you did
+on it: no topic, no notes, no answers, no speeches, no ballot. it sets no cookie
+and does not build a profile across sites, and their retention is theirs.
+
+the one path worth being exact about is a live room, because the url has the room
+code in it and that code is the whole of the access control. the next build of
+the package resolves the path through `useParams` before it sends it, so
+`/debate/live/QBTR` leaves as `/debate/live/[code]`. checked against the packaged
+`computeRoute` rather than taken on trust, with a real four character code.
+
+a content blocker will stop it, and nothing in the app depends on it loading.
+
 ### the code is the only lock on a live room
 
 no accounts, so the four characters are the access control:
