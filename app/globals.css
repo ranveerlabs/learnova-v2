@@ -166,8 +166,11 @@ body {
   touch-action: manipulation;
 }
 
+/* the highlighter, same one .on-paper uses. the ink is pinned rather than
+   inherited so light type selected on a dark strip does not vanish into it */
 ::selection {
-  background: var(--accent-wash);
+  background: var(--highlight);
+  color: var(--ink);
 }
 
 /* was a pair of radial washes. a desktop has a flat vignette, not a glow */
