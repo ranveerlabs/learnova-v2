@@ -29,10 +29,12 @@
   --accent-wash: #b9e9f5;
   --on-accent: #ffffff;
 
-  /* title bar. blue at the caption, cyan at the close button */
-  --title-from: #1b1bf0;
-  --title-to: #27e4f5;
-  --title-ink: #ffffff;
+  /* title bar. graphite, lifting slightly toward the close button. no hue in
+     here on purpose, every colour this app owns is a --supply-* and a fifth one
+     on the largest surface in the ui would have come from outside the set */
+  --title-from: #262626;
+  --title-to: #555555;
+  --title-ink: var(--cream);
   --title-h: 2.5rem;
 
   /* borders are structural here, so they get their own names */
