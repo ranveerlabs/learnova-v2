@@ -39,7 +39,7 @@ export function Ballot({
   // live rounds pass a name in, single player falls back to the tier
   const opponent = { name: opponentName ?? tier(setup.tierId).name };
 
-  // word + ink + wash. any one of them carries it alone
+  // word + ink + wash, any one carries it alone
   const word = won ? "You won it" : drew ? "A draw" : "You lost it";
   const ink = won
     ? "text-solid-ink"
@@ -101,7 +101,7 @@ export function Ballot({
           <Label>Where it turned</Label>
           <ul className="flex flex-col gap-2">
             {ballot.key_moments.map((m, i) => {
-              // yours vs theirs, told apart by colour. three grey cards read as one voice
+              // yours vs theirs, told apart by colour
               const mine = m.speaker === "user";
               return (
                 <li
@@ -207,7 +207,7 @@ function Detail({
   );
 }
 
-// derived from the 5 scores. asking the model straight up gives 28.5 every time
+// derived from the 5 scores, asking the model straight up gives 28.5 every time
 function speakerPoints(scores: Scores) {
   const mean =
     DIMENSIONS.reduce((n, d) => n + scores[d], 0) / DIMENSIONS.length;

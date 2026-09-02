@@ -8,7 +8,7 @@ let el: HTMLAudioElement | null = null;
 let want = false;
 let armed = false;
 
-// autoplay is blocked until somebody clicks something, so wait for the click
+// autoplay is blocked until a click, so wait for one
 function waitForGesture() {
   if (armed || typeof window === "undefined") return;
   armed = true;

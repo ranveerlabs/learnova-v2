@@ -4,8 +4,8 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { PixelSprite } from "./paper";
 
-// the window. a title bar and a body, and every screen sits in one. the dark
-// ground behind it is desktop and never carries text
+// the window. every screen sits in one, the dark ground behind it is desktop
+// and never carries text
 export function Win({
   title,
   closeHref,
@@ -196,7 +196,7 @@ export function Leaf({
   );
 }
 
-// one control for both channels. mint on, pink off, same glyph either way
+// mint on, pink off, same glyph either way
 export function AudioToggle({
   on,
   onToggle,
@@ -251,7 +251,7 @@ export function Credits({ className = "" }: { className?: string }) {
   );
 }
 
-// only looping animation in the app. eight cells, stepped, no easing
+// eight cells, stepped, no easing
 function Meter({ small = false }: { small?: boolean }) {
   const cells = small ? 5 : 8;
   const height = small ? "0.7rem" : "1.4rem";

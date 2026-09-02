@@ -228,7 +228,7 @@ function scoresOf(v: unknown): Ballot["scores"]["user"] {
   return out;
 }
 
-// a winner and some scores is enough to work with, the rest gets patched
+// a winner and some scores is enough, the rest gets patched
 function ballotish(v: unknown): v is Record<string, unknown> {
   if (typeof v !== "object" || v === null) return false;
   const b = v as Record<string, unknown>;
@@ -273,7 +273,7 @@ const AUX: Record<string, string> = {
   "doesn't": "don't",
 };
 
-// take the judge's own A/B notation back off. nobody reading a ballot has seen it
+// strip the judge's own A/B notation back off
 function deletter(text: string, me: "A" | "B"): string {
   const them = me === "A" ? "B" : "A";
   const aux = Object.keys(AUX)
@@ -282,7 +282,7 @@ function deletter(text: string, me: "A" | "B"): string {
 
   let out = text;
 
-  // possessives first, or the rule below eats the "A" out of "Debater A's"
+  // possessives first or the rule below eats the A out of "Debater A's"
   out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${me}['’]s\\b`, "g"), "your");
   out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${them}['’]s\\b`, "g"), "their");
 
@@ -387,7 +387,7 @@ export async function POST(req: Request) {
 
       const s = chatStream(opponentSystem(setup, sp, setup.tierId), usr, 0.6);
 
-      // first chunk here, inside the try, so a dead key is a 5xx and not a broken stream
+      // first chunk inside the try, so a dead key comes back a 5xx
       const head = await s.next();
 
       const f = createSpeechFilter(BUDGET[sp][setup.tierId]);

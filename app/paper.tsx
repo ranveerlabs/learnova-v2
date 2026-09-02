@@ -83,7 +83,7 @@ const CLIP: Sprite = {
   palette: { C: "var(--supply-metal)" },
 };
 
-// the wordmark. same nine row star as the sprite, chevrons either side of it
+// the wordmark, chevrons either side of the star
 const LOGO: Sprite = {
   rows: [
     "....BB.....X.....BB....",
@@ -99,7 +99,7 @@ const LOGO: Sprite = {
   palette: { B: "var(--ink)", X: "var(--supply-gold)" },
 };
 
-// a small monitor with a face. it sits by the build note
+// a small monitor with a face
 const CRT: Sprite = {
   rows: [
     "..BBBBBBBBBBB..",

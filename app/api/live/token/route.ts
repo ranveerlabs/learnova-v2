@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   const k = process.env.ABLY_API_KEY;
   if (!k || k === "PLACEHOLDER")
     return err(
-      "ABLY_API_KEY is not set. Add it to .env.local and restart the dev server. Live debate needs it; the rest of the app does not.",
+      "ABLY_API_KEY is not set. Add it to .env.local and restart the dev server. Live debate needs it, the rest of the app does not.",
       500
     );
 
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   if (!code || !id) return err("A room code and a client id are required.", 400);
 
   try {
-    // scoped to this one channel. a token for one room is useless on another
+    // scoped to this one channel
     const tok = await new Rest(k).auth.createTokenRequest({
       clientId: id,
       ttl: TTL,

@@ -47,7 +47,7 @@ type Asked = { concept: string; answer: string; prompt: string; format: Format }
 
 const MAX_PRODUCTIONS = 3;
 
-// what the route needs to know we already asked. not the whole question
+// just enough for the route to dedupe against
 const lite = (q: Question): Asked => ({
   concept: q.concept,
   answer: q.answer,

@@ -39,7 +39,7 @@ export type Room = {
   close: (reason: Closed) => void;
 };
 
-// a name for this tab, for the life of this tab. not an identity
+// a name for this tab, for the life of this tab
 const newId = () => crypto.randomUUID().replace(/-/g, "");
 
 // oldest first, so both tabs agree who got here first
@@ -80,7 +80,7 @@ export function useRoom({
   const round = useRef<LiveTurn[]>([]);
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // never throws at the screen. a speech that didn't send is bad, a white page is worse
+  // never throws at the screen
   const push = useCallback(async (e: Wire) => {
     try {
       await chan.current?.publish(e.name, e.data);
@@ -170,7 +170,7 @@ export function useRoom({
           return;
         }
         case "turn_advanced": {
-          // their count vs ours. if they disagree a speech went missing somewhere
+          // their count vs ours, a disagreement means a speech went missing
           const { at } = msg.data as { at: number };
           if (at === round.current.length) return;
           setDesync(true);
@@ -184,7 +184,7 @@ export function useRoom({
         }
         case "room_closed": {
           const { reason } = msg.data as { reason: Closed };
-          // somebody left, the room lives on for whoever's still here
+          // somebody left, room lives on
           if (reason === "left") {
             setTogether(false);
             return;
@@ -219,7 +219,7 @@ export function useRoom({
 
         channel.subscribe(onMsg);
         channel.presence.subscribe(["enter", "update"], onEnter);
-        // measured at 15.2s from a tab closing to this firing. ably's timing, not ours
+        // measured at 15.2s from a tab closing to this firing, ably's timing
         channel.presence.subscribe(["leave", "absent"], onLeave);
 
         const before = seated(await channel.presence.get());

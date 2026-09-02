@@ -13,7 +13,6 @@ export function AudioControls({ className = "" }: { className?: string }) {
     setMusic(music);
   }, [music]);
 
-  // one button, so both channels move together
   const on = music || sound;
   const flipBoth = useCallback(() => {
     const next = !on;

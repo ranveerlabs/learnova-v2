@@ -3,7 +3,7 @@
 import { BlankField, ChipBoard, ChoiceGrid } from "../ui";
 import type { Presentation, PresentationProps } from "./types";
 
-// the floor every other presentation stands on. reached three ways, never by preference
+// the floor everything else stands on. reached three ways, never by preference
 function PlainSurface({
   question,
   revealed,

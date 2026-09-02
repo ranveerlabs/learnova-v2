@@ -201,7 +201,7 @@ function readAsked(v: unknown): Asked[] {
 const diff = (v: unknown, fb: Difficulty): Difficulty =>
   TIERS.includes(v as Difficulty) ? (v as Difficulty) : fb;
 
-// anything that would draw wrong or answer wrong. dropped, not patched
+// anything that would draw wrong or answer wrong, dropped rather than patched
 function usable(q: Question): boolean {
   if (!q.prompt.trim() || !q.answer.trim()) return false;
 
@@ -229,7 +229,7 @@ function shape(
   i: number,
   pre: string
 ): Question {
-  // a concept we never asked for breaks the ladder. pin it to a real one
+  // pin stray concepts to a real one, they break the ladder otherwise
   const concept =
     typeof raw.concept === "string" && concepts.includes(raw.concept)
       ? raw.concept
@@ -425,7 +425,7 @@ export async function POST(req: Request) {
     let dropped = first.dropped;
     let exhausted = false;
 
-    // topic's run dry. ask harder, never easier
+    // topic's run dry, ask harder
     if (runningDry(kept.length, want)) {
       console.warn(`r${round}:dry ${kept.length}/${want} new, escalating`);
       exhausted = true;

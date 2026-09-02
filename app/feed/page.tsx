@@ -76,7 +76,7 @@ export default function Feed() {
   );
 }
 
-// green shipped, gold still going, pink broke. the word is there either way
+// green shipped, gold still going, pink broke
 function state(t: Ticket): { word: string; tint: string } {
   const s = t.build?.state;
   if (!s) return { word: "No build", tint: "bg-sunk" };
@@ -182,7 +182,6 @@ function when(iso: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-// both lists are real and both are written down elsewhere too, see limits.ts
 function KnownLimits() {
   return (
     <aside className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto lg:pr-4">

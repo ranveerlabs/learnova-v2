@@ -568,7 +568,7 @@ export function ChipBoard({
   );
 }
 
-// keyboard and screen readers only. the one way to opt out of presentations
+// keyboard and screen readers only
 export function PlainEscape({ onChoose }: { onChoose: () => void }) {
   return (
     <button

@@ -38,7 +38,7 @@ export function pickPresentation({
   round: 0 | 1 | 2 | 3 | 4;
   plainOnly?: boolean;
 }): Presentation {
-  // round 4 is unpresented, enforced here rather than left to convention
+  // round 4 is always plain
   if (plainOnly || format === "open" || round === 4) return plain;
 
   const ok = eligible(format, question);

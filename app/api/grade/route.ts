@@ -81,7 +81,7 @@ const flat = (s: string) =>
 
 const tight = (s: string) => flat(s).replace(/\s+/g, "");
 
-// loose match, punctuation and spacing drift is fine
+// punctuation and spacing drift is fine
 const inThere = (q: string, hay: string, hayTight: string) =>
   hay.includes(flat(q)) || hayTight.includes(tight(q));
 

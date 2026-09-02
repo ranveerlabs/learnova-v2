@@ -29,7 +29,7 @@ export function useOptions(props: PresentationProps, { keys = true } = {}) {
     [onAnswer, options.length, revealed],
   );
 
-  // every presentation gets number keys from here. do not hand-roll this
+  // number keys
   useEffect(() => {
     if (revealed || !keys) return;
     function onKey(e: KeyboardEvent) {
@@ -94,7 +94,7 @@ export function Mark({
   round?: boolean;
   className?: string;
 }) {
-  // glyph as well as colour, always
+  // glyph as well as colour
   const face =
     mood === "right"
       ? "✓"
@@ -138,7 +138,6 @@ export function Say({
   );
 }
 
-// accessible name built in. do not hand-roll this
 export function label(index: number, option: string, mood: Mood) {
   const state =
     mood === "right"

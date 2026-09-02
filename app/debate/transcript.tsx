@@ -49,7 +49,6 @@ export function SpeechRail({
   );
 }
 
-// yours on the right in accent, theirs on the left in grey. same shape otherwise
 export function Said({
   turn,
   tierName,

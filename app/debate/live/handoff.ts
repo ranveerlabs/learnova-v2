@@ -2,7 +2,7 @@
 
 import type { LiveSetup } from "./room";
 
-// a variable, not storage. lives for the one navigation into the room and dies with the tab.
+// lives for the one navigation into the room and dies with the tab
 let pending: { code: string; setup: LiveSetup } | null = null;
 
 export function handOff(code: string, setup: LiveSetup) {

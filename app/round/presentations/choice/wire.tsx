@@ -22,7 +22,7 @@ function Wire({
   dashed?: boolean;
   width?: number;
 }) {
-  // bezier with a bit of sag, so it hangs like a cable instead of a straight line
+  // bezier with a bit of sag
   const dx = Math.max(30, Math.abs(to.x - from.x) * 0.55);
   const sag = Math.min(16, Math.abs(to.y - from.y) * 0.12 + 6);
   const d = `M ${from.x} ${from.y} C ${from.x + dx} ${from.y + sag}, ${to.x - dx} ${
@@ -44,7 +44,7 @@ function Wire({
   );
 }
 
-// the ghost wire that shows you what to do. gone the moment you touch anything
+// the ghost wire, gone the moment you touch anything
 function HintWire({ from, reach }: { from: Point; reach: number }) {
   const end = { x: from.x + reach, y: from.y + 9 };
   const d = `M ${from.x} ${from.y} C ${from.x + reach * 0.6} ${from.y + 14}, ${

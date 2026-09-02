@@ -78,7 +78,7 @@ function Bar() {
 }
 
 function Room({ code }: { code: string }) {
-  // whoever came in holding a motion is the host. decided once, never again
+  // whoever came in holding a motion is the host, decided once
   const [brought] = useState<LiveSetup | null>(() => takeHandoff(code));
   const [role] = useState(brought ? ("host" as const) : ("guest" as const));
 
@@ -110,7 +110,7 @@ function Room({ code }: { code: string }) {
     });
   }, [room.turns, room.ballot]);
 
-  // one tone when a speech lands from the other side. not for your own
+  // one tone when a speech lands from the other side
   const heard = useRef(0);
   useEffect(() => {
     const n = room.turns.length;
@@ -325,7 +325,7 @@ function Room({ code }: { code: string }) {
     );
   }
 
-  // both sides, not just mine. one person arguing into the void is not a round
+  // both sides, not just mine
   const transcript = asTranscript(room.turns, mySide!);
   const spokenByMe = wordsSpoken(transcript);
   const spokenByThem = wordsSpoken(
@@ -556,7 +556,7 @@ function ended(reason: Closed, myRole: Role, departed: Departure | null) {
     return "Nothing was said in here for ten minutes, so the room let go of itself. Neither of you left, it just went quiet, and an empty room is not a thing this app keeps.";
   }
 
-  // presence usually tells us who went. if it did not, it was the other chair by elimination
+  // presence usually tells us who went, else it was the other chair by elimination
   const theirs: Role = departed?.role ?? (myRole === "host" ? "guest" : "host");
   const who =
     theirs === "host"

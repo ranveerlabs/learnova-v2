@@ -97,7 +97,7 @@ function clean(unit: string, first: boolean): string {
 
   t = t.replace(WC, "");
 
-  // em dashes. biggest tell there is
+  // em dashes
   t = t.replace(/\s*—\s*/g, ", ");
 
   t = t.replace(LEAD_IN, (_m, pre: string, next: string) => pre + next.toUpperCase());
@@ -146,7 +146,7 @@ export function createSpeechFilter(cap: number): SpeechFilter {
 
     while (!done) {
       let at = -1;
-      // search from an offset, a list marker is not a stop
+      // list markers arent stops
       for (let from = 0; ; ) {
         const rel = buf.slice(from).search(UNIT_END);
         if (rel === -1) break;

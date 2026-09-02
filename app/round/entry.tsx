@@ -42,7 +42,7 @@ export function Entry({
     const t = topic.trim();
     if (!t) return;
 
-    // checked here as well as on the server, so they see it before the round opens
+    // the server checks this too, here is just so they see it sooner
     const n = notes.trim();
     if (n) {
       const bad = sourceProblem(n);

@@ -13,7 +13,7 @@ import type { Provenance } from "./types";
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
-// 5 standings, 3 words. on purpose
+// 5 standings, 3 words
 const SHOWN: Record<Standing, { word: string; ink: string; mark: string }> = {
   explained: {
     word: "Explained it",

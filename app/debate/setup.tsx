@@ -183,7 +183,6 @@ function SideSlab({
   );
 }
 
-// first thing on the screen. model or a person, everything else is the same either way
 function Opponent({
   value,
   onPick,

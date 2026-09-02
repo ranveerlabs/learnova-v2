@@ -12,7 +12,7 @@ export type Role = "host" | "guest";
 
 export type Member = { role: Role };
 
-// four chars somebody says out loud. not a secret, only ever collides with rooms open right now
+// four chars somebody says out loud, only ever collides with rooms open right now
 export function makeCode(): string {
   const b = new Uint32Array(CODE_LENGTH);
   crypto.getRandomValues(b);

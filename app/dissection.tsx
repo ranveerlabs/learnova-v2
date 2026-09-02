@@ -134,7 +134,7 @@ export function buildDissection(
 
   matched.sort((a, b) => a.start - b.start);
 
-  // numbered in reading order, not in the order the model listed them
+  // numbered in reading order
   let n = 0;
   const numById = new Map<number, number>();
   for (const m of matched) if (m.type !== "right") numById.set(m.id, ++n);
