@@ -21,7 +21,7 @@ import { Opening, Said, SpeechRail } from "./transcript";
 import {
   type Ballot,
   MIN_WORDS_TO_JUDGE,
-  SPEECH_ORDER,
+  SPEECHES,
   type Setup,
   type Speech,
   tier,
@@ -46,8 +46,8 @@ export default function DebatePage() {
   const [live, setLive] = useState("");
 
   const round = Math.floor(turns.length / 2);
-  const speech: Speech = SPEECH_ORDER[Math.min(round, SPEECH_ORDER.length - 1)];
-  const finished = turns.length >= SPEECH_ORDER.length * 2;
+  const speech: Speech = SPEECHES[Math.min(round, SPEECHES.length - 1)];
+  const finished = turns.length >= SPEECHES.length * 2;
 
   const tape = useRef<HTMLDivElement>(null);
   useEffect(() => {

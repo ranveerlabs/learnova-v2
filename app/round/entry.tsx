@@ -6,7 +6,6 @@ import { SOURCE as DEMO_SOURCE, TOPIC as DEMO_TOPIC } from "./demo-source";
 import { Looseleaf, PixelSprite, PixelTag } from "../paper";
 import { Notice } from "../ui";
 import { openConcepts, studied, type TopicRecord } from "./record";
-import { STARTERS } from "./starters";
 
 export function Entry({
   onStart,

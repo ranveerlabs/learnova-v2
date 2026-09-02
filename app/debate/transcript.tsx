@@ -1,7 +1,7 @@
 "use client";
 
 import { Working } from "../ui";
-import { SPEECH_ORDER, type Speech, type Turn } from "./types";
+import { SPEECHES, type Speech, type Turn } from "./types";
 
 export function SpeechRail({
   at,
@@ -16,7 +16,7 @@ export function SpeechRail({
       className="flex min-w-0 shrink-0 items-center gap-2.5"
     >
       <span className="flex shrink-0 items-center gap-[3px]">
-        {SPEECH_ORDER.map((name, i) => {
+        {SPEECHES.map((name, i) => {
           const done = finished || i < at;
           const current = !finished && i === at;
           return (
@@ -43,7 +43,7 @@ export function SpeechRail({
       >
         {finished
           ? "Round over"
-          : SPEECH_ORDER[Math.min(at, SPEECH_ORDER.length - 1)]}
+          : SPEECHES[Math.min(at, SPEECHES.length - 1)]}
       </span>
     </nav>
   );

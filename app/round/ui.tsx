@@ -288,7 +288,7 @@ export function ChoiceGrid({
 }) {
   const opts = question.options ?? [];
 
-  // 1 to n picks. every presentation gets this, it is not optional
+  // 1 to n picks
   useEffect(() => {
     if (revealed) return;
     function onKey(e: KeyboardEvent) {

@@ -1,5 +1,5 @@
 import type { Ballot, Setup, Side, Speech, Turn } from "../types";
-import { SPEECH_ORDER } from "../types";
+import { SPEECHES } from "../types";
 
 export const ALPHABET = "ACDEFGHJKLMNPQRTUVWXY34679";
 export const CODE_LENGTH = 4;
@@ -35,10 +35,10 @@ export const otherSide = (s: Side): Side => (s === "Pro" ? "Con" : "Pro");
 
 // whose turn, worked out from the count. no turn state anywhere
 export function toSpeak(ts: LiveTurn[]): { side: Side; speech: Speech } | null {
-  if (ts.length >= SPEECH_ORDER.length * 2) return null;
+  if (ts.length >= SPEECHES.length * 2) return null;
   return {
     side: ts.length % 2 === 0 ? "Pro" : "Con",
-    speech: SPEECH_ORDER[Math.floor(ts.length / 2)],
+    speech: SPEECHES[Math.floor(ts.length / 2)],
   };
 }
 

@@ -8,12 +8,9 @@ import {
   isCorrect,
   nextDifficulty,
   pickQuestion,
-
   beatsBest,
   rankForProduction,
 } from "./engine";
-import { setMusic } from "../music";
-
 import { newSeed } from "./presentations/registry";
 import { bestFor, openConcepts, recordFor, rememberRun, standingsFor } from "./record";
 import type { Standing } from "./engine";

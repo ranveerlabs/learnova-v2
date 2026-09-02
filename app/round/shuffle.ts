@@ -2,17 +2,6 @@ import type { Question } from "./types";
 
 export type Rand = () => number;
 
-// mulberry32. good enough for a four item list, and seedable so a round redraws the same
-export function seeded(seed: number): Rand {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 // fisher-yates
 export function permutation(n: number, rand: Rand): number[] {
   const o = Array.from({ length: n }, (_, i) => i);

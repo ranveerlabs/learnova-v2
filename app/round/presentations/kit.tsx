@@ -86,12 +86,10 @@ export function ink(mood: Mood) {
 export function Mark({
   index,
   mood,
-  round,
   className = "",
 }: {
   index: number;
   mood: Mood;
-  round?: boolean;
   className?: string;
 }) {
   // glyph as well as colour
@@ -106,8 +104,6 @@ export function Mark({
     <span
       aria-hidden
       className={`grid shrink-0 place-items-center border font-mono font-semibold ${
-        round ? "" : ""
-      } ${
         mood === "right"
           ? "border-solid-mark bg-solid-mark text-page"
           : mood === "wrong"
@@ -210,29 +206,5 @@ export function Stage({
     >
       {children}
     </div>
-  );
-}
-
-export function Commit({
-  onSubmit,
-  disabled,
-  className = "",
-}: {
-  onSubmit: () => void;
-  disabled: boolean;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSubmit}
-      disabled={disabled}
-      aria-label="Submit your answer"
-      className={`btn grid h-11 w-11 place-items-center bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint ${className}`}
-    >
-      <span aria-hidden className="arrow">
-        →
-      </span>
-    </button>
   );
 }

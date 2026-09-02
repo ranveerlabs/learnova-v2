@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Annotation, Grade, Outcome } from "../api/grade/route";
+import type { Grade, Outcome } from "../api/grade/route";
 import { isBusy, postJSON } from "../client";
 import { MarginNotes, MarkedUpText, useDissection } from "../dissection";
 import {

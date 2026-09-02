@@ -93,5 +93,3 @@ export type Feedback = {
   biggest_weakness: string;
   one_fix_for_next_round: string;
 };
-
-export const SPEECH_ORDER: Speech[] = ["Constructive", "Rebuttal", "Summary", "Final Focus"];

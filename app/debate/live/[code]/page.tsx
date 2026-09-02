@@ -24,7 +24,7 @@ import {
   type Ballot,
   MIN_WORDS_TO_JUDGE,
   type Side,
-  SPEECH_ORDER,
+  SPEECHES,
   wordsSpoken,
 } from "../../types";
 import { type Departure, useRoom } from "../channel";
@@ -399,7 +399,6 @@ function Room({ code }: { code: string }) {
             judgeable={judgeable}
             spokenByMe={spokenByMe}
             spokenByThem={spokenByThem}
-            onJudge={judge}
             onLeave={() => room.close("done")}
           />
         ) : myTurn ? (
@@ -480,7 +479,6 @@ function Closing({
   judgeable,
   spokenByMe,
   spokenByThem,
-  onJudge,
   onLeave,
 }: {
   host: boolean;
@@ -488,7 +486,6 @@ function Closing({
   judgeable: boolean;
   spokenByMe: number;
   spokenByThem: number;
-  onJudge: () => void;
   onLeave: () => void;
 }) {
   if (!judgeable) {
@@ -585,7 +582,7 @@ function Unfinished({
   departed: Departure | null;
 }) {
   const transcript = asTranscript(turns, mine);
-  const total = SPEECH_ORDER.length * 2;
+  const total = SPEECHES.length * 2;
   const next = toSpeak(turns);
   const at = Math.floor(turns.length / 2);
 

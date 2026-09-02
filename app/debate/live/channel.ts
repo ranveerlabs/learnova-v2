@@ -14,7 +14,6 @@ import {
   mirror,
   type Role,
   ROOM_SIZE,
-  toSpeak,
   type Wire,
 } from "./room";
 

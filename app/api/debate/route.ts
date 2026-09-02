@@ -10,7 +10,6 @@ import {
   type Speech,
   SPEECHES,
   type Turn,
-  tier,
   type TierId,
   worthJudging,
 } from "@/app/debate/types";
