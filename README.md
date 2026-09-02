@@ -10,7 +10,7 @@ ask most ai study tools abt something obscure and they just invent it, fluently,
 and you only catch it if you already knew the answer. thats the failure that
 matters for a study tool, since youre using it on stuff you dont know yet.
 
-heres learnova asked abt Tritoflex (a spray-applied rubber roofing compound) with
+I asked it abt Tritoflex (a spray-applied rubber roofing compound) giving it
 nothing but the name:
 
 > **What is Tritoflex primarily classified as?** A protein.
@@ -19,12 +19,13 @@ nothing but the name:
 
 its roofing material. the model had never heard of it and confidently produced
 biochemistry. a student meeting the word for the first time has no way to tell.
+I keep that example at the top
 
 learnova doesnt pretend thats solved, it makes the difference visible:
 
-- **topic only** and every screen says `AI · unchecked`. nothing verified. the
+- topic only and every screen says `AI · unchecked`. nothing verified. the
   marks on your explanation are one model's opinion and they say so.
-- **your own material** and every question has to quote it word for word. the
+- your own material and every question has to quote it word for word. the
   quote gets checked on the server before you see the question, anything the model
   couldnt find in your notes gets binned.
 
@@ -55,38 +56,38 @@ node --experimental-strip-types scripts/positions.mjs   # answer placement, need
 
 ## the two modes
 
-**round mode.** name a topic, start guessing. five stages pull the scaffolding
+round mode. name a topic, start guessing. five stages pull the scaffolding
 away a rung at a time: two options, four options, sentence with the term missing,
 sentence in pieces, then nothing on screen at all and you explain it yourself.
 what it measures is the gap between what you can recognise and what you can say.
 
-**debate.** pick a side, hold it for four speeches against an opponent trying to
+debate. pick a side, hold it for four speeches against an opponent trying to
 take it off you, read the ballot. two tabs that never mix: open debate is judged
 on whether the argument holds up, tournament prep by the conventions of a named
 format against a tournament bar. format is required, not defaulted, cuz a Public
 Forum ballot handed to somebody practising Lincoln-Douglas is worse than no
 ballot.
 
-first thing `/debate` asks is **model or friend**, two buttons above the motion
+first thing `/debate` asks is model or friend, two buttons above the motion
 field. same screen either way, the toggle only changes where "Argue for" sends
 you.
 
 ## live debate
 
-picking "a friend" mints a **four character code**. read it out, they open
+picking "a friend" mints a four character code. read it out, they open
 learnova, hit debate, pick "a friend", type it in. same four speeches, same judge,
 same ballot, opponent is a person.
 
-no shareable link, on purpose. a link needs a chat app between two devices, and
-the case this is for is two people at one table where the fastest path between
-their screens is somebody's voice.
+i left the shareable link out on purpose. a link needs a chat app between two
+devices, and the case I built this for is two people at one table where the
+fastest path between their screens is somebody's voice.
 
 thinnest thing that works: no account, no db, no room object on any server. the
 room *is* an ably channel named after the code, the two people attached to it are
 its entire state, and it stops existing when they both close the tab. idle rooms
 let go after ten minutes.
 
-- **a room closes when the last person leaves, not the first.** somebody goes mid
+- a room closes when the last person leaves, not the first. somebody goes mid
   debate (leave button, closed tab, dead connection) and the seat just empties.
   host is back to their code and can be joined again, guest gets told the other
   chair is empty. nobody gets thrown out of a room they didnt leave, which is what
@@ -96,22 +97,22 @@ let go after ten minutes.
   speeches given, transcript is complete, still goes to the judge.
 - hard reload of a room url ends that room instead of rejoining. the connection
   *was* the room and it went down with the page. screen says so, offers a new one.
-- **nobody presses "get the ballot"**, the eighth speech lands and it goes. both
+- nobody presses "get the ballot", the eighth speech lands and it goes. both
   modes. theres still a button for ending early bcuz thats a decision, finishing
   isnt.
 
-**won, lost, nothing kept.** a judged debate ends on a verdict and thats it.
+won, lost, nothing kept. a judged debate ends on a verdict and thats it.
 nothing counts up across rounds. no lifetime record, no rating, no rung, no
 ladder, no number to climb, either mode.
 
-two goes at one before this, for the record. First an elo: one figure across both
-modes, seven rungs, study runs capped below the upper half so the easier activity
-couldnt out-climb the harder one. carefully built, measuring nothing. an elo is
-relative and only means something against a field, and theres no field here, just
-one person on one device playing three declared difficulty tiers of the same model
-with nothing synced. then a plain won-lost-drawn record plus a count of strong
-round mode runs, truer, and still a running total parked on two screens that
-already had a result of their own to show. also gone.
+i had two goes at one before this, for the record. first an elo: one figure across
+both modes, seven rungs, study runs capped below the upper half so the easier
+activity couldnt out-climb the harder one. i built it carefully and it measured
+nothing. an elo is relative and only means something against a field, and theres
+no field here, just one person on one device playing three declared difficulty
+tiers of the same model with nothing synced. then a plain won-lost-drawn record
+plus a count of strong round mode runs, truer, and still a running total parked on
+two screens that already had a result of their own to show. also gone.
 
 the judge never returns a number abt you. it returns a winner, a margin and
 per-dimension scores, and the winner is counted verbatim. speaker points on a
@@ -132,17 +133,17 @@ long material gets thinned to an even spread of itself before it hits the model,
 so a run covers a whole chapter instead of its first two pages. two properties
 make that safe and both are measured, not asserted:
 
-- everything shown to the model is a **literal substring** of what got pasted.
+- everything shown to the model is a literal substring of what got pasted.
   citations are still checked against the *full* source, so thinning the prompt
   can only make the check stricter.
-- passages break on **paragraph and sentence boundaries**. a span can be
+- passages break on paragraph and sentence boundaries. a span can be
   substring-true and still mislead if its cut before the "not" that governs it, so
   the one case that has to cut inside a sentence cuts at a clause joint and
   rejoins the halves.
 
-`spread.mjs` is 32 assertions on that, checked by breaking the code to watch them
-fail. mattered: two of them originally passed against the exact bugs they were
-written for.
+`spread.mjs` is 32 assertions on that, and i checked them by breaking the code to
+watch them fail, two of them originally passed against the exact bugs i had
+written them for
 
 ## privacy
 
@@ -170,12 +171,12 @@ record, no count of rounds played.
 
 two keys from older builds may still be sitting on your device:
 `learnova.standing.v1` (won-lost-drawn plus a count of strong runs) and
-`learnova.debate.v1` (older, two rating pools). **this build neither reads nor
-writes them, and doesnt delete them either.** if you used an earlier version that
+`learnova.debate.v1` (older, two rating pools). this build neither reads nor
+writes them, and doesnt delete them either. if you used an earlier version that
 data is in your browser until you clear site data. nothing in the app shows it to
 you and nothing in the app removes it.
 
-**live debate adds no key and writes nothing.** not a room list, not a transcript,
+live debate adds no key and writes nothing. not a room list, not a transcript,
 not a result. the motion you type when opening a room lives in a plain js variable
 (`app/debate/live/handoff.ts`) for the one navigation into the room. thats memory
 rather than storage: not localStorage, not sessionStorage, not a cookie, not in
@@ -199,7 +200,7 @@ nothing synced, backed up or attached to you. open it on your phone instead of
 your laptop and it starts empty. clearing site data for this domain erases all of
 it with no way back.
 
-the results screen has **forget this topic**, which drops that topic's record.
+the results screen has forget this topic, which drops that topic's record.
 only thing there is to reset and the only in-app way to reset anything. the two
 orphaned keys above come off by clearing site data, thats it.
 
@@ -211,7 +212,7 @@ to learnova's server, which forwards to the hack club ai proxy
 retention is theirs and not described here. api key stays on the server, never
 reaches the browser.
 
-**live debate adds a third, ably** (`ably.com`). every speech either person writes
+live debate adds a third, ably (`ably.com`). every speech either person writes
 travels thru an ably channel to reach the other browser, so ably sees the full
 text of both sides plus the motion and the room code. retention is ably's own.
 learnova's server isnt in that path at all while the round runs, right up until
@@ -246,7 +247,7 @@ no accounts, so the four characters are the access control:
 
 - anyone holding the code can take the empty chair. read it out where a stranger
   can hear it and they can take your debate.
-- **four** characters from a 26 letter alphabet, 456,976 combinations. went from
+- four characters from a 26 letter alphabet, 456,976 combinations. went from
   six to four when the link was removed, bcuz every guest types it now instead of
   tapping a url, and four is the difference between saying a word and reading out
   a serial number. thats a real reduction. what makes it ok is that a code only
@@ -286,21 +287,21 @@ generously:
 
 - deployed build can lag this repo. if the app doesnt match whats here, it hasnt
   been redeployed.
-- **live debate played end to end, except the judge.** with `ABLY_API_KEY` set,
+- live debate played end to end, except the judge. with `ABLY_API_KEY` set,
   two separate browser sessions (one normal profile, one isolated context) opened
   a room, joined by typing the four characters, argued a full eight speeches.
   guest saw the motion 1.6s after pressing join, each speech reached the other
   window in 423 to 1039ms. no "room full", no "nobody is in that room" on a good
-  join. judge was stubbed on that run, shared key was out of credit.
-- **judge has since been run against the real model**, 22 aug 2026, once the key
+  join. i had the judge stubbed on that run, shared key was out of credit.
+- i have since run the judge against the real model, 22 aug 2026, once the key
   had balance. two `POST /api/debate` judge calls on a full eight speech
   transcript returned two different ballots (one per chair) with no `A`/`B`
   notation left in them, and two streaming `reply` calls came back in second
   person with no third-person naming, no em dashes, no markdown. what that does
   *not* cover: a judge call made from inside a live room by the host and mirrored
   to the guest. mirroring is verified against a stubbed ballot only.
-- **disconnect timing was measured and the behaviour it was measured against has
-  since changed.** ably's presence `leave` took **15.2 seconds**, tab closing to
+- disconnect timing was measured and the behaviour it was measured against has
+  since changed. ably's presence `leave` took 15.2 seconds, tab closing to
   other screen reacting. number should still hold, its ably's and not ours. what
   it causes is different now: a room no longer ends when one side goes, so those
   15 seconds are the delay before the remaining person is told the other chair is
@@ -323,7 +324,7 @@ next.js, typescript, tailwind. ably for the live rooms.
 
 ## credits
 
-learnova v2 is a solo rebuild from scratch, an earlier version was built with a
+I rebuilt learnova v2 from scratch on my own. an earlier version was built with a
 co-founder.
 
 background music is "8bit Dungeon Level" by Kevin MacLeod, CC BY 4.0. full
