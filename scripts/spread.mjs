@@ -1,6 +1,4 @@
 // node --experimental-strip-types scripts/spread.mjs
-// 32 assertions on the chunker. written by breaking the code to watch them fail,
-// which mattered: two of them originally passed against the exact bugs they were for.
 
 import { chunkSource, sampleForPrompt, PROMPT_BUDGET_CHARS } from "../lib/chunk.ts";
 

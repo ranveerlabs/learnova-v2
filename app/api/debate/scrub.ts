@@ -1,4 +1,3 @@
-// takes the model voice back off a speech, mid stream
 
 const LEAD_INS = [
   "Firstly",
@@ -30,14 +29,11 @@ const LEAD_IN = new RegExp(
   "gi"
 );
 
-// "[Rebuttal]", "**Con Constructive**"
 const LABEL_LINE =
   /^\s*\**\[?\s*(?:(?:pro|con|aff|neg|affirmative|negative|second|2nd)\s+)?(?:constructive|rebuttal|summary|final focus|crossfire|speech)\s*\]?\s*:?\s*\**\s*$/i;
 
-// "(pauses)", "[turns to judge]"
 const DIRECTION_LINE = /^\s*[[(*_].{0,80}[\])*_]\s*$/;
 
-// same label, running into the first sentence
 const LABEL_PREFIX =
   /^\s*(?:(?:pro|con|aff|neg|affirmative|negative)\s+)?(?:constructive|rebuttal|summary|final focus|speech)\s*[:.\-]\s+/i;
 
@@ -50,7 +46,6 @@ const FLIP: Record<string, string> = {
   re: "'re",
 };
 
-// "it isn't x, it's y" -> "it's y"
 const CONTRAST =
   /(\bis\s+not\b|\bisn['’]t\b|\bare\s+not\b|\baren['’]t\b|['’]s\s+not\b|['’]re\s+not\b)\s+(?:just\s+|only\s+|merely\s+|simply\s+)?[^,;:.!?]{1,70},\s*(?:it|they|that|this|these|those)(?:['’]s|['’]re|\s+is|\s+are)\s+/gi;
 
@@ -70,7 +65,6 @@ const WC_ONLY = /^\s*[([{]?\s*(?:approx\.?\s*|~\s*)?\d+\s*words?\s*[)\]}]?\s*$/i
 const UNIT_END = /[.!?]["')\]]?(?=\s)|\n/;
 const ENUM = /^\s*(?:\d{1,3}|[a-z])[.)](?=\s)/i;
 
-// the stop in "1." is not the end of a sentence
 const isMarker = (u: string) => /^\s*(?:\d{1,3}|[a-z])[.)]$/i.test(u.slice(u.lastIndexOf("\n") + 1));
 
 const nwords = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
@@ -79,14 +73,12 @@ function clean(unit: string, first: boolean): string {
   let t = unit.trim();
   if (!t) return "";
 
-  // whole unit is heading, theatre or bookkeeping
   if (LABEL_LINE.test(t) || DIRECTION_LINE.test(t) || WC_ONLY.test(t)) return "";
 
   t = t.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "");
   t = t.replace(/^#{1,6}\s+/, "");
   t = t.replace(/^\s*[-*•]\s+/, "");
 
-  // nothing renders markdown here, so bold arrives as asterisks
   t = t.replace(/\*\*([^*]+)\*\*/g, "$1");
   t = t.replace(/(?<![*\w])\*([^*\n]+)\*(?![*\w])/g, "$1");
 
@@ -97,7 +89,6 @@ function clean(unit: string, first: boolean): string {
 
   t = t.replace(WC, "");
 
-  // em dashes
   t = t.replace(/\s*—\s*/g, ", ");
 
   t = t.replace(LEAD_IN, (_m, pre: string, next: string) => pre + next.toUpperCase());
@@ -146,7 +137,6 @@ export function createSpeechFilter(cap: number): SpeechFilter {
 
     while (!done) {
       let at = -1;
-      // list markers arent stops
       for (let from = 0; ; ) {
         const rel = buf.slice(from).search(UNIT_END);
         if (rel === -1) break;
@@ -167,7 +157,6 @@ export function createSpeechFilter(cap: number): SpeechFilter {
       const rest = buf.slice(cut);
       const ws = rest.match(/^\s*/)?.[0] ?? "";
 
-      // the whitespace run may still be arriving, wait for it
       if (!final && ws.length === rest.length) break;
 
       buf = rest.slice(ws.length);

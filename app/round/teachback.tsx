@@ -19,8 +19,6 @@ import type { Production, Provenance, Question } from "./types";
 import { play } from "../tone";
 import { useSpeech } from "./voice";
 
-// topic-only session has no source, so the questions it already asked stand in.
-// the prompt is very loud about this being context and not a passage
 function materialFrom(concept: string, questions: Question[]) {
   const lines = questions
     .filter((q) => q.concept === concept)
@@ -37,7 +35,6 @@ function materialFrom(concept: string, questions: Question[]) {
   ].join("\n");
 }
 
-// the page itself does not scroll, some div up the tree does. find which one
 function closestScroller(from: HTMLElement | null) {
   for (let el = from?.parentElement ?? null; el; el = el.parentElement) {
     const o = getComputedStyle(el).overflowY;

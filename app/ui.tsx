@@ -4,8 +4,6 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { PixelSprite } from "./paper";
 
-// the window. every screen sits in one, the dark ground behind it is desktop
-// and never carries text
 export function Win({
   title,
   closeHref,
@@ -135,7 +133,6 @@ export function GhostButton({
   );
 }
 
-// auto -> scrollHeight, in that order. skipping the auto step means it only ever grows
 export function useAutoGrow(
   ref: React.RefObject<HTMLTextAreaElement | null>,
   value: string,
@@ -174,7 +171,6 @@ export function Leaf({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
-          // enter sends, shift+enter newlines
           if (!onSubmit) return;
           if (
             e.key !== "Enter" ||
@@ -196,7 +192,6 @@ export function Leaf({
   );
 }
 
-// mint on, pink off, same glyph either way
 export function AudioToggle({
   on,
   onToggle,
@@ -251,7 +246,6 @@ export function Credits({ className = "" }: { className?: string }) {
   );
 }
 
-// eight cells, stepped, no easing
 function Meter({ small = false }: { small?: boolean }) {
   const cells = small ? 5 : 8;
   const height = small ? "0.7rem" : "1.4rem";

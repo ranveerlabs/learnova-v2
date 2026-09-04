@@ -44,10 +44,8 @@ export async function postStream(
     const { done, value } = await rd.read();
     if (done) break;
 
-    // stream: true or a multi-byte char split across two packets arrives as junk
     let c = dec.decode(value, { stream: true });
 
-    // route sends a kb of padding first, bin it
     if (!going) {
       c = c.replace(/^\s+/, "");
       if (!c) continue;

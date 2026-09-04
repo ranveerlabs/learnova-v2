@@ -14,7 +14,6 @@ export type Speech = (typeof SPEECHES)[number];
 
 export type Side = "Pro" | "Con";
 
-// nobody outside debate club says "Pro"
 export const sideWord = (s: Side) => (s === "Pro" ? "For" : "Against");
 
 export const TIERS = [
@@ -57,7 +56,6 @@ export function wordsSpoken(turns: Turn[]): number {
     }, 0);
 }
 
-// stops the judge writing a ballot for somebody who typed "idk"
 export const worthJudging = (turns: Turn[]) => wordsSpoken(turns) >= MIN_WORDS_TO_JUDGE;
 
 export type Setup = {

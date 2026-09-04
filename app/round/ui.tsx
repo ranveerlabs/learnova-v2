@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { type Provenance, type Question, type Round } from "./types";
 import { formatClock } from "./engine";
 
-// archivo run narrow, for the small-caps labels only
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
 const RUNGS: { key: 0 | Round; label: string }[] = [
@@ -75,7 +74,6 @@ export function RunClock({
 }) {
   const [ms, setMs] = useState(0);
 
-  // raf not setInterval, a 1s tick on a clock showing tenths looks broken
   useEffect(() => {
     if (!live) {
       setMs(elapsed());
@@ -288,7 +286,6 @@ export function ChoiceGrid({
 }) {
   const opts = question.options ?? [];
 
-  // 1 to n picks
   useEffect(() => {
     if (revealed) return;
     function onKey(e: KeyboardEvent) {
@@ -417,7 +414,6 @@ export function BlankField({
           aria-label="The missing term"
           aria-invalid={revealed && !correct}
           placeholder="?"
-          // sized off what they typed, NOT the answer. sizing it off the answer leaks the length
           size={Math.max(8, value.length + 2)}
           className={`mx-1 inline-block min-w-[6rem] max-w-full border-b-[3px] bg-transparent px-2 pb-1 text-center font-read text-[clamp(1.125rem,0.8rem+1.1vw+0.8vh,2.25rem)] font-medium text-ink caret-accent outline-none placeholder:text-ink-faint sm:min-w-[9rem] ${
             revealed
@@ -466,7 +462,6 @@ export function ChipBoard({
     [question.tray, question.chips],
   );
 
-  // duplicate chips: "the" twice in the tray means using one leaves the other live
   const spent = useMemo(() => {
     const n = new Map<string, number>();
     for (const c of built) n.set(c, (n.get(c) ?? 0) + 1);
@@ -568,7 +563,6 @@ export function ChipBoard({
   );
 }
 
-// keyboard and screen readers only
 export function PlainEscape({ onChoose }: { onChoose: () => void }) {
   return (
     <button

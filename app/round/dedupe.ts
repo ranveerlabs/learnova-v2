@@ -13,7 +13,6 @@ const EMPTY = new Set([
   "part", "type", "kind", "term", "word", "name", "called", "known",
 ]);
 
-// crude on purpose, just enough that "enzymes" and "enzyme" collide
 function stem(w: string): string {
   if (w.length <= 4) return w;
   if (w.endsWith("ies")) return `${w.slice(0, -3)}y`;
@@ -57,11 +56,9 @@ export const signature = (q: {
   concept: flat(q.concept),
   answer: flat(q.answer).replace(/^(?:the|a|an)\s+/, ""),
   prompt: terms(q.prompt),
-  // blank and open: the answer IS the question, so same answer = same question
   answerIsTheQuestion: q.format === "blank" || q.format === "open",
 });
 
-// jaccard
 function overlap(a: Set<string>, b: Set<string>): number {
   if (!a.size && !b.size) return 1;
   if (!a.size || !b.size) return 0;
@@ -97,5 +94,4 @@ export function sift(cands: Question[], seen: Signature[]): Sifted {
 
 const DRY = 2 / 3;
 
-// under two thirds new = topic is used up
 export const runningDry = (kept: number, want: number) => want > 0 && kept < Math.ceil(want * DRY);

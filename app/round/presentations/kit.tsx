@@ -13,7 +13,6 @@ export function useOptions(props: PresentationProps, { keys = true } = {}) {
   const options = useMemo(() => question.options ?? [], [question.options]);
   const answer = question.answerIndex ?? -1;
 
-  // one answer per question. a fast double tap must not count twice
   const spent = useRef(false);
   useEffect(() => {
     spent.current = false;
@@ -29,7 +28,6 @@ export function useOptions(props: PresentationProps, { keys = true } = {}) {
     [onAnswer, options.length, revealed],
   );
 
-  // number keys
   useEffect(() => {
     if (revealed || !keys) return;
     function onKey(e: KeyboardEvent) {
@@ -92,7 +90,6 @@ export function Mark({
   mood: Mood;
   className?: string;
 }) {
-  // glyph as well as colour
   const face =
     mood === "right"
       ? "✓"
@@ -144,7 +141,6 @@ export function label(index: number, option: string, mood: Mood) {
   return `${index + 1}. ${option}${state}`;
 }
 
-// button while it is live, div after
 export function Pick({
   index,
   option,

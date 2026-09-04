@@ -8,7 +8,6 @@ export type Chunk = {
   closes: boolean;
 };
 
-// cut at a clause joint if there is one in the back third, else anywhere
 function cutAt(s: string, cap: number): number {
   const floor = Math.floor(cap * 0.67);
   const win = s.slice(0, cap);
@@ -48,7 +47,6 @@ export function chunkSource(src: string): Chunk[] {
         buf = "";
       }
 
-      // one sentence bigger than a chunk, has to be cut inside
       if (s.length > SIZE) {
         if (buf.trim()) {
           out.push(full(buf.trim()));
@@ -92,7 +90,6 @@ export function sampleForPrompt(src: string, budget = PROMPT_BUDGET_CHARS): Samp
   const room = Math.max(1, Math.floor(budget / Math.max(1, avg)));
   if (room >= cs.length) return { text: t, sampled: false, kept: cs.length, total: cs.length };
 
-  // even spread, not the first n
   const step = cs.length / room;
   const pick: number[] = [];
   for (let i = 0; i < room; i++) {

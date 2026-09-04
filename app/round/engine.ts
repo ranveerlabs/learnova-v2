@@ -22,7 +22,6 @@ export function normalizeAnswer(s: string) {
     .replace(/^(?:the|a|an)\s+/, "");
 }
 
-// levenshtein, bails as soon as it's past the limit
 function dist(a: string, b: string, limit: number) {
   if (a === b) return 0;
   if (Math.abs(a.length - b.length) > limit) return limit + 1;
@@ -44,7 +43,6 @@ function dist(a: string, b: string, limit: number) {
   return prev[b.length];
 }
 
-// no slack on short answers, one typo in "ion" is a different word
 const slack = (n: number) => (n <= 4 ? 0 : n <= 8 ? 1 : 2);
 
 function plurals(s: string) {
@@ -75,7 +73,6 @@ const bits = (s: string) =>
     .map(normalizeAnswer)
     .filter(Boolean);
 
-// "a, b and c" vs "c, a and b". same sentence, and the student didn't get it wrong
 function sameListShuffled(built: string, want: string) {
   const a = built.toLowerCase().split(/\s+/).filter(Boolean);
   const b = want.toLowerCase().split(/\s+/).filter(Boolean);
@@ -129,7 +126,6 @@ function step(d: Difficulty, by: -1 | 0 | 1, floor: Difficulty = "easy"): Diffic
 }
 
 export function nextDifficulty(now: Difficulty, answers: Answer[], floor: Difficulty = "easy") {
-  // two wrong in a row drops it regardless of the average
   const last2 = answers.slice(-2);
   if (last2.length === 2 && last2.every((a) => !a.correct)) return step(now, -1, floor);
 
@@ -148,7 +144,6 @@ export function pickQuestion(pool: Question[], want: Difficulty, asked: Set<stri
   const hit = fresh(pool, want, asked);
   if (hit) return hit;
 
-  // nothing left at that tier, walk outwards
   const wi = TIERS.indexOf(want);
   const near = [...TIERS].sort((a, b) => {
     const da = Math.abs(TIERS.indexOf(a) - wi);
@@ -195,7 +190,6 @@ export function formatClock(ms: number) {
 
 export const splitTotal = (ss: Split[]) => ss.reduce((n, s) => n + s.ms, 0);
 
-// later rounds count for more
 const STAGE_W: Record<number, number> = { 0: 1, 1: 3, 2: 5, 3: 6 };
 const DIFF_W: Record<Difficulty, number> = { easy: 1, medium: 1.5, hard: 2 };
 
@@ -264,7 +258,6 @@ export function summarizeRound(answers: Answer[], stage: 0 | Round): RoundSummar
   const wasRight = new Set(before.filter((a) => a.correct).map((a) => a.concept));
   const wasAsked = new Set(before.map((a) => a.concept));
 
-  // wrong earlier, right now
   const turnedAround = [...nowRight].filter((c) => wasAsked.has(c) && !wasRight.has(c));
 
   const everRight = new Set(answers.filter((a) => a.correct).map((a) => a.concept));
@@ -296,7 +289,6 @@ function median(ns: number[]) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-// which concept round 4 asks about. still-open ones first, then whatever they held up best
 export function rankForProduction(answers: Answer[], openFirst: string[] = []): ProductionRank[] {
   const played = answers.filter((a) => a.stage >= 1 && a.stage <= 3);
   if (!played.length) return [];
@@ -363,8 +355,6 @@ export type Reveal = {
   fastestAnswer: number | null;
 };
 
-// chance = what you'd score guessing. shown next to the real number so 5/10 on
-// two-option means something different to 5/10 on four
 function stageScore(answers: Answer[], stage: 0 | Round, format: Format): StageScore | null {
   const mine = answers.filter((a) => a.stage === stage);
   if (!mine.length) return null;

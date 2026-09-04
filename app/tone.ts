@@ -12,7 +12,7 @@ function ctxOf(): AudioContext | null {
     ac ??= new AudioContext();
     return ac;
   } catch {
-    return null; // no audio, no problem
+    return null;
   }
 }
 
@@ -43,7 +43,7 @@ export function play(tone: Tone, heat = 0): void {
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
       osc.type = s.type;
-      osc.frequency.value = f * (1 + heat * 0.18); // combo pitches it up
+      osc.frequency.value = f * (1 + heat * 0.18);
 
       const at = now + i * step;
       g.gain.setValueAtTime(0, at);
@@ -54,5 +54,5 @@ export function play(tone: Tone, heat = 0): void {
       osc.start(at);
       osc.stop(at + step + 0.02);
     });
-  } catch {} // autoplay policy, whatever
+  } catch {}
 }

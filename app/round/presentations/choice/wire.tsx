@@ -6,9 +6,6 @@ import type { Presentation, PresentationProps } from "../types";
 
 type Point = { x: number; y: number };
 
-// drag a wire from the stem to an option. the buttons underneath are still real buttons,
-// so tab and enter work even though the number keys are off in here
-
 function Wire({
   from,
   to,
@@ -22,7 +19,6 @@ function Wire({
   dashed?: boolean;
   width?: number;
 }) {
-  // bezier with a bit of sag
   const dx = Math.max(30, Math.abs(to.x - from.x) * 0.55);
   const sag = Math.min(16, Math.abs(to.y - from.y) * 0.12 + 6);
   const d = `M ${from.x} ${from.y} C ${from.x + dx} ${from.y + sag}, ${to.x - dx} ${
@@ -44,7 +40,6 @@ function Wire({
   );
 }
 
-// the ghost wire, gone the moment you touch anything
 function HintWire({ from, reach }: { from: Point; reach: number }) {
   const end = { x: from.x + reach, y: from.y + 9 };
   const d = `M ${from.x} ${from.y} C ${from.x + reach * 0.6} ${from.y + 14}, ${
@@ -90,7 +85,6 @@ function WireSurface(props: PresentationProps) {
   const [over, setOver] = useState<number | null>(null);
   const [held, setHeld] = useState(false);
 
-  // svg coords are relative to the board, so everything gets measured off its box
   const measure = useCallback(() => {
     const box = board.current?.getBoundingClientRect();
     const from = stem.current?.getBoundingClientRect();
@@ -120,7 +114,6 @@ function WireSurface(props: PresentationProps) {
     };
   }, [measure, questionId]);
 
-  // hit test on the row boxes, not the pointer target. the svg sits over everything
   function rowAt(x: number, y: number) {
     for (let i = 0; i < rows.current.length; i++) {
       const r = rows.current[i]?.getBoundingClientRect();
@@ -306,6 +299,6 @@ export const wire: Presentation = {
   id: "wire",
   name: "Wire connect",
   presents: ["choice"],
-  supports: (q) => (q.options?.length ?? 0) >= 3, // two rows of wire looks like a mistake
+  supports: (q) => (q.options?.length ?? 0) >= 3,
   Component: WireSurface,
 };

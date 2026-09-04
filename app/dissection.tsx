@@ -32,7 +32,6 @@ const NOTE_KIND: Record<
   },
 };
 
-// no source in a topic-only session, so nothing can "contradict" one
 const wrongWord = (grounded: boolean) =>
   grounded ? NOTE_KIND.wrong.word : "Model disagrees";
 
@@ -60,7 +59,6 @@ const norm = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"'
 const overlaps = (s: number, e: number, taken: [number, number][]) =>
   taken.some(([a, b]) => s < b && e > a);
 
-// exact match first, then a whitespace-tolerant regex. models re-wrap quotes constantly
 function findRange(
   normText: string,
   normQuote: string,
@@ -108,7 +106,6 @@ export function buildDissection(
   }[] = [];
   const unmatched: Card[] = [];
 
-  // a note whose quote is nowhere in their text still gets shown, just without a mark on it
   annotations.forEach((ann, id) => {
     const quote = ann.quote.trim();
     const range = quote ? findRange(normText, norm(quote), taken) : null;
@@ -134,7 +131,6 @@ export function buildDissection(
 
   matched.sort((a, b) => a.start - b.start);
 
-  // numbered in reading order
   let n = 0;
   const numById = new Map<number, number>();
   for (const m of matched) if (m.type !== "right") numById.set(m.id, ++n);

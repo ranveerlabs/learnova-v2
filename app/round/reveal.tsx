@@ -13,7 +13,6 @@ import type { Provenance } from "./types";
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
-// 5 standings, 3 words
 const SHOWN: Record<Standing, { word: string; ink: string; mark: string }> = {
   explained: {
     word: "Explained it",
@@ -101,7 +100,6 @@ export function Reveal({
   const band = BAND[data.rating.band];
   const pb = best !== null && score > best.rating;
 
-  // could not explain it last time, can now. needs a previous run to mean anything
   const nowExplained = data.concepts.filter((l) => {
     if (conceptStanding(l) !== "explained") return false;
     const was = previously[conceptKey(l.concept)];

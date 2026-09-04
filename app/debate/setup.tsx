@@ -64,7 +64,6 @@ export function Setup({
 
     if (!live) return onBegin(chosen);
 
-    // no tier in a live room, the opponent is a person
     setGoing(true);
     const { tierId: _tier, ...forRoom } = chosen;
     const code = makeCode();
@@ -258,7 +257,6 @@ function Join() {
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={code}
-          // filtered as they type, the alphabet has no O/I/S/Z so misheard letters just do not land
           onChange={(e) =>
             setCode(
               e.target.value
@@ -307,7 +305,6 @@ function Options({
   onTier: (t: TierId) => void;
   live: boolean;
 }) {
-  // read once. it must not slam shut while somebody is using it
   const [startOpen] = useState(open);
 
   return (

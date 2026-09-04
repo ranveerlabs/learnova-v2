@@ -38,10 +38,8 @@ export type Room = {
   close: (reason: Closed) => void;
 };
 
-// a name for this tab, for the life of this tab
 const newId = () => crypto.randomUUID().replace(/-/g, "");
 
-// oldest first, so both tabs agree who got here first
 const seated = (ms: PresenceMessage[]) =>
   [...ms].sort((a, b) => a.timestamp - b.timestamp || a.connectionId.localeCompare(b.connectionId));
 
@@ -60,7 +58,6 @@ export function useRoom({
   setup: LiveSetup | null;
 }): Room {
   const [stage, setStage] = useState<Stage>("connecting");
-  // same value, readable from a timer. setStage's updater form can't be read from outside react
   const stageNow = useRef<Stage>("connecting");
   stageNow.current = stage;
 
@@ -79,7 +76,6 @@ export function useRoom({
   const round = useRef<LiveTurn[]>([]);
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // never throws at the screen
   const push = useCallback(async (e: Wire) => {
     try {
       await chan.current?.publish(e.name, e.data);
@@ -120,7 +116,6 @@ export function useRoom({
     const channel = client.channels.get(channelFor(code));
     chan.current = channel;
 
-    // ably won't tell us why auth failed, so ask the route directly
     const why = async (fb: string) => {
       try {
         const res = await fetch(`/api/live/token?code=${encodeURIComponent(code)}&clientId=${id}`);
@@ -169,7 +164,6 @@ export function useRoom({
           return;
         }
         case "turn_advanced": {
-          // their count vs ours, a disagreement means a speech went missing
           const { at } = msg.data as { at: number };
           if (at === round.current.length) return;
           setDesync(true);
@@ -183,7 +177,6 @@ export function useRoom({
         }
         case "room_closed": {
           const { reason } = msg.data as { reason: Closed };
-          // somebody left, room lives on
           if (reason === "left") {
             setTogether(false);
             return;
@@ -218,7 +211,6 @@ export function useRoom({
 
         channel.subscribe(onMsg);
         channel.presence.subscribe(["enter", "update"], onEnter);
-        // measured at 15.2s from a tab closing to this firing, ably's timing
         channel.presence.subscribe(["leave", "absent"], onLeave);
 
         const before = seated(await channel.presence.get());
@@ -243,7 +235,6 @@ export function useRoom({
         await channel.presence.enter({ role } satisfies Member);
         if (!live) return;
 
-        // two people can pass the check at the same instant, so check again after entering
         const after = seated(await channel.presence.get());
         if (!live) return;
         if (after.findIndex((m) => m.clientId === id) >= ROOM_SIZE) {

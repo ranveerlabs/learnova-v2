@@ -4,7 +4,7 @@ import { channelFor, readCode } from "@/app/debate/live/room";
 
 export const dynamic = "force-dynamic";
 
-const TTL = 20 * 60 * 1000; // one round, and useless after
+const TTL = 20 * 60 * 1000;
 
 const err = (msg: string, status: number) => NextResponse.json({ error: msg }, { status });
 
@@ -29,7 +29,6 @@ export async function GET(req: Request) {
   if (!code || !id) return err("A room code and a client id are required.", 400);
 
   try {
-    // scoped to this one channel
     const tok = await new Rest(k).auth.createTokenRequest({
       clientId: id,
       ttl: TTL,

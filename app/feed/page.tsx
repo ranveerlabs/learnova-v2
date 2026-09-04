@@ -76,7 +76,6 @@ export default function Feed() {
   );
 }
 
-// green shipped, gold still going, pink broke
 function state(t: Ticket): { word: string; tint: string } {
   const s = t.build?.state;
   if (!s) return { word: "No build", tint: "bg-sunk" };

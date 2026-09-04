@@ -1,7 +1,6 @@
 export const MIN_SOURCE_CHARS = 200;
 export const MAX_SOURCE_CHARS = 100_000;
 
-// the glue words real prose can't avoid
 const COMMON = new Set([
   "a", "about", "after", "all", "also", "an", "and", "any", "are", "as", "at",
   "be", "because", "been", "before", "being", "between", "both", "but", "by",
@@ -103,7 +102,6 @@ export function sourceStatus(src: string): SourceStatus {
   if (chars < MIN_SOURCE_CHARS) return { state: "short", chars, progress: chars / MIN_SOURCE_CHARS };
   if (chars > MAX_SOURCE_CHARS) return { state: "too-long", chars };
 
-  // one bad signal is noise, two is not prose
   const why = junk(t);
   if (why.length >= 2) return { state: "unreadable", chars, reasons: why.slice(0, 2) };
 

@@ -42,7 +42,6 @@ export default function Home() {
 
   const [remaining, setRemaining] = useState(QUESTION_SECONDS * 1000);
 
-  // twice: once now, once after paint. one of them always loses the race
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     panel.current?.scrollTo({ top: 0 });
@@ -319,11 +318,9 @@ function QuestionScreen({
       setResult(r);
       if (r.correct) onCorrect();
 
-      // pitch climbs with the streak
       const heat = Math.min(1, Math.max(0, (r.streak - 1) / 8));
       play(r.correct ? (r.streak >= 2 ? "combo" : "right") : "wrong", heat);
 
-      // right answers move on fast, wrong ones sit there long enough to read
       const wait = timedOut
         ? ADVANCE_MS.timeout
         : r.correct

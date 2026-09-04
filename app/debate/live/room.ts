@@ -12,7 +12,6 @@ export type Role = "host" | "guest";
 
 export type Member = { role: Role };
 
-// four chars somebody says out loud, only ever collides with rooms open right now
 export function makeCode(): string {
   const b = new Uint32Array(CODE_LENGTH);
   crypto.getRandomValues(b);
@@ -33,7 +32,6 @@ export type LiveTurn = { side: Side; speech: Speech; text: string };
 
 export const otherSide = (s: Side): Side => (s === "Pro" ? "Con" : "Pro");
 
-// whose turn, worked out from the count. no turn state anywhere
 export function toSpeak(ts: LiveTurn[]): { side: Side; speech: Speech } | null {
   if (ts.length >= SPEECHES.length * 2) return null;
   return {
@@ -49,7 +47,6 @@ export const asTranscript = (ts: LiveTurn[], mine: Side): Turn[] =>
     text: t.text,
   }));
 
-// one ballot, flipped for the other chair
 export const mirror = (b: Ballot): Ballot => ({
   ...b,
   winner: b.winner === "user" ? "opponent" : b.winner === "opponent" ? "user" : "draw",

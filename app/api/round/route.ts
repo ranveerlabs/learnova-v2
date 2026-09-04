@@ -25,7 +25,6 @@ const flat = (s: string) =>
 
 const tight = (s: string) => flat(s).replace(/\s+/g, "");
 
-// no cite, no question
 function citationHolds(q: string, src: string): boolean {
   if (!q.trim()) return false;
   return flat(src).includes(flat(q)) || tight(src).includes(tight(q));
@@ -201,7 +200,6 @@ function readAsked(v: unknown): Asked[] {
 const diff = (v: unknown, fb: Difficulty): Difficulty =>
   TIERS.includes(v as Difficulty) ? (v as Difficulty) : fb;
 
-// anything that would draw wrong or answer wrong, dropped rather than patched
 function usable(q: Question): boolean {
   if (!q.prompt.trim() || !q.answer.trim()) return false;
 
@@ -217,7 +215,6 @@ function usable(q: Question): boolean {
     return c.length >= 4 && c.length <= 8 && c.every((x) => x.trim().length > 0);
   }
 
-  // blank: the gap has to actually be there
   return q.prompt.includes("_");
 }
 
@@ -229,7 +226,6 @@ function shape(
   i: number,
   pre: string
 ): Question {
-  // pin stray concepts to a real one, they break the ladder otherwise
   const concept =
     typeof raw.concept === "string" && concepts.includes(raw.concept)
       ? raw.concept
@@ -290,7 +286,6 @@ export async function POST(req: Request) {
   const asked = readAsked(b.asked);
   const seen: Signature[] = asked.map(signature);
 
-  // only cacheable on the first call, before this session has its own history
   const cacheable = !asked.length;
 
   const material =
@@ -308,7 +303,6 @@ export async function POST(req: Request) {
 
       if (cacheable) {
         const hit = recall(k);
-        // re-check the cached cites against the notes in hand, they may not be the same notes
         const qs = hit && prov === "grounded" ? keepGrounded(hit.questions, notes).kept : hit?.questions;
 
         if (hit && qs?.length) {
@@ -425,7 +419,6 @@ export async function POST(req: Request) {
     let dropped = first.dropped;
     let exhausted = false;
 
-    // topic's run dry, ask harder
     if (runningDry(kept.length, want)) {
       console.warn(`r${round}:dry ${kept.length}/${want} new, escalating`);
       exhausted = true;

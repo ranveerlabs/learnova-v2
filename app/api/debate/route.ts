@@ -227,7 +227,6 @@ function scoresOf(v: unknown): Ballot["scores"]["user"] {
   return out;
 }
 
-// a winner and some scores is enough, the rest gets patched
 function ballotish(v: unknown): v is Record<string, unknown> {
   if (typeof v !== "object" || v === null) return false;
   const b = v as Record<string, unknown>;
@@ -272,7 +271,6 @@ const AUX: Record<string, string> = {
   "doesn't": "don't",
 };
 
-// strip the judge's own A/B notation back off
 function deletter(text: string, me: "A" | "B"): string {
   const them = me === "A" ? "B" : "A";
   const aux = Object.keys(AUX)
@@ -281,7 +279,6 @@ function deletter(text: string, me: "A" | "B"): string {
 
   let out = text;
 
-  // possessives first or the rule below eats the A out of "Debater A's"
   out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${me}['’]s\\b`, "g"), "your");
   out = out.replace(new RegExp(`\\b(?:Debater\\s+)?${them}['’]s\\b`, "g"), "their");
 
@@ -304,11 +301,9 @@ function readFeedback(v: unknown, me: "A" | "B"): Ballot["feedback"] {
   };
 }
 
-// judge sees two anonymous sides
 const render = (ts: Turn[]) =>
   ts.map((t) => `[${t.speaker === "user" ? "A" : "B"} · ${t.speech}]\n${t.text.trim()}`).join("\n\n");
 
-// the opponent sees itself as YOU
 const renderForOpponent = (ts: Turn[]) =>
   ts.map((t) => `[${t.speaker === "user" ? "THEM" : "YOU"} · ${t.speech}]\n${t.text.trim()}`).join("\n\n");
 
@@ -345,7 +340,6 @@ function readTurns(v: unknown): Turn[] | null {
     const t = x as Record<string, unknown>;
     if (t.speaker !== "user" && t.speaker !== "opponent") return null;
     if (typeof t.text !== "string" || !t.text.trim()) return null;
-    // capped, the transcript IS the prompt
     out.push({ speaker: t.speaker, speech: readSpeech(t.speech), text: t.text.trim().slice(0, 4000) });
   }
   return out;
@@ -386,7 +380,6 @@ export async function POST(req: Request) {
 
       const s = chatStream(opponentSystem(setup, sp, setup.tierId), usr, 0.6);
 
-      // first chunk inside the try, so a dead key comes back a 5xx
       const head = await s.next();
 
       const f = createSpeechFilter(BUDGET[sp][setup.tierId]);
@@ -403,7 +396,6 @@ export async function POST(req: Request) {
               c.enqueue(enc.encode(t));
             };
 
-            // a kb of nothing first, or a proxy sits on the body
             c.enqueue(enc.encode(" ".repeat(1024)));
 
             try {
@@ -439,7 +431,6 @@ export async function POST(req: Request) {
     if (b.action === "judge") {
       if (turns.length < 2) return err("There is not enough of a round here to judge.", 400);
 
-      // nobody actually argued
       if (!worthJudging(turns))
         return err(
           "There is no round here to judge yet. Make an argument, in a sentence or two, and the ballot will have something to mark.",

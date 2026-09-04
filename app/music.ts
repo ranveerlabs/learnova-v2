@@ -8,7 +8,6 @@ let el: HTMLAudioElement | null = null;
 let want = false;
 let armed = false;
 
-// autoplay is blocked until a click, so wait for one
 function waitForGesture() {
   if (armed || typeof window === "undefined") return;
   armed = true;
@@ -30,7 +29,7 @@ function audio() {
 
   try {
     const a = new Audio();
-    a.preload = "none"; // don't pull 1.5mb on a page nobody turned the music on for
+    a.preload = "none";
     a.src = TRACK;
     a.loop = true;
     a.volume = MUSIC_VOLUME;

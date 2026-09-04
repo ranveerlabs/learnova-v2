@@ -29,7 +29,6 @@ export function Entry({
     box.current?.focus();
   }, []);
 
-  // ?demo fills it with the tritoflex spec sheet, for showing people
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has("demo")) return;
     setTopic(DEMO_TOPIC);
@@ -41,7 +40,6 @@ export function Entry({
     const t = topic.trim();
     if (!t) return;
 
-    // the server checks this too, here is just so they see it sooner
     const n = notes.trim();
     if (n) {
       const bad = sourceProblem(n);

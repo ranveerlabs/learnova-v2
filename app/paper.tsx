@@ -1,6 +1,5 @@
 "use client";
 
-// one char per pixel, palette maps char to a css var so they flip with the theme
 type Sprite = { rows: string[]; palette: Record<string, string> };
 
 const PENCIL: Sprite = {
@@ -83,7 +82,6 @@ const CLIP: Sprite = {
   palette: { C: "var(--supply-metal)" },
 };
 
-// the wordmark, chevrons either side of the star
 const LOGO: Sprite = {
   rows: [
     "....BB.....X.....BB....",
@@ -99,7 +97,6 @@ const LOGO: Sprite = {
   palette: { B: "var(--ink)", X: "var(--supply-gold)" },
 };
 
-// a small monitor with a face
 const CRT: Sprite = {
   rows: [
     "..BBBBBBBBBBB..",
@@ -148,7 +145,7 @@ export function PixelSprite({
 }) {
   const { rows, palette } = SPRITES[name];
   const h = rows.length;
-  const w = rows[0].length; // assumes every row is the same length. they are
+  const w = rows[0].length;
 
   return (
     <svg
@@ -179,9 +176,6 @@ export function PixelSprite({
   );
 }
 
-// notes go in a panel inside the window, not on a sheet of paper. the ruled
-// leaf had tape, punch holes and a pencil hanging off its right edge, all of
-// which sat outside the box and got cut off once screens had a border
 export function Looseleaf({
   value,
   onChange,

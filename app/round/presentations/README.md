@@ -1,8 +1,8 @@
 # presentations
 
-how a round looks. not a layer, not a theme, not a setting. no toggle, and no mode
-where a round gets drawn without one. a student never picks between "the game" and
-"the study tool" cuz theyre the same thing.
+how a round looks. theres no toggle for it and no mode where a round gets drawn
+without one, a student never picks between "the game" and "the study tool" cuz
+theyre the same thing.
 
 `plain.tsx` is the exception, the floor the others stand on. reached three ways,
 never by preference:
@@ -13,9 +13,9 @@ never by preference:
 3. the student asked for it, via the control in `app/round/ui.tsx` that only the
    keyboard and assistive tech ever reach
 
-round 4 is unpresented, enforced in `registry.ts` and not left to convention. open
-production is the one rung with nothing on screen, and a presentation is exactly
-the thing that would quietly put something back.
+round 4 is unpresented, enforced in `registry.ts` and not left to convention. its
+the one rung with nothing on screen, a presentation would quietly put something
+back.
 
 ## adding one
 
@@ -62,21 +62,21 @@ ends up unplayable on a keyboard without anybody noticing. `useBlank`, `Gap` and
 
 ## rules
 
-not style preferences. break one and you change what the session measures.
+break one of these and you change what the session measures.
 
-1. **difficulty comes from the question, never from dexterity.** no precision
+1. difficulty comes from the question, never from dexterity. no precision
    dragging, no reflex requirement, no target that can move out of reach. anything
    in flight is scenery, or it only moves after the answer is committed. two
    exceptions, both documented where they live: a two pixel idle bob, and
-   fishing's pond, which stops the moment anything reaches for it.
-2. **never leak the answer.** not thru the shape of the target, not thru the
-   number of cells in a slot, not thru which option is drawn largest. the blank
-   presentations size their slots from whats been typed for this reason.
-3. **keyboard, always.** 1 to n selects. the kit does it, dont reimplement it.
-4. **colourblind safe.** right and wrong carry a glyph and a word as well as a
-   colour. `--solid-mark` and `--broken-mark` are the validated pair.
-5. **no text of its own.** the question, the options, nothing else. a presentation
-   draws, it doesnt narrate or instruct or encourage.
-6. **`prefers-reduced-motion` is honoured** and the thing is fully playable with
-   every animation off. all motion lives in `presentations.css`, which switches
-   off in one block at the bottom.
+   fishing's pond, which stops the moment anything reaches for it
+2. never leak the answer. not thru the shape of the target, not thru the number of
+   cells in a slot, not thru which option is drawn largest. the blank
+   presentations size their slots off whats been typed for that reason
+3. keyboard, always. 1 to n selects, the kit does it, dont reimplement it
+4. colourblind safe. right and wrong carry a glyph and a word as well as a colour,
+   `--solid-mark` and `--broken-mark` are the validated pair
+5. no text of its own. the question, the options, nothing else. a presentation
+   draws, it doesnt narrate or instruct or encourage
+6. `prefers-reduced-motion` is honoured and the thing is fully playable with every
+   animation off. all motion lives in `presentations.css`, which switches off in
+   one block at the bottom

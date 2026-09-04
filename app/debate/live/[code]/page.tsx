@@ -78,7 +78,6 @@ function Bar() {
 }
 
 function Room({ code }: { code: string }) {
-  // whoever came in holding a motion is the host, decided once
   const [brought] = useState<LiveSetup | null>(() => takeHandoff(code));
   const [role] = useState(brought ? ("host" as const) : ("guest" as const));
 
@@ -110,7 +109,6 @@ function Room({ code }: { code: string }) {
     });
   }, [room.turns, room.ballot]);
 
-  // one tone when a speech lands from the other side
   const heard = useRef(0);
   useEffect(() => {
     const n = room.turns.length;
@@ -137,7 +135,6 @@ function Room({ code }: { code: string }) {
       text: draft.trim(),
     };
 
-    // cleared before the publish. the turn is already theirs either way
     setSending(true);
     setError(null);
     setDraft("");
@@ -169,7 +166,6 @@ function Room({ code }: { code: string }) {
     }
   }
 
-  // eighth speech lands and the host sends it, without being asked. guest gets it mirrored
   const sent = useRef(false);
   useEffect(() => {
     if (role !== "host" || room.stage !== "open") return;
@@ -325,7 +321,6 @@ function Room({ code }: { code: string }) {
     );
   }
 
-  // both sides, not just mine
   const transcript = asTranscript(room.turns, mySide!);
   const spokenByMe = wordsSpoken(transcript);
   const spokenByThem = wordsSpoken(
@@ -544,7 +539,6 @@ function Closing({
   );
 }
 
-// whatever shape this reader's locale writes a clock in
 const clock = (at: number) =>
   new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -553,7 +547,6 @@ function ended(reason: Closed, myRole: Role, departed: Departure | null) {
     return "Nothing was said in here for ten minutes, so the room let go of itself. Neither of you left, it just went quiet, and an empty room is not a thing this app keeps.";
   }
 
-  // presence usually tells us who went, else it was the other chair by elimination
   const theirs: Role = departed?.role ?? (myRole === "host" ? "guest" : "host");
   const who =
     theirs === "host"

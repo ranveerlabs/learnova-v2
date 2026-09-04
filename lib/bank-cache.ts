@@ -12,7 +12,6 @@ type Entry = { bank: CachedBank; at: number };
 const TTL = 30 * 60 * 1000;
 const CAP = 120;
 
-// on globalThis, dev reloads keep handing out a fresh empty map otherwise
 const K = Symbol.for("learnova.bankCache");
 const g = globalThis as unknown as { [K]?: Map<string, Entry> };
 const store: Map<string, Entry> = (g[K] ??= new Map<string, Entry>());
@@ -40,7 +39,6 @@ export function recall(k: string): CachedBank | null {
     store.delete(k);
     return null;
   }
-  // re-insert = lru bump
   store.delete(k);
   store.set(k, e);
   return e.bank;

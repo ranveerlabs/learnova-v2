@@ -54,7 +54,7 @@ function write(lib: Library): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(KEY, JSON.stringify(lib));
-  } catch {} // full or blocked, nothing to do about it
+  } catch {}
 }
 
 export const studied = (): TopicRecord[] => [...read().topics].sort((a, b) => b.lastRun - a.lastRun);
@@ -73,7 +73,6 @@ export const openConcepts = (r: TopicRecord | null): string[] =>
 export function bestFor(topic: string): number | null {
   const r = recordFor(topic);
   if (!r || !r.runs) return null;
-  // over 10 = an old build's weighted total. no denominator to convert with, bin it
   return r.bestRating > 10 ? null : r.bestRating;
 }
 
@@ -95,7 +94,6 @@ export function rememberRun(topic: string, data: Reveal): void {
 
     now_.set(conceptKey(line.concept), {
       concept: line.concept,
-      // a graded run overwrites, an ungraded one can only move it up
       standing: !before || graded || rank(st) > rank(before.standing) ? st : before.standing,
       reached: Math.max(before?.reached ?? 0, line.reached),
       seen: (before?.seen ?? 0) + 1,

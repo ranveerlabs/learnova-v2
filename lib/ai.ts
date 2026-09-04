@@ -11,7 +11,6 @@ export class AIError extends Error {
 export const BUSY = "Everyone is studying at once! Give it a moment and try again.";
 export const UNAVAILABLE = "Oops! We cannot reach our marker right now, this one is on us :(";
 
-// 401/402/403 = key or credit. never clears on retry
 const dead = (s: number) => s === 401 || s === 402 || s === 403;
 
 async function bad(res: Response, where: string): Promise<AIError> {
@@ -56,7 +55,6 @@ function key(): string {
 async function ask(sys: string, usr: string, o: Opts): Promise<string> {
   const tok = key();
 
-  // two goes, models sometimes hand back an empty message
   for (let n = 1; n <= 2; n++) {
     const res = await hit(tok, sys, usr, o);
     if (!res.ok) throw await bad(res, "call");
@@ -77,7 +75,6 @@ const unthink = (s: string) =>
     .replace(/^[\s\S]*?<\/think>/i, "")
     .trim();
 
-// try the whole thing, then the fence, then anything between the outer braces
 function tries(raw: string): string[] {
   const t = unthink(raw);
   const out = [t];

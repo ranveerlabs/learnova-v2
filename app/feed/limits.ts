@@ -1,6 +1,3 @@
-// every entry here is real and is written down somewhere else too. the open
-// ones come out of the README's status section, the chaos out of the commits
-// that fixed them. if you fix one, close it here and in the README
 
 export type Limit = {
   what: string;

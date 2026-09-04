@@ -96,7 +96,6 @@ export function Interval({
           className="stage-in max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft"
           style={{ ["--i" as string]: 1 }}
         >
-          {/* second time round it measures retention, not a baseline. different word for it */}
           {returning
             ? "You have met this before, so that was what stuck. You will see those answers again at the end."
             : "You had not studied yet, so that was a baseline. You will meet those answers again at the end."}

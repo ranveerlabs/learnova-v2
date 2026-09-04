@@ -20,13 +20,10 @@ export type Build = {
 
 type Cached = { tickets: Ticket[]; at: number; stale: boolean };
 
-// on globalThis, dev reloads hand out a fresh empty box otherwise
 const K = Symbol.for("learnova.feed");
 const g = globalThis as unknown as { [K]?: { held: Cached | null } };
 const box = (g[K] ??= { held: null });
 
-// unauthenticated github is 60 an hour per ip, shared across everyone on the
-// deployment, so every poll past the first minute is served from here
 async function gh(path: string) {
   const r = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
     headers: { accept: "application/vnd.github+json" },
@@ -60,7 +57,6 @@ export async function feed(): Promise<Cached> {
       gh("/deployments?per_page=20"),
     ])) as [ApiCommit[], ApiDeployment[]];
 
-    // newest deployment per sha, and only that one gets its statuses fetched
     const latest = new Map<string, ApiDeployment>();
     for (const d of deployments) if (!latest.has(d.sha)) latest.set(d.sha, d);
 
@@ -82,7 +78,6 @@ export async function feed(): Promise<Cached> {
             environment: d.environment,
           });
         } catch {
-          // a deployment with no readable status is just a commit with no build
         }
       }),
     );
@@ -103,8 +98,6 @@ export async function feed(): Promise<Cached> {
     box.held = { tickets, at: Date.now(), stale: false };
     return box.held;
   } catch (e) {
-    // rate limited or github is down. last good answer beats an empty screen,
-    // and the page says which it is looking at
     if (held) return { ...held, stale: true };
     throw e;
   }

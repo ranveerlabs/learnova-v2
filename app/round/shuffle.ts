@@ -2,7 +2,6 @@ import type { Question } from "./types";
 
 export type Rand = () => number;
 
-// fisher-yates
 export function permutation(n: number, rand: Rand): number[] {
   const o = Array.from({ length: n }, (_, i) => i);
   for (let i = n - 1; i > 0; i--) {
@@ -42,7 +41,6 @@ export function placeQuestion(q: Question, rand: Rand): Question {
 export const placeAll = (qs: Question[], rand: Rand = Math.random): Question[] =>
   qs.map((q) => placeQuestion(q, rand));
 
-// where the right answer actually landed. scripts/positions.mjs counts these
 export function answerPosition(q: Question): { index: number; of: number } | null {
   if (q.format === "recognition" || q.format === "choice") {
     const of = q.options?.length ?? 0;

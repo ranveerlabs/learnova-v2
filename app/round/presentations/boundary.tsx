@@ -11,7 +11,6 @@ type Props = PresentationProps & {
 
 type State = { failed: boolean; forKey: string };
 
-// a presentation throwing mid-question drops to plain instead of blanking the round
 export class PresentationBoundary extends Component<Props, State> {
   state: State = { failed: false, forKey: this.props.resetKey };
 

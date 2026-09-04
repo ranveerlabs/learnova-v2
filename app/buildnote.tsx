@@ -1,6 +1,5 @@
 import { PixelSprite } from "./paper";
 
-// the little monitor by the corner
 export function BuildNote({ sha, issues }: { sha: string; issues: number }) {
   return (
     <aside className="fixed bottom-3 right-3 z-40 flex max-w-[min(21rem,calc(100vw-1.5rem))] items-end gap-2">

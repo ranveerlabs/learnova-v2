@@ -1,5 +1,3 @@
-// counts where the right answer actually lands, against the running app.
-// an unbiased shuffle is easy to claim and hard to believe without numbers.
 //   node --experimental-strip-types scripts/positions.mjs --topics 4
 
 const args = process.argv.slice(2);
@@ -31,8 +29,6 @@ async function ask(body) {
   return data;
 }
 
-// same logic as app/round/shuffle.ts. duplicated because this runs against the
-// deployed api and should not care what the local build says
 function answerPosition(q) {
   if (q.format === "recognition" || q.format === "choice") {
     const of = q.options?.length ?? 0;
@@ -94,7 +90,6 @@ function jaccard(a, b) {
   return shared / (a.size + b.size - shared);
 }
 
-// rough repeat check. same idea as dedupe.ts, cruder on purpose
 function collisions(questions) {
   let n = 0;
   const sigs = questions.map((q) => ({ a: norm(q.answer), p: terms(q.prompt) }));

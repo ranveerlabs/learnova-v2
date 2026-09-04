@@ -6,10 +6,10 @@ export type Outcome = "solid" | "shaky" | "not-yet";
 export type AnnotationType = "right" | "imprecise" | "wrong";
 
 export type Annotation = {
-  quote: string; // their words, verbatim
+  quote: string;
   type: AnnotationType;
-  comment: string; // what the source says instead
-  sourceQuote: string; // verbatim from source, "" if unverified
+  comment: string;
+  sourceQuote: string;
 };
 
 export type Grade = {
@@ -39,7 +39,6 @@ Judge the explanation against WHAT WAS ASKED, not against the most complete poss
 Respond with JSON exactly in this shape:
 {"annotations": [{"quote": "...", "type": "right" | "imprecise" | "wrong", "comment": "...", "sourceQuote": "..."}], "missed": ["..."], "verdict": "...", "outcome": "solid" | "shaky" | "not-yet"}`;
 
-// same job, no source. every sourceQuote must come back empty
 const SYS_TOPIC = `You are grading a Teach-Back study session. The student was asked to explain a concept in their own words. Judge their explanation against ordinary, well established knowledge of that concept, the kind any competent textbook would agree on.
 
 THERE IS NO SOURCE MATERIAL IN THIS SESSION. The student did not paste anything. You may be shown a record of the questions this session asked them, and that record is context for what was covered, nothing more. It is a list of quiz questions, not a passage, and it is not the standard the explanation is measured against.
@@ -81,7 +80,6 @@ const flat = (s: string) =>
 
 const tight = (s: string) => flat(s).replace(/\s+/g, "");
 
-// punctuation and spacing drift is fine
 const inThere = (q: string, hay: string, hayTight: string) =>
   hay.includes(flat(q)) || hayTight.includes(tight(q));
 
@@ -96,12 +94,10 @@ export function verifyCitations(g: Grade, src: string, exp: string, grounded: bo
   const anns = g.annotations.map((a) => {
     let out = a;
 
-    // quoted something they never said
     if (out.quote && !inThere(out.quote, said, saidT)) {
       noQ++;
       out = { ...out, quote: "" };
     }
-    // cited something not in the source, or there is no source
     if (out.sourceQuote && (!grounded || !inThere(out.sourceQuote, from, fromT))) {
       if (grounded) noSrc++;
       out = { ...out, sourceQuote: "" };
@@ -152,7 +148,6 @@ export async function POST(req: Request) {
 
   const s = src as string, c = concept as string, e = exp as string;
 
-  // tell the model how the answer was given, or it marks a spoken sentence down for being one
   const spoken = b.via === "voice";
   const how =
     b.brief === true

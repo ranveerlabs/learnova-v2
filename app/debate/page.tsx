@@ -57,7 +57,6 @@ export default function DebatePage() {
     });
   }, [turns, thinking, live]);
 
-  // no dep array on purpose. eighth speech lands, this fires, nobody presses anything
   const sent = useRef(false);
   useEffect(() => {
     if (!finished || sent.current || phase !== "arguing" || thinking) return;
@@ -103,7 +102,6 @@ export default function DebatePage() {
         (c) => setLive((prev) => prev + c),
       );
 
-      // the whole reply was packaging and the scrub ate all of it
       if (!text.trim())
         throw new Error(
           "Your opponent lost their train of thought. Send it again.",

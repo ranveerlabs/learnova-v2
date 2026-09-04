@@ -56,7 +56,6 @@ export async function POST(req: Request) {
   try {
     const { concepts, insufficient } = await chatJSON(SYS, `Source material:\n\n${src}`, ok);
 
-    // empty array is a real answer
     if (!concepts.length) {
       const said = insufficient?.trim();
       return err(

@@ -45,7 +45,6 @@ const silkscreen = Silkscreen({
   display: "swap",
 });
 
-// keyboard shrinks the viewport instead of shoving the page up. round mode does not scroll
 export const viewport: Viewport = {
   interactiveWidget: "resizes-visual",
 };

@@ -44,7 +44,6 @@ type Asked = { concept: string; answer: string; prompt: string; format: Format }
 
 const MAX_PRODUCTIONS = 3;
 
-// just enough for the route to dedupe against
 const lite = (q: Question): Asked => ({
   concept: q.concept,
   answer: q.answer,
@@ -120,7 +119,6 @@ export function useRoundSession() {
     return banked + (performance.now() - stageAt.current);
   }, [phase, splits]);
 
-  // pulled in the background, one round ahead, so nobody waits on a spinner mid run
   const fetchBank = useCallback(
     async (round: Round, t: string, n: string, cs: string[]) => {
       if (round === 4) return;
@@ -148,7 +146,6 @@ export function useRoundSession() {
       } catch (e) {
         console.error(`bank:r${round} rip`, e);
         if (isBusy(e)) setBusyRounds((p) => (p.includes(round) ? p : [...p, round]));
-        // empty bank, not undefined. undefined means "still coming"
         setBanks((p) => ({ ...p, [round]: [] }));
       }
     },
@@ -213,7 +210,6 @@ export function useRoundSession() {
       const ms = performance.now() - shownAt.current;
       const right = !timedOut && isCorrect(q, given);
 
-      // the warm up is before studying, so it doesn't count toward streaks or records
       const counts = stage >= 1;
       const before = answers.filter((a) => a.stage >= 1);
       const run = counts && right ? currentStreak(before) + 1 : 0;
@@ -276,7 +272,6 @@ export function useRoundSession() {
     (from: Round) => {
       let r = from;
 
-      // skip past any round whose bank came back empty
       while (r <= 3) {
         const pool = banks[r];
         if (pool === undefined) {
@@ -315,7 +310,6 @@ export function useRoundSession() {
     beginRound(next);
   }, [beginRound, openRound4, stage]);
 
-  // bank landed while we were sat on the waiting screen
   useEffect(() => {
     if (phase !== "waiting" || pendingRound === null) return;
     if (banks[pendingRound] !== undefined) beginRound(pendingRound);
