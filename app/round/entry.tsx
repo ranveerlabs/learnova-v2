@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { sourceProblem } from "@/lib/source";
 import { SOURCE as DEMO_SOURCE, TOPIC as DEMO_TOPIC } from "./demo-source";
-import { Looseleaf, PixelSprite, PixelTag } from "../paper";
+import { Looseleaf } from "../paper";
 import { Notice } from "../ui";
 import { openConcepts, studied, type TopicRecord } from "./record";
 
@@ -55,20 +55,8 @@ export function Entry({
 
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2 sm:gap-8">
-      <div className="rise flex flex-col gap-5">
-        <div className="flex items-center gap-2">
-          <PixelTag className="press-on -rotate-2">
-            10 seconds to your first question
-          </PixelTag>
-          <PixelSprite
-            name="star"
-            scale={2}
-            className="press-on"
-            style={{ ["--tilt" as string]: "12deg", ["--i" as string]: 1 }}
-          />
-        </div>
-
-        <h1 className="font-hand text-[clamp(2.75rem,1.8rem+3.6vw,4.25rem)] leading-[0.92] tracking-tight text-ink">
+      <div className="flex flex-col gap-5">
+        <h1 className="font-hand text-[clamp(2.75rem,7vw,4.25rem)] leading-[0.92] tracking-tight text-ink">
           What are you
           <br />
           studying?
@@ -81,10 +69,7 @@ export function Entry({
         </p>
       </div>
 
-      <div
-        className="rise flex flex-col gap-4"
-        style={{ ["--i" as string]: 1 }}
-      >
+      <div className="flex flex-col gap-4">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -143,8 +128,7 @@ export function Entry({
         onToggle={(e) =>
           setShowNotes((e.currentTarget as HTMLDetailsElement).open)
         }
-        className="rise group flex flex-col gap-3"
-        style={{ ["--i" as string]: 2 }}
+        className="group flex flex-col gap-3"
       >
         <summary className="fold-key xp-btn w-fit cursor-pointer list-none">
           <span

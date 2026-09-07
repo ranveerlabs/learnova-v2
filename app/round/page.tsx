@@ -30,7 +30,7 @@ import { AudioControls } from "../audio-controls";
 import { play } from "../tone";
 import { Aside, Notice, Waiting, Win, Wordmark } from "../ui";
 
-const SHELL = "mx-auto w-full max-w-[96rem] px-4 sm:px-6 lg:px-10 xl:px-14";
+const SHELL = "mx-auto w-full max-w-[76rem] px-4 sm:px-6 lg:px-10 xl:px-14";
 
 export default function Home() {
   const s = useRoundSession();
@@ -67,7 +67,7 @@ export default function Home() {
       <Win
         title="Round Mode"
         closeHref="/"
-        className={`mx-auto w-full max-w-[96rem] flex-1 ${s.phase === "entry" ? "desk-grid" : ""}`}
+        className={`mx-auto w-full max-w-[76rem] flex-1 ${s.phase === "entry" ? "desk-grid" : ""}`}
         bodyClassName="flex flex-col"
       >
         <header className="z-30 shrink-0 border-b-2 border-line bg-sunk">

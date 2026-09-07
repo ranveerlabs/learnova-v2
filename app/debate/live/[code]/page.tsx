@@ -207,7 +207,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Stopped
           title="That code is in use"
-          said="Somebody is already in a room with this code, which is rare enough to be worth saying out loud. Open another one and you will get a different code."
+          said="Somebody is already in a room with this code. Open another one and you will get a different code."
         />
       </div>
     );
@@ -219,7 +219,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Stopped
           title="That room is full"
-          said="Two people are already debating in there. A room holds two, because a debate has two sides."
+          said="Two people are already debating in there. A room holds two."
         />
       </div>
     );
@@ -231,7 +231,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Stopped
           title={`Nobody is in room ${code}`}
-          said="Either the code is wrong, or whoever opened the room has closed it. Nothing about a room outlives the people in it, so there is nothing to rejoin, but opening a new one takes about ten seconds."
+          said="Either the code is wrong, or whoever opened the room has closed it. There is nothing to rejoin, opening a new one takes about ten seconds."
         />
       </div>
     );
@@ -264,7 +264,7 @@ function Room({ code }: { code: string }) {
           }
           said={
             room.closed === "idle"
-              ? "Nothing happened in it for ten minutes, so it let go. That is what stops abandoned tabs holding rooms open."
+              ? "Nothing happened in it for ten minutes, so it let go."
               : room.closed === "done"
                 ? "That is the end of the round. Nothing from it was saved anywhere, here or on the server."
                 : "You left the room."
@@ -544,7 +544,7 @@ const clock = (at: number) =>
 
 function ended(reason: Closed, myRole: Role, departed: Departure | null) {
   if (reason === "idle") {
-    return "Nothing was said in here for ten minutes, so the room let go of itself. Neither of you left, it just went quiet, and an empty room is not a thing this app keeps.";
+    return "Nothing was said in here for ten minutes, so the room let go of itself. Neither of you left, it just went quiet.";
   }
 
   const theirs: Role = departed?.role ?? (myRole === "host" ? "guest" : "host");

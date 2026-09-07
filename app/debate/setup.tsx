@@ -73,16 +73,13 @@ export function Setup({
 
   return (
     <section className="flex w-full flex-col gap-6 pb-4">
-      <div className="rise">
+      <div>
         <Opponent value={against} onPick={setAgainst} />
       </div>
 
-      <div
-        className="rise flex flex-col items-start gap-4"
-        style={{ ["--i" as string]: 1 }}
-      >
+      <div className="flex flex-col items-start gap-4">
         <div
-          className="note sticky flex min-h-[7.5rem] w-full max-w-[20rem] pb-7 pl-5 pr-6 pt-5"
+          className="note sticky flex min-h-[8.5rem] w-full max-w-[34rem] pb-7 pl-5 pr-6 pt-5"
           style={{ ["--tilt" as string]: "-1.1deg" }}
         >
           <textarea
@@ -111,10 +108,7 @@ export function Setup({
         </div>
       </div>
 
-      <div
-        className="rise grid gap-3 sm:max-w-[30rem] sm:grid-cols-2"
-        style={{ ["--i" as string]: 2 }}
-      >
+      <div className="grid gap-3 sm:max-w-[34rem] sm:grid-cols-2">
         <SideSlab
           onClick={() => begin("Pro")}
           disabled={!ready || going}
@@ -134,12 +128,12 @@ export function Setup({
       </div>
 
       {live && (
-        <div className="rise" style={{ ["--i" as string]: 3 }}>
+        <div>
           <Join />
         </div>
       )}
 
-      <div className="rise" style={{ ["--i" as string]: live ? 4 : 3 }}>
+      <div>
         <Options
           open={tab !== DEFAULTS.tab || (!live && tierId !== DEFAULTS.tierId)}
           tab={tab}

@@ -304,8 +304,7 @@ export function TeachBack({
 
         <p className="max-w-[54ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
           One or two sentences is plenty. Nothing on screen will help you this
-          time, and that is the only reason this round tells you anything the
-          others could not.
+          time.
         </p>
       </div>
 

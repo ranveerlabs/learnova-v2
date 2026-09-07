@@ -47,23 +47,6 @@ const STAR: Sprite = {
   palette: { X: "var(--supply-gold)" },
 };
 
-const ERASER: Sprite = {
-  rows: [
-    "..RRRRRRR..",
-    ".RRRRRRRRR.",
-    "RRRRRRRRRRR",
-    "RRWWWWWWWRR",
-    "RRWWWWWWWRR",
-    "RRRRRRRRRRR",
-    ".RRRRRRRRR.",
-    "..RRRRRRR..",
-  ],
-  palette: {
-    R: "var(--supply-pink)",
-    W: "color-mix(in srgb, var(--supply-gold) 14%, #fff)",
-  },
-};
-
 const CLIP: Sprite = {
   rows: [
     ".CCCCC.",
@@ -124,7 +107,6 @@ const CRT: Sprite = {
 export const SPRITES = {
   pencil: PENCIL,
   star: STAR,
-  eraser: ERASER,
   clip: CLIP,
   logo: LOGO,
   crt: CRT,

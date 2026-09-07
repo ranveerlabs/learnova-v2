@@ -1,5 +1,3 @@
-/* shared by every presentation. nothing in here may move a target under a pointer. */
-
 .stage {
   position: relative;
 }
@@ -62,7 +60,6 @@
   animation: plug-ready 1.9s ease-in-out infinite;
 }
 
-/* all presentation motion lives above and dies here, in one block */
 @media (prefers-reduced-motion: reduce) {
   .rise-in {
     animation: none !important;

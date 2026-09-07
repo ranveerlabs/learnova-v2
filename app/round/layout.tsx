@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Round Mode · Learnova",
   description:
-    "Name a topic and start guessing. Five rounds take the help away one step at a time, until you are explaining it in your own words with nothing on screen. The gap between recognising and explaining is the whole point.",
+    "Name a topic and start guessing. Five rounds, each one takes a hint away, and the last one is a blank screen you explain it into.",
 };
 
 export default function RoundLayout({

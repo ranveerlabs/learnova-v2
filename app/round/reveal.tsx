@@ -123,14 +123,13 @@ export function Reveal({
 
         <h2 className="max-w-[24ch] text-balance font-read text-[clamp(1.5rem,1.2rem+1.5vw,2.125rem)] leading-[1.1] tracking-[-0.02em] text-ink">
           {produced
-            ? "You started by recognising. You finished by explaining."
-            : "You started by recognising."}
+            ? "You ended up explaining it."
+            : "You did not get to explaining it."}
         </h2>
       </div>
 
       <div
         className={`stage-in flex w-fit min-w-[16rem] max-w-full flex-col gap-2 border-l-[5px] py-4 pl-4 pr-8 ${band.rule} ${band.wash}`}
-        style={{ ["--i" as string]: 1 }}
       >
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span
@@ -161,7 +160,6 @@ export function Reveal({
       {provenance === "generated" ? (
         <p
           className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
-          style={{ ["--i" as string]: 2 }}
           title="Paste notes next time and every question arrives with the line it came from, checked word for word on the server."
         >
           Nothing in this run was checked against a source. You gave a topic, so
@@ -172,7 +170,6 @@ export function Reveal({
         (droppedTotal > 0 || sampled) && (
           <p
             className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
-            style={{ ["--i" as string]: 2 }}
             title="Every question in a grounded session has to quote your material word for word. The quote is checked on the server before the question is served, and anything that cannot be found is dropped rather than shown to you."
           >
             Every question came from your notes.{""}
@@ -197,10 +194,7 @@ export function Reveal({
       )}
 
       {nowExplained.length > 0 && (
-        <div
-          className="stage-in flex flex-col gap-2 border-l-[3px] border-solid-mark bg-solid-tint py-3 pl-4 pr-4"
-          style={{ ["--i" as string]: 3 }}
-        >
+        <div className="stage-in flex flex-col gap-2 border-l-[3px] border-solid-mark bg-solid-tint py-3 pl-4 pr-4">
           <span
             style={NARROW}
             className="font-sans text-[0.625rem] font-bold uppercase tracking-[0.14em] text-solid-ink"
@@ -221,17 +215,14 @@ export function Reveal({
         </div>
       )}
 
-      <div
-        className="stage-in flex flex-wrap items-center gap-3"
-        style={{ ["--i" as string]: 4 }}
-      >
+      <div className="stage-in flex flex-wrap items-center gap-3">
         <PrimaryButton onClick={onAgain}>
           Run it again <Arrow />
         </PrimaryButton>
         <GhostButton onClick={onRestart}>Study something else</GhostButton>
       </div>
 
-      <details className="stage-in group" style={{ ["--i" as string]: 5 }}>
+      <details className="stage-in group">
         <summary
           style={NARROW}
           className="inline-flex cursor-pointer list-none items-center gap-2 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:text-ink"

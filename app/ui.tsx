@@ -6,12 +6,14 @@ import { PixelSprite } from "./paper";
 
 export function Win({
   title,
+  icon,
   closeHref,
   children,
   className = "",
   bodyClassName = "",
 }: {
   title: React.ReactNode;
+  icon?: React.ReactNode;
   closeHref?: string;
   children: React.ReactNode;
   className?: string;
@@ -20,6 +22,7 @@ export function Win({
   return (
     <section className={`win flex min-h-0 flex-col ${className}`}>
       <header className="title-bar shrink-0">
+        {icon}
         <span className="grip">{title}</span>
         {closeHref && (
           <Link href={closeHref} className="title-btn" aria-label="Close">

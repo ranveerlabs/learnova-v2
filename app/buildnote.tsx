@@ -2,7 +2,7 @@ import { PixelSprite } from "./paper";
 
 export function BuildNote({ sha, issues }: { sha: string; issues: number }) {
   return (
-    <aside className="fixed bottom-3 right-3 z-40 flex max-w-[min(21rem,calc(100vw-1.5rem))] items-end gap-2">
+    <aside className="fixed bottom-3 right-3 z-40 hidden max-w-[21rem] items-end gap-2 [@media(min-width:640px)_and_(min-height:640px)]:flex">
       <div style={{ background: "var(--supply-gold)" }} className="win min-w-0">
         <div className="border-b-2 border-line px-2.5 py-1.5">
           <span className="font-pixel text-[0.5625rem] uppercase text-[#101010]">

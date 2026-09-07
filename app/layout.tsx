@@ -52,7 +52,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Learnova",
   description:
-    "Two ways to know something. Learn it until you can explain it with nothing on screen, then defend it against an opponent trying to take it off you.",
+    "Guess at a topic until the hints run out and you are explaining it with nothing on screen, then argue for it against a model or against a friend.",
 };
 
 export default function RootLayout({
