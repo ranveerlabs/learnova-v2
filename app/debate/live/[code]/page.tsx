@@ -403,16 +403,16 @@ function Room({ code }: { code: string }) {
               value={draft}
               onChange={setDraft}
               minRows={3}
-              placeholder={`Your ${next!.speech.toLowerCase()}…`}
+              placeholder={`Your ${next!.speech.toLowerCase()}...`}
               onSubmit={send}
               autoFocus
             />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               <PrimaryButton onClick={send} disabled={sending || !draft.trim()}>
-                {sending ? "Sending…" : "Send"}
+                {sending ? "Sending..." : "Send"}
                 {!sending && (
                   <span aria-hidden className="thrown">
-                    →
+                    -&gt;
                   </span>
                 )}
               </PrimaryButton>
@@ -437,7 +437,7 @@ function Motion({ setup, mine }: { setup: LiveSetup; mine: Side }) {
   return (
     <div className="flex flex-col gap-3">
       <Label>
-        {setup.tab === "competitive" ? setup.format : "Open debate"} ·{""}
+        {setup.tab === "competitive" ? setup.format : "Open debate"} /{""}
         {mine === "Pro" ? "You are for it" : "You are against it"}
       </Label>
       <div

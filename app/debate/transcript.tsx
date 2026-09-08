@@ -74,7 +74,7 @@ export function Said({
           mine ? "text-right" : ""
         }`}
       >
-        {mine ? "You" : tierName} · {turn.speech}
+        {mine ? "You" : tierName} / {turn.speech}
       </p>
       <p className="whitespace-pre-wrap font-read text-[1rem] leading-[1.6] text-ink">
         {turn.text}

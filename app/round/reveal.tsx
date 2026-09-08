@@ -231,7 +231,7 @@ export function Reveal({
             aria-hidden
             className="inline-block transition-transform group-open:rotate-90"
           >
-            ›
+            &gt;
           </span>
           How each concept went
         </summary>

@@ -60,7 +60,7 @@ export function Ballot({
       <div className="flex flex-col gap-3">
         <Label>
           {setup.tab === "competitive" ? setup.format : "Open debate"}
-          {setup.tierId ? ` · ${opponent.name}` : ""} · {sideWord(setup.side)}
+          {setup.tierId ? ` / ${opponent.name}` : ""} / {sideWord(setup.side)}
         </Label>
         <div
           className="sticky flex min-h-[7.5rem] w-fit min-w-[11rem] max-w-[20rem] items-start pb-6 pl-5 pr-6 pt-5"
@@ -121,7 +121,7 @@ export function Ballot({
                     >
                       {mine ? "You" : opponent.name}
                     </span>
-                    {""}· {m.why_it_mattered}
+                    {""}/ {m.why_it_mattered}
                   </p>
                 </li>
               );
@@ -163,7 +163,7 @@ function Detail({
           aria-hidden
           className="inline-block transition-transform group-open:rotate-90"
         >
-          ›
+          &gt;
         </span>
         {setup.tab === "competitive"
           ? "Speaks and the full scoresheet"

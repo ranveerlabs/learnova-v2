@@ -87,7 +87,7 @@ export function Interval({
       >
         {next === 4 ? "Take it away" : `Start ${upNext.name.toLowerCase()}`}
         <span aria-hidden className="arrow">
-          →
+          -&gt;
         </span>
       </button>
 
@@ -101,7 +101,7 @@ export function Interval({
               aria-hidden
               className="inline-block transition-transform group-open:rotate-90"
             >
-              ›
+              &gt;
             </span>
             How that round went
           </summary>

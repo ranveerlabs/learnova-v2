@@ -231,7 +231,7 @@ export default function DebatePage() {
               value={draft}
               onChange={setDraft}
               minRows={3}
-              placeholder={`Your ${speech.toLowerCase()}…`}
+              placeholder={`Your ${speech.toLowerCase()}...`}
               onSubmit={send}
               autoFocus
             />
@@ -241,10 +241,10 @@ export default function DebatePage() {
                 onClick={send}
                 disabled={thinking || !draft.trim()}
               >
-                {thinking ? "Waiting…" : "Send"}
+                {thinking ? "Waiting..." : "Send"}
                 {!thinking && (
                   <span aria-hidden className="thrown">
-                    →
+                    -&gt;
                   </span>
                 )}
               </PrimaryButton>

@@ -103,7 +103,7 @@ export function Setup({
             rows={2}
             placeholder="What are you arguing about?"
             aria-label="What are you arguing about?"
-            className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-hand text-[1.5rem] leading-[1.15] text-[#262626] caret-[#262626] placeholder:text-[#7c6f4f]"
+            className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-hand text-[1.125rem] leading-[1.55] text-ink caret-accent placeholder:text-ink-faint"
           />
         </div>
       </div>
@@ -169,7 +169,7 @@ function SideSlab({
         ["--swing" as string]: swing,
         background: paper,
       }}
-      className="xp-btn min-h-[4.5rem] w-full px-5 py-4 text-[0.9375rem] text-[#101010]"
+      className="term-btn min-h-[4.5rem] w-full px-5 py-4 text-[0.9375rem] text-white"
     >
       {word}
     </button>
@@ -261,7 +261,7 @@ function Join() {
                 .slice(0, CODE_LENGTH),
             )
           }
-          placeholder={"–".repeat(CODE_LENGTH)}
+          placeholder={"-".repeat(CODE_LENGTH)}
           aria-label="Room code"
           autoCapitalize="characters"
           autoComplete="off"
@@ -272,7 +272,7 @@ function Join() {
         <PrimaryButton type="submit" disabled={!good}>
           Join{""}
           <span aria-hidden className="slotted">
-            ↓
+            v
           </span>
         </PrimaryButton>
       </div>
@@ -314,7 +314,7 @@ function Options({
           aria-hidden
           className="inline-block transition-transform group-open:rotate-90"
         >
-          ›
+          &gt;
         </span>
         {live
           ? "Tournament formats"

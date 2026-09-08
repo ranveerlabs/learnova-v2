@@ -98,9 +98,9 @@ const CRT: Sprite = {
     "...BBBBBBBBB...",
   ],
   palette: {
-    B: "var(--supply-metal)",
-    d: "var(--supply-graphite)",
-    S: "var(--supply-mint)",
+    B: "#bebebe",
+    d: "#2f2f2f",
+    S: "#7cc9a6",
   },
 };
 
@@ -170,7 +170,7 @@ export function Looseleaf({
   minRows?: number;
 }) {
   return (
-    <div className="xp-field flex min-w-0 flex-col">
+    <div className="term-field flex min-w-0 flex-col">
       <div className="flex shrink-0 items-center justify-between border-b-2 border-line bg-sunk px-3 py-1.5">
         <span className="font-pixel text-[0.625rem] uppercase text-ink-soft">
           notes
@@ -186,7 +186,7 @@ export function Looseleaf({
         placeholder={placeholder}
         rows={minRows}
         aria-label="Your source material"
-        className="xp-scroll prose-read max-h-[26vh] w-full resize-none bg-page px-4 py-3 text-ink caret-accent placeholder:text-ink-faint focus:outline-none"
+        className="term-scroll prose-read max-h-[26vh] w-full resize-none bg-page px-4 py-3 text-ink caret-accent placeholder:text-ink-faint focus:outline-none"
       />
     </div>
   );
@@ -211,7 +211,7 @@ export function PixelTag({
 
   return (
     <span
-      className={`inline-block px-2 py-1 font-pixel text-[0.5625rem] leading-none text-[#262626] ${className}`}
+      className={`inline-block px-2 py-1 font-pixel text-[0.5625rem] leading-none text-white ${className}`}
       style={{ background: bg, ...style }}
     >
       {children}

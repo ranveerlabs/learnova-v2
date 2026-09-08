@@ -56,13 +56,13 @@ export function Entry({
   return (
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2 sm:gap-8">
       <div className="flex flex-col gap-5">
-        <h1 className="font-hand text-[clamp(2.75rem,7vw,4.25rem)] leading-[0.92] tracking-tight text-ink">
+        <h1 className="font-pixel text-[clamp(1.5rem,5vw,2.75rem)] leading-[1.1] text-ink">
           What are you
           <br />
           studying?
         </h1>
 
-        <p className="max-w-[46ch] font-hand text-[1.5rem] leading-[1.3] text-ink-soft">
+        <p className="max-w-[58ch] font-mono text-[0.875rem] leading-[1.7] text-ink-soft">
           Name it and start guessing. You will be wrong at first, on purpose.
           Then the help gets taken away one step at a time until you are
           explaining it yourself.
@@ -84,7 +84,7 @@ export function Entry({
               onChange={(e) => setTopic(e.target.value)}
               placeholder="Anything. One concept is enough."
               aria-label="What are you studying?"
-              className="xp-field w-full px-4 py-3.5 font-read text-[1.25rem] text-ink caret-accent placeholder:text-ink-faint"
+              className="term-field w-full px-4 py-3.5 font-read text-[1.25rem] text-ink caret-accent placeholder:text-ink-faint"
               style={{ padding: "1rem 1.125rem" }}
             />
           </div>
@@ -93,11 +93,11 @@ export function Entry({
             type="submit"
             disabled={!topic.trim()}
             style={{ ["--tilt" as string]: "-1.4deg" }}
-            className="xp-btn xp-btn-go shrink-0 self-start px-6 py-4"
+            className="term-btn term-btn-go shrink-0 self-start px-6 py-4"
           >
             start
             <span aria-hidden className="arrow">
-              →
+              -&gt;
             </span>
           </button>
         </form>
@@ -130,12 +130,12 @@ export function Entry({
         }
         className="group flex flex-col gap-3"
       >
-        <summary className="fold-key xp-btn w-fit cursor-pointer list-none">
+        <summary className="fold-key term-btn w-fit cursor-pointer list-none">
           <span
             aria-hidden
             className="inline-block text-[0.75rem] leading-none transition-transform duration-200 group-open:rotate-90"
           >
-            ›
+            &gt;
           </span>
           I have notes to paste
         </summary>
@@ -147,7 +147,7 @@ export function Entry({
               setNotes(v);
               if (notesProblem) setNotesProblem(null);
             }}
-            placeholder="Paste notes, a textbook passage, an article…"
+            placeholder="Paste notes, a textbook passage, an article..."
             minRows={6}
           />
 
@@ -190,14 +190,14 @@ function Resume({
           {record.topic}
         </span>
         <span className="mt-0.5 block font-sans text-[0.75rem] text-ink-faint">
-          {said} · {ago(record.lastRun)}
+          {said} / {ago(record.lastRun)}
         </span>
       </span>
       <span
         aria-hidden
         className="arrow shrink-0 font-sans text-[1rem] text-ink-faint group-hover:text-accent"
       >
-        →
+        -&gt;
       </span>
     </button>
   );

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { PixelSprite } from "./paper";
 
 export function Win({
   title,
@@ -42,14 +41,13 @@ export function Wordmark({ mode = "Round Mode" }: { mode?: string }) {
     <Link
       href="/"
       title="Both modes"
-      className="group flex shrink-0 items-center gap-2.5 whitespace-nowrap"
+      className="group flex shrink-0 items-baseline gap-2 whitespace-nowrap font-pixel"
     >
-      <PixelSprite name="logo" scale={2} title="Learnova" />
-      <span className="font-pixel text-[1rem] text-ink group-hover:text-accent sm:text-[1.15rem]">
-        Learnova
+      <span className="text-[0.6875rem] text-ink group-hover:text-accent">
+        LEARNOVA.EXE
       </span>
-      <span className="hidden font-pixel text-[0.6rem] text-ink-faint sm:inline">
-        {mode}
+      <span className="hidden text-[0.5625rem] text-ink-faint sm:inline">
+        / {mode.toUpperCase()}
       </span>
     </Link>
   );
@@ -104,7 +102,7 @@ export function Ask({ children }: { children: React.ReactNode }) {
 export function Arrow() {
   return (
     <span aria-hidden className="arrow">
-      →
+      -&gt;
     </span>
   );
 }
@@ -117,7 +115,7 @@ export function PrimaryButton({
   return (
     <button
       {...props}
-      className={`btn xp-btn xp-btn-go self-start ${className}`}
+      className={`btn term-btn term-btn-go self-start ${className}`}
     >
       {children}
     </button>
@@ -130,7 +128,7 @@ export function GhostButton({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button {...props} className={`btn xp-btn self-start ${className}`}>
+    <button {...props} className={`btn term-btn self-start ${className}`}>
       {children}
     </button>
   );
@@ -189,7 +187,7 @@ export function Leaf({
         placeholder={placeholder}
         rows={minRows}
         autoFocus={autoFocus}
-        className="leaf xp-field prose-read w-full resize-none overflow-hidden bg-page text-ink caret-accent placeholder:text-ink-faint"
+        className="leaf term-field prose-read w-full resize-none overflow-hidden bg-page text-ink caret-accent placeholder:text-ink-faint"
       />
     </div>
   );
@@ -208,44 +206,10 @@ export function AudioToggle({
       aria-pressed={on}
       aria-label={`Audio: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
       title={`Audio ${on ? "on" : "off"}`}
-      style={{ background: on ? "var(--supply-mint)" : "var(--supply-pink)" }}
-      className="xp-btn h-9 w-9 shrink-0 !px-0 text-[1.125rem] text-[#101010] sm:h-10 sm:w-10"
+      className="term-btn shrink-0 px-2.5 py-1.5 text-[0.6875rem]"
     >
-      <span aria-hidden>♪</span>
+      <span aria-hidden>[snd:{on ? "on" : "off"}]</span>
     </button>
-  );
-}
-
-export function Credits({ className = "" }: { className?: string }) {
-  return (
-    <details className={`group self-start ${className}`}>
-      <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 font-pixel text-[0.6875rem] uppercase text-ink-faint hover:text-ink-soft">
-        <span
-          aria-hidden
-          className="inline-block transition-transform group-open:rotate-90"
-        >
-          ›
-        </span>
-        Credits
-      </summary>
-
-      <div className="mt-3 border-l-2 border-line-strong pl-3.5">
-        <p className="font-sans text-[0.8125rem] leading-[1.7] text-ink-soft">
-          &ldquo;8bit Dungeon Level&rdquo; Kevin MacLeod (incompetech.com)
-          <br />
-          Licensed under Creative Commons: By Attribution 4.0
-          <br />
-          <a
-            href="http://creativecommons.org/licenses/by/4.0/"
-            target="_blank"
-            rel="noreferrer"
-            className="text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent"
-          >
-            http://creativecommons.org/licenses/by/4.0/
-          </a>
-        </p>
-      </div>
-    </details>
   );
 }
 
@@ -254,7 +218,7 @@ function Meter({ small = false }: { small?: boolean }) {
   const height = small ? "0.7rem" : "1.4rem";
 
   return (
-    <span aria-hidden className="xp-meter" style={{ height }}>
+    <span aria-hidden className="term-meter" style={{ height }}>
       {Array.from({ length: cells }, (_, i) => (
         <span key={i} style={{ animationDelay: `${i * 110}ms` }} />
       ))}

@@ -236,7 +236,7 @@ export function TeachBack({
               aria-hidden
               className="inline-block transition-transform group-open:rotate-90"
             >
-              ›
+              &gt;
             </span>
             See why
           </summary>
@@ -297,7 +297,7 @@ export function TeachBack({
     <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-5 py-4 sm:gap-7 sm:py-6">
       <div className="rise flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Label>Round 4 {total > 1 ? `· ${index + 1} of ${total}` : ""}</Label>
+          <Label>Round 4 {total > 1 ? `/ ${index + 1} of ${total}` : ""}</Label>
         </div>
 
         <Ask>Explain {concept} in your own words.</Ask>
@@ -384,7 +384,7 @@ export function TeachBack({
                 {speech.interim && (
                   <span className="text-ink-faint"> {speech.interim}</span>
                 )}
-                {!heard && <span className="text-ink-faint">Listening…</span>}
+                {!heard && <span className="text-ink-faint">Listening...</span>}
               </p>
             </div>
           )}
@@ -409,7 +409,7 @@ export function TeachBack({
           onChange={setExplanation}
           autoFocus={!speech.supported}
           minRows={5}
-          placeholder="In your own words…"
+          placeholder="In your own words..."
           onSubmit={() => {
             if (!loading && explanation.trim()) submit();
           }}
@@ -420,7 +420,7 @@ export function TeachBack({
             onClick={submit}
             disabled={loading || !explanation.trim()}
           >
-            {loading ? "Marking…" : "Submit"} {!loading && <Arrow />}
+            {loading ? "Marking..." : "Submit"} {!loading && <Arrow />}
           </PrimaryButton>
 
           {loading && <Working />}

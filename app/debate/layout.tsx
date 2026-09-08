@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Win } from "../ui";
 
 export const metadata: Metadata = {
-  title: "Debate · Learnova",
+  title: "Debate / Learnova",
   description:
     "Pick a side and hold it for four speeches, against the model or against a friend on a four letter code. Judged ballot at the end, tournament formats if you want them, and a rating that moves with the result.",
 };

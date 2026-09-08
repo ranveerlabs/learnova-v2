@@ -152,7 +152,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
       }`}
     >
       <span aria-hidden>{grounded ? "❝" : "◇"}</span>
-      {grounded ? "From your notes" : "AI · unchecked"}
+      {grounded ? "From your notes" : "AI / unchecked"}
     </span>
   );
 }
@@ -264,7 +264,7 @@ export function Verdict({
           Tap
         </span>
         <span aria-hidden className="arrow">
-          →
+          -&gt;
         </span>
       </button>
     </div>
@@ -434,7 +434,7 @@ export function BlankField({
           className="btn grid h-11 w-11 place-items-center bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint"
         >
           <span aria-hidden className="arrow">
-            →
+            -&gt;
           </span>
         </button>
       )}
@@ -538,7 +538,7 @@ export function ChipBoard({
               className="btn grid h-11 w-11 place-items-center bg-accent font-sans text-[1.125rem] text-on-accent disabled:cursor-not-allowed disabled:bg-sunk disabled:text-ink-faint"
             >
               <span aria-hidden className="arrow">
-                →
+                -&gt;
               </span>
             </button>
             {built.length > 0 && (

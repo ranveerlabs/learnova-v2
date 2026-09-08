@@ -67,7 +67,7 @@ export default function Home() {
       <Win
         title="Round Mode"
         closeHref="/"
-        className={`mx-auto w-full max-w-[76rem] flex-1 ${s.phase === "entry" ? "desk-grid" : ""}`}
+        className={`mx-auto w-full max-w-[76rem] flex-1 ${s.phase === "entry" ? "terminal-grid" : ""}`}
         bodyClassName="flex flex-col"
       >
         <header className="z-30 shrink-0 border-b-2 border-line bg-sunk">
@@ -257,7 +257,7 @@ function NothingToProduce({ onFinish }: { onFinish: () => void }) {
       >
         See the results{" "}
         <span aria-hidden className="arrow">
-          →
+          -&gt;
         </span>
       </button>
     </section>

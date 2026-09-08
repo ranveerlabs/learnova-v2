@@ -76,35 +76,36 @@ export default function Feed() {
   );
 }
 
-function state(t: Ticket): { word: string; tint: string } {
+function state(t: Ticket): { word: string; tint: string; ink: string } {
   const s = t.build?.state;
-  if (!s) return { word: "No build", tint: "bg-sunk" };
-  if (s === "success") return { word: "Shipped", tint: "bg-supply-mint" };
+  if (!s) return { word: "No build", tint: "bg-sunk", ink: "text-white" };
+  if (s === "success")
+    return { word: "Shipped", tint: "bg-supply-mint", ink: "text-white" };
   if (s === "failure" || s === "error")
-    return { word: "Failed", tint: "bg-supply-pink" };
-  return { word: s, tint: "bg-supply-gold" };
+    return { word: "Failed", tint: "bg-supply-pink", ink: "text-white" };
+  return { word: s, tint: "bg-supply-gold", ink: "text-black" };
 }
 
 function TicketRow({ t }: { t: Ticket }) {
-  const { word, tint } = state(t);
+  const { word, tint, ink } = state(t);
 
   return (
     <li className="border-2 border-line bg-page">
       <div
-        className={`flex flex-wrap items-center gap-x-3 gap-y-1 border-b-2 border-line px-3 py-2 ${tint}`}
+        className={`flex flex-wrap items-center gap-x-3 gap-y-1 border-b-2 border-line px-3 py-2 ${tint} ${ink}`}
       >
         <a
           href={t.url}
           target="_blank"
           rel="noreferrer"
-          className="font-pixel text-[0.75rem] text-[#101010] underline decoration-[#101010]/40 underline-offset-4 hover:decoration-[#101010]"
+          className="font-pixel text-[0.75rem] underline decoration-current/40 underline-offset-4 hover:decoration-current"
         >
           {t.sha.slice(0, 7)}
         </a>
-        <span className="font-pixel text-[0.625rem] uppercase text-[#101010]">
+        <span className="font-pixel text-[0.625rem] uppercase">
           {word}
         </span>
-        <span className="ml-auto font-pixel text-[0.625rem] text-[#101010]">
+        <span className="ml-auto font-pixel text-[0.625rem]">
           {when(t.at)}
         </span>
       </div>
@@ -118,17 +119,17 @@ function TicketRow({ t }: { t: Ticket }) {
           <details className="group mt-2">
             <summary className="inline-flex w-fit cursor-pointer list-none items-center gap-1.5 font-pixel text-[0.625rem] uppercase text-ink-faint hover:text-ink-soft">
               <span aria-hidden className="inline-block group-open:rotate-90">
-                ›
+                &gt;
               </span>
               details for nerds
             </summary>
-            <pre className="xp-scroll mt-2 max-h-[14rem] overflow-auto whitespace-pre-wrap border-2 border-line bg-sunk px-3 py-2 font-mono text-[0.75rem] leading-[1.6] text-ink-soft">
+            <pre className="term-scroll mt-2 max-h-[14rem] overflow-auto whitespace-pre-wrap border border-line bg-sunk px-3 py-2 font-mono text-[0.75rem] leading-[1.6] text-ink-soft">
               {t.body}
             </pre>
           </details>
         )}
 
-        <table className="xp-table mt-3">
+        <table className="term-table mt-3">
           <tbody>
             <tr>
               <th scope="row">Author</th>
@@ -207,7 +208,7 @@ function KnownLimits() {
       </section>
 
       <section className="border-2 border-line bg-page">
-        <h2 className="flex items-baseline justify-between gap-2 border-b-2 border-line bg-supply-pink px-3 py-2 font-pixel text-[0.6875rem] uppercase text-[#101010]">
+        <h2 className="flex items-baseline justify-between gap-2 border-b-2 border-line bg-supply-pink px-3 py-2 font-pixel text-[0.6875rem] uppercase text-white">
           Chaos log
           <span className="text-[0.875rem]">{CHAOS.length}</span>
         </h2>

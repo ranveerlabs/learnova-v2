@@ -1,83 +1,100 @@
 import Link from "next/link";
 import { AudioControls } from "./audio-controls";
 import { PixelSprite } from "./paper";
-import { Credits, Win } from "./ui";
-import { BuildNote } from "./buildnote";
 import { openCount } from "./feed/limits";
 import { BUILD } from "@/lib/build";
 
 export default function Landing() {
   return (
-    <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-8">
-      <main className="m-auto flex w-full max-w-[38rem] flex-col gap-8 sm:gap-10">
-        <Win
-          title="Learnova"
-          icon={<PixelSprite name="logo" scale={1} />}
-          bodyClassName="flex flex-col gap-5 p-5 sm:p-7"
-        >
-          <div className="flex items-center gap-4">
-            <PixelSprite name="logo" scale={4} title="Learnova" />
-            <h1 className="font-pixel text-[clamp(1.5rem,5vw,2.25rem)] leading-none text-ink">
-              Learnova
-            </h1>
-            <AudioControls className="ml-auto" />
+    <div className="dialog-desktop">
+      <main className="dialog-board">
+        <section className="pixel-dialog hello-dialog">
+          <div className="dialog-title">
+            <span>LEARNOVA.EXE</span>
+            <span aria-hidden>X</span>
           </div>
+          <div className="hello-body">
+            <PixelSprite name="logo" scale={3} title="Learnova" />
+            <div>
+              <h1>learnova</h1>
+              <p>you guess at it til the help runs out</p>
+            </div>
+          </div>
+        </section>
 
-          <p className="max-w-[34ch] font-hand text-[1.75rem] leading-[1.15] text-ink-soft">
-            you guess at it til the hints run out, then you argue for it
+        <section className="pixel-dialog blue-dialog note-dialog">
+          <div className="dialog-title">
+            <span>NOTE.TXT</span>
+            <span aria-hidden>X</span>
+          </div>
+          <div>
+            <p>wrong answers are supposed to happen</p>
+            <span aria-hidden className="fake-ok">OK</span>
+          </div>
+        </section>
+
+        <nav aria-label="Choose a mode" className="mode-dialogs">
+          <Link href="/round" className="pixel-dialog mode-dialog">
+            <div className="dialog-title">
+              <span>ROUND.EXE</span>
+              <span aria-hidden>X</span>
+            </div>
+            <div className="mode-dialog-body">
+              <PixelSprite name="pencil" scale={4} />
+              <p>
+                five passes
+                <br />
+                less help each time
+              </p>
+              <span className="dialog-button">OPEN</span>
+            </div>
+          </Link>
+
+          <Link href="/debate" className="pixel-dialog mode-dialog blue-dialog">
+            <div className="dialog-title">
+              <span>DEBATE.EXE</span>
+              <span aria-hidden>X</span>
+            </div>
+            <div className="mode-dialog-body">
+              <PixelSprite name="clip" scale={4} />
+              <p>
+                pick a side
+                <br />
+                keep it for four speeches
+              </p>
+              <span className="dialog-button">OPEN</span>
+            </div>
+          </Link>
+        </nav>
+
+        <Link href="/feed" className="pixel-dialog feed-dialog">
+          <div className="dialog-title">
+            <span>BUILD.LOG</span>
+            <span aria-hidden>X</span>
+          </div>
+          <div className="feed-dialog-body">
+            <PixelSprite name="crt" scale={2} />
+            <span>{BUILD.sha}</span>
+            <span>{openCount} OPEN</span>
+          </div>
+        </Link>
+
+        <section className="pixel-dialog sound-dialog">
+          <div className="dialog-title">
+            <span>SOUND</span>
+            <span aria-hidden>X</span>
+          </div>
+          <AudioControls />
+        </section>
+
+        <details className="pixel-dialog credit-dialog">
+          <summary>AUDIO.TXT</summary>
+          <p>
+            &ldquo;8bit Dungeon Level&rdquo; Kevin MacLeod (incompetech.com), CC BY
+            4.0
           </p>
-
-          <Credits />
-        </Win>
-
-        <div className="flex flex-wrap justify-center gap-4 sm:gap-10">
-          <Shortcut
-            href="/round"
-            sprite="pencil"
-            name="Round Mode"
-            line="less help every round"
-          />
-          <Shortcut
-            href="/debate"
-            sprite="clip"
-            name="Debate"
-            line="four speeches, one side"
-          />
-        </div>
+        </details>
       </main>
-
-      <BuildNote sha={BUILD.sha} issues={openCount} />
     </div>
-  );
-}
-
-function Shortcut({
-  href,
-  sprite,
-  name,
-  line,
-}: {
-  href: string;
-  sprite: "pencil" | "clip";
-  name: string;
-  line: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="shortcut flex w-[10.5rem] flex-col items-center gap-2 p-3 text-center sm:w-[15rem]"
-    >
-      <span className="flex h-[5.25rem] items-end">
-        <PixelSprite name={sprite} scale={5} />
-      </span>
-
-      <span className="label font-pixel text-[0.8125rem] leading-none text-cream">
-        {name}
-      </span>
-
-      <span className="font-hand text-[1.0625rem] leading-[1.2] text-cream/55">
-        {line}
-      </span>
-    </Link>
   );
 }
