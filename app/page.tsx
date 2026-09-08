@@ -28,7 +28,7 @@ export default function Landing() {
             <span aria-hidden>X</span>
           </div>
           <div>
-            <p>wrong answers are supposed to happen</p>
+            <p>wrong answers are supposed to happen!!!! :)</p>
             <span aria-hidden className="fake-ok">OK</span>
           </div>
         </section>
@@ -67,17 +67,16 @@ export default function Landing() {
           </Link>
         </nav>
 
-        <Link href="/feed" className="pixel-dialog feed-dialog">
+        <section className="pixel-dialog feed-dialog">
           <div className="dialog-title">
             <span>BUILD.LOG</span>
-            <span aria-hidden>X</span>
           </div>
           <div className="feed-dialog-body">
             <PixelSprite name="crt" scale={2} />
             <span>{BUILD.sha}</span>
             <span>{openCount} OPEN</span>
           </div>
-        </Link>
+        </section>
 
         <section className="pixel-dialog sound-dialog">
           <div className="dialog-title">

@@ -400,17 +400,13 @@ body {
 }
 
 .mode-dialog:hover,
-.mode-dialog:focus-visible,
-.feed-dialog:hover,
-.feed-dialog:focus-visible {
+.mode-dialog:focus-visible {
   z-index: 5;
   background: #2525ff;
 }
 
 .mode-dialog:hover .dialog-title,
-.mode-dialog:focus-visible .dialog-title,
-.feed-dialog:hover .dialog-title,
-.feed-dialog:focus-visible .dialog-title {
+.mode-dialog:focus-visible .dialog-title {
   background: #2525ff;
   color: #fff;
 }
