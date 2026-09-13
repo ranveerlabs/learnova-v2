@@ -1,32 +1,23 @@
 # learnova
 
-a study app that knows the difference between what it read and what it made up.
+study rounds from a topic or your notes, plus debate against a model or a friend
 
 live at [learnova.software](https://learnova.software).
 
 ## what this does
 
-ask most ai study tools abt something obscure and they just invent it, fluently,
-and you only catch it if you already knew the answer. thats bad in a study tool
-specifically, since youre pointing it at stuff you dont know yet.
-
-I asked it abt Tritoflex (a spray-applied rubber roofing compound) giving it
+I asked it abt Tritoflex (a spray-applied rubber roofing compound) with
 nothing but the name:
 
 > **What is Tritoflex primarily classified as?** A protein.
 > **Which structural motif is common in Tritoflex?** Alpha helix.
 > **What is the main role of Tritoflex?** Signal transduction.
 
-its roofing material. the model had never heard of it and confidently produced
-biochemistry, and a student meeting the word for the first time has no way to
-tell. i keep that example at the top
+its roofing material. topic-only rounds say `AI · unchecked` on every screen,
+and the marks on your explanation are labelled as one model's opinion
 
-learnova doesnt pretend thats solved, it just makes the difference visible. topic
-only and every screen says `AI · unchecked`, nothing verified, the marks on your
-explanation are one model's opinion and they say so. paste your own material and
-every question has to quote it word for word, the quote gets checked on the server
-before you see the question and anything the model couldnt find in your notes gets
-binned.
+paste your own material and each question has to quote it word for word. the
+server checks the quote and drops questions whose citations arent in your notes
 
 same question with the real spec sheet pasted in:
 
@@ -46,7 +37,7 @@ npm run dev
 needs `HACKCLUB_AI_KEY` in `.env.local` or nothing works. `ABLY_API_KEY` too if
 you want live debate, everything else runs without it.
 
-tests, such as they are:
+tests:
 
 ```
 node --experimental-strip-types scripts/spread.mjs      # 32 assertions on the chunker
@@ -55,67 +46,48 @@ node --experimental-strip-types scripts/positions.mjs   # answer placement, need
 
 ## the two modes
 
-round mode. name a topic, start guessing. five stages pull the scaffolding away a
-rung at a time: two options, four options, sentence with the term missing,
-sentence in pieces, then nothing on screen at all and you explain it yourself. you
-can recognise a lot more than you can say and round 5 is where that shows up.
+round mode starts with a topic. over five stages you answer with two options,
+four options, a missing term, a sentence in pieces, then an explanation of your
+own. by round 5 there are no options left to recognise
 
-debate. pick a side, hold it for four speeches against an opponent trying to take
-it off you, read the ballot. two tabs that never mix, open debate is judged on
-whether the argument holds up, tournament prep goes by the conventions of a named
-format against a tournament bar. format is required and not defaulted, cuz a
-Public Forum ballot handed to somebody practising Lincoln-Douglas is worse than no
-ballot.
-
-first thing `/debate` asks is model or friend, two buttons above the motion field.
-same screen either way, the toggle only changes where "Argue for" sends you.
+debate gives each side four speeches, then a ballot. open debate judges the
+argument. tournament prep also uses the rules and standards of the format you
+pick. i left the format blank until you choose one, a Public Forum ballot isnt
+much use for practising Lincoln-Douglas
 
 ## live debate
 
 picking "a friend" mints a four character code. read it out, they open learnova,
-hit debate, pick "a friend", type it in. same four speeches, same judge, same
-ballot, opponent is a person.
+hit debate, pick "a friend", type it in. each person gets four speeches and the
+model judges the transcript
 
-i left the shareable link out on purpose. a link needs a chat app between two
-devices, and i built this for two people sat at one table where the fastest path
-between their screens is somebody's voice.
+i left the shareable link out because i built this for two people at one table.
+you can read the code out without opening a chat app to send a link
 
-theres very little to it. no account, no db, no room object on any server. the
-room is an ably channel named after the code, the two people attached to it are
-its entire state, and it stops existing when they both close the tab. idle rooms
-let go after ten minutes.
+rooms use ably presence, no account or server-side room record. they close when
+both people leave. idle rooms let go after ten minutes
 
-- a room closes when the last person leaves, not the first. somebody goes mid
-  debate (leave button, closed tab, dead connection) and the seat just empties.
-  host is back to their code and can be joined again, guest gets told the other
-  chair is empty. nobody gets thrown out of a room they didnt leave, it used to do
-  that
-- cant continue with one person though. no ballot for a round that stopped partway
-  and no winner either, a ballot weighs two finished cases. exception: all eight
-  speeches given, transcript is complete, still goes to the judge
-- hard reload of a room url ends that room instead of rejoining. the connection
-  was the room and it went down with the page. screen says so and offers a new one
-- nobody presses "get the ballot", the eighth speech lands and it goes, both
-  modes. theres still a button for ending early bcuz thats a decision, finishing
-  isnt
+- somebody leaves mid-debate and the seat empties. host returns to their code
+  and can be joined again, guest sees that the other chair is empty. i used to
+  throw both people out
+- a round that stops partway gets no ballot or winner. once all eight speeches
+  are in, the transcript can still go to the judge even if someone leaves
+- reloading a room url doesnt rejoin it. the page tells you the connection ended
+  and offers a new room
+- both modes send the transcript for judging after the eighth speech. theres
+  also a button to end early
 
-nothing is kept across rounds either way. a judged debate ends on a verdict and
-thats the end of it, no lifetime record, no rating, no ladder to climb, neither
-mode.
+neither debate mode keeps a result or rating across rounds
 
-i had two goes at one before this, for the record. first an elo: one figure across
-both modes, seven rungs, study runs capped below the upper half so the easier
-activity couldnt out-climb the harder one. i built it carefully and it measured
-nothing, an elo is relative and only means something against a field and theres no
-field here, just one person on one device playing three declared difficulty tiers
-of the same model with nothing synced. then a plain won-lost-drawn record plus a
-count of strong round mode runs, truer, and still a running total parked on two
-screens that already had a result of their own to show. also gone.
+i tried an elo first, one figure across both modes, seven rungs, study runs
+capped below the upper half. it measured one person playing three declared
+difficulty tiers of the same model, no field and nothing synced. i replaced it
+with won-lost-drawn and a count of strong study runs, then removed that too.
+both screens already had a result to show
 
-the judge never returns a number abt you. it returns a winner, a margin and
-per-dimension scores, and the winner is counted verbatim. speaker points on a
-tournament ballot are arithmetic on the five dimension scores it already gave, ask
-a model for speaker points directly and it says 28.5 nearly every time.
+the ballot has a winner, a margin and per-dimension scores. the winner is used
+as returned. tournament speaker points are calculated from the five dimension
+scores because asking the model for them directly gave 28.5 nearly every time
 
 ## how the grounding actually works
 
@@ -128,17 +100,13 @@ there, character for character, and `keepGrounded` drops any question whose
 citation isnt. so a grounded round can come out short, and the number dropped gets
 shown to the student rather than swallowed.
 
-long material gets thinned to an even spread of itself before it hits the model,
-so a run covers a whole chapter instead of its first two pages. two properties
-make that safe and both are measured rather than asserted:
+for long notes, the chunker takes passages from across the material instead of
+stopping after the first two pages. every passage is copied from the source,
+and citations are still checked against the full text
 
-- everything shown to the model is a literal substring of what got pasted.
-  citations are still checked against the full source, so thinning the prompt can
-  only make the check stricter
-- passages break on paragraph and sentence boundaries. a span can be
-  substring-true and still mislead if its cut before the "not" that governs it, so
-  the one case that has to cut inside a sentence cuts at a clause joint and
-  rejoins the halves
+it cuts at paragraph and sentence boundaries. cutting just before a "not" can
+change what a passage says, even when the words all came from the source. when
+it has to split a sentence, it cuts at a clause joint and rejoins the halves
 
 `spread.mjs` is 32 assertions on that, i checked them by breaking the code to
 watch them fail and two of them originally passed against the exact bugs i had
