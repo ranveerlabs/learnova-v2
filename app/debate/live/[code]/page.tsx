@@ -17,7 +17,6 @@ import {
   Working,
   Wordmark,
 } from "@/app/ui";
-import { PixelTag } from "@/app/paper";
 import { Ballot as BallotCard } from "../../ballot";
 import { Opening, Said, SpeechRail } from "../../transcript";
 import {
@@ -335,9 +334,9 @@ function Room({ code }: { code: string }) {
 
       <header className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <PixelTag tone={mySide === "Pro" ? "mint" : "pink"}>
+          <span className={`side-tag ${mySide === "Pro" ? "side-tag-pro" : "side-tag-con"}`}>
             you are {mySide === "Pro" ? "for it" : "against it"}
-          </PixelTag>
+          </span>
           <p className="mt-2 font-read text-[clamp(1.0625rem,0.9rem+0.6vw,1.375rem)] leading-tight text-ink">
             {setup.motion}
           </p>

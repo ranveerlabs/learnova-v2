@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PixelSprite } from "../paper";
 import { Label, PrimaryButton, useAutoGrow } from "../ui";
 import { handOff } from "./live/handoff";
 import { ALPHABET, CODE_LENGTH, makeCode, readCode } from "./live/room";
@@ -73,14 +72,14 @@ export function Setup({
 
   return (
     <section className="flex w-full flex-col gap-6 pb-4">
+      <h1 className="text-[1.75rem] leading-tight">What are you arguing about?</h1>
       <div>
         <Opponent value={against} onPick={setAgainst} />
       </div>
 
       <div className="flex flex-col items-start gap-4">
         <div
-          className="note sticky flex min-h-[8.5rem] w-full max-w-[34rem] pb-7 pl-5 pr-6 pt-5"
-          style={{ ["--tilt" as string]: "-1.1deg" }}
+          className="note sticky flex min-h-[8.5rem] w-full max-w-[34rem] p-4"
         >
           <textarea
             ref={box}
@@ -101,7 +100,7 @@ export function Setup({
               begin("Pro");
             }}
             rows={2}
-            placeholder="What are you arguing about?"
+            placeholder="e.g. schools should start later"
             aria-label="What are you arguing about?"
             className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-hand text-[1.125rem] leading-[1.55] text-ink caret-accent placeholder:text-ink-faint"
           />
@@ -112,17 +111,13 @@ export function Setup({
         <SideSlab
           onClick={() => begin("Pro")}
           disabled={!ready || going}
-          paper="var(--supply-mint)"
-          tilt="-1.4deg"
-          swing="-2.4deg"
+          tone="pro"
           word="For it"
         />
         <SideSlab
           onClick={() => begin("Con")}
           disabled={!ready || going}
-          paper="var(--supply-pink)"
-          tilt="1.2deg"
-          swing="2.4deg"
+          tone="con"
           word="Against it"
         />
       </div>
@@ -151,25 +146,16 @@ export function Setup({
 
 function SideSlab({
   word,
-  paper,
-  tilt,
-  swing,
+  tone,
   ...props
 }: {
   word: string;
-  paper: string;
-  tilt: string;
-  swing: string;
+  tone: "pro" | "con";
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
-      style={{
-        ["--tilt" as string]: tilt,
-        ["--swing" as string]: swing,
-        background: paper,
-      }}
-      className="term-btn min-h-[4.5rem] w-full px-5 py-4 text-[0.9375rem] text-white"
+      className={`side-choice side-choice-${tone}`}
     >
       {word}
     </button>
@@ -186,20 +172,17 @@ function Opponent({
   const options: {
     id: Against;
     name: string;
-    sprite: "clip" | "star";
     title: string;
   }[] = [
     {
       id: "model",
       name: "Model",
-      sprite: "clip",
       title:
         "Four speeches against an opponent that argues to win. Judged ballot at the end.",
     },
     {
       id: "friend",
       name: "Friend",
-      sprite: "star",
       title:
         "Opens a room with a short code. They type the code, take the other side, and the round is judged the same way.",
     },
@@ -219,13 +202,12 @@ function Opponent({
             onClick={() => onPick(o.id)}
             aria-pressed={on}
             title={o.title}
-            className={`key inline-flex items-center gap-2 border-2 border-line px-3 py-2 font-pixel text-[0.625rem] leading-none ${
+            className={`term-btn ${
               on
-                ? "translate-x-[2px] translate-y-[2px] bg-accent-wash text-ink"
-                : "bg-page text-ink-soft shadow-[2px_2px_0_var(--line)] hover:bg-accent-wash"
+                ? "border-accent bg-accent-wash text-ink"
+                : "text-ink-soft"
             }`}
           >
-            <PixelSprite name={o.sprite} scale={2} />
             {o.name}
           </button>
         );
@@ -270,10 +252,7 @@ function Join() {
           style={{ padding: "0.625rem 0.5rem 0.625rem 0.8rem" }}
         />
         <PrimaryButton type="submit" disabled={!good}>
-          Join{""}
-          <span aria-hidden className="slotted">
-            v
-          </span>
+          Join
         </PrimaryButton>
       </div>
     </form>
@@ -307,8 +286,7 @@ function Options({
       className="group flex flex-col gap-4 border-t border-line pt-4"
     >
       <summary
-        style={{ fontVariationSettings: '"wdth" 88' }}
-        className="inline-flex cursor-pointer list-none items-center gap-1.5 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-faint transition-colors hover:text-ink-soft"
+        className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm text-ink-soft hover:text-ink"
       >
         <span
           aria-hidden

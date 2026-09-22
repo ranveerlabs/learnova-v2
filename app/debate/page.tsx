@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AudioControls } from "../audio-controls";
+
 import { isBusy, postJSON, postStream } from "../client";
 import { play } from "../tone";
 import {
@@ -12,9 +12,7 @@ import {
   PrimaryButton,
   Waiting,
   Working,
-  Wordmark,
-} from "../ui";
-import { PixelTag } from "../paper";
+  } from "../ui";
 import { Ballot as BallotCard } from "./ballot";
 import { DEFAULTS, type Defaults, Setup as SetupScreen } from "./setup";
 import { Opening, Said, SpeechRail } from "./transcript";
@@ -147,17 +145,10 @@ export default function DebatePage() {
     }
   }
 
-  const bar = (
-    <div className="mb-5 flex shrink-0 items-center justify-between gap-3">
-      <Wordmark mode="Debate" />
-      <AudioControls />
-    </div>
-  );
 
   if (phase === "setup") {
     return (
       <div className={SHELL}>
-        {bar}
         <SetupScreen onBegin={begin} initial={last} />
       </div>
     );
@@ -166,7 +157,6 @@ export default function DebatePage() {
   if (phase === "ballot" && ballot && setup) {
     return (
       <div className={SHELL}>
-        {bar}
         <BallotCard
           ballot={ballot}
           setup={setup}
@@ -183,13 +173,12 @@ export default function DebatePage() {
 
   return (
     <div className={`${SHELL} gap-4`}>
-      {bar}
 
       <header className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <PixelTag tone={setup && setup.side === "Pro" ? "mint" : "pink"}>
+          <span className={`side-tag ${setup?.side === "Pro" ? "side-tag-pro" : "side-tag-con"}`}>
             you are {setup && setup.side === "Pro" ? "for it" : "against it"}
-          </PixelTag>
+          </span>
           <p className="mt-2 font-read text-[clamp(1.0625rem,0.9rem+0.6vw,1.375rem)] leading-tight text-ink">
             {setup?.motion}
           </p>

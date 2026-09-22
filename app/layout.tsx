@@ -1,21 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Silkscreen } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
-const silkscreen = Silkscreen({
-  variable: "--font-pixel",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  display: "swap",
-});
 
 export const viewport: Viewport = {
   interactiveWidget: "resizes-visual",
@@ -35,10 +20,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plexMono.variable} ${silkscreen.variable} h-dvh overflow-hidden antialiased`}
+      className="h-dvh overflow-hidden antialiased"
     >
       <body className="flex h-full flex-col overflow-hidden">
-        <div className="page-glow" aria-hidden />
         {children}
         <Analytics />
       </body>

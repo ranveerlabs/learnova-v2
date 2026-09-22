@@ -41,7 +41,7 @@ export function LadderRail({
               className="grid h-2.5 w-2.5 place-items-center"
             >
               {done ? (
-                <span className="block h-2.5 w-2.5 bg-supply-mint" />
+                <span className="block h-2.5 w-2.5 bg-accent" />
               ) : current ? (
                 <span className="block h-2.5 w-2.5 border-[2px] border-supply-gold" />
               ) : (
@@ -55,7 +55,7 @@ export function LadderRail({
         <span
           style={NARROW}
           className={`truncate font-sans text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${
-            finished ? "text-supply-mint" : "text-ink-soft"
+            finished ? "text-accent" : "text-ink-soft"
           }`}
         >
           {finished ? "Finished" : here?.label}

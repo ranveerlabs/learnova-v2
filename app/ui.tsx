@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function Win({
   title,
@@ -10,6 +11,7 @@ export function Win({
   children,
   className = "",
   bodyClassName = "",
+  actions,
 }: {
   title: React.ReactNode;
   icon?: React.ReactNode;
@@ -17,17 +19,19 @@ export function Win({
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  actions?: React.ReactNode;
 }) {
+  const pathname = usePathname();
   return (
     <section className={`win flex min-h-0 flex-col ${className}`}>
-      <header className="title-bar shrink-0">
-        {icon}
-        <span className="grip">{title}</span>
-        {closeHref && (
-          <Link href={closeHref} className="title-btn" aria-label="Close">
-            <span aria-hidden>X</span>
-          </Link>
-        )}
+      <header className="app-nav shrink-0">
+        <Link href={closeHref ?? "/"} className="app-name">learnova</Link>
+        <nav aria-label="Main navigation">
+          <Link className="nav-study" href="/round" aria-current={pathname.startsWith("/round") ? "page" : undefined}>study</Link>
+          <Link className="nav-debate" href="/debate" aria-current={pathname.startsWith("/debate") ? "page" : undefined}>debate</Link>
+        </nav>
+        {actions && <div className="ml-auto">{actions}</div>}
+        <span className="sr-only">{icon}{title}</span>
       </header>
       <div className={`min-h-0 flex-1 overflow-auto ${bodyClassName}`}>
         {children}
@@ -44,10 +48,10 @@ export function Wordmark({ mode = "Round Mode" }: { mode?: string }) {
       className="group flex shrink-0 items-baseline gap-2 whitespace-nowrap font-pixel"
     >
       <span className="text-[0.6875rem] text-ink group-hover:text-accent">
-        LEARNOVA.EXE
+        learnova
       </span>
       <span className="hidden text-[0.5625rem] text-ink-faint sm:inline">
-        / {mode.toUpperCase()}
+        / {mode === "Round Mode" ? "study" : mode.toLowerCase()}
       </span>
     </Link>
   );
@@ -62,7 +66,7 @@ export function Label({
 }) {
   return (
     <p
-      className={`font-pixel text-[0.6875rem] uppercase text-ink-faint ${className}`}
+      className={`text-sm text-ink-soft ${className}`}
     >
       {children}
     </p>
@@ -208,7 +212,7 @@ export function AudioToggle({
       title={`Audio ${on ? "on" : "off"}`}
       className="term-btn shrink-0 px-2.5 py-1.5 text-[0.6875rem]"
     >
-      <span aria-hidden>[snd:{on ? "on" : "off"}]</span>
+      <span aria-hidden>sound {on ? "on" : "off"}</span>
     </button>
   );
 }

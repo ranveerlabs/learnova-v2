@@ -28,7 +28,7 @@ import {
 } from "./types";
 import { AudioControls } from "../audio-controls";
 import { play } from "../tone";
-import { Aside, Notice, Waiting, Win, Wordmark } from "../ui";
+import { Aside, Notice, Waiting, Win } from "../ui";
 
 const SHELL = "mx-auto w-full max-w-[76rem] px-4 sm:px-6 lg:px-10 xl:px-14";
 
@@ -63,19 +63,19 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col p-3 sm:p-5">
+    <div className="study-scope relative z-10 flex h-full min-h-0 flex-1 flex-col p-3 sm:p-5">
       <Win
         title="Round Mode"
         closeHref="/"
         className={`mx-auto w-full max-w-[76rem] flex-1 ${s.phase === "entry" ? "terminal-grid" : ""}`}
         bodyClassName="flex flex-col"
+        actions={!showRun ? <AudioControls /> : undefined}
       >
-        <header className="z-30 shrink-0 border-b-2 border-line bg-sunk">
+        {showRun && <header className="z-30 shrink-0 border-b border-line">
           <div
             className={`${SHELL} flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 sm:gap-x-6 sm:gap-y-2 sm:py-2.5`}
           >
             <div className="flex min-w-0 items-center gap-2.5 sm:gap-5">
-              <Wordmark />
               {showRun && (
                 <LadderRail stage={s.stage} finished={s.phase === "reveal"} />
               )}
@@ -96,7 +96,7 @@ export default function Home() {
               )}
             </div>
           </div>
-        </header>
+        </header>}
 
         <div
           ref={panel}
@@ -108,7 +108,7 @@ export default function Home() {
             className={`flex w-full min-w-0 flex-col ${
               inPlay
                 ? "min-h-0 flex-1"
-                : "min-h-full shrink-0 grow justify-center"
+                : "min-h-full shrink-0 grow"
             }`}
           >
             {s.busyRounds.length > 0 && !inPlay && (

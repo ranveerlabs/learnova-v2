@@ -54,18 +54,15 @@ export function Entry({
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 py-2 sm:gap-8">
+    <section className="study-entry flex w-full max-w-[40rem] flex-col gap-6 py-2 sm:gap-8">
       <div className="flex flex-col gap-5">
-        <h1 className="font-pixel text-[clamp(1.5rem,5vw,2.75rem)] leading-[1.1] text-ink">
-          What are you
-          <br />
-          studying?
+        <h1 className="text-[1.75rem] leading-tight text-ink">
+          What are you studying?
         </h1>
 
         <p className="max-w-[58ch] font-mono text-[0.875rem] leading-[1.7] text-ink-soft">
-          Name it and start guessing. You will be wrong at first, on purpose.
-          Then the help gets taken away one step at a time until you are
-          explaining it yourself.
+          Start with a topic. Each round gives you less help until you can
+          explain it yourself.
         </p>
       </div>
 
@@ -82,7 +79,7 @@ export function Entry({
               ref={box}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="Anything. One concept is enough."
+              placeholder="e.g. photosynthesis"
               aria-label="What are you studying?"
               className="term-field w-full px-4 py-3.5 font-read text-[1.25rem] text-ink caret-accent placeholder:text-ink-faint"
               style={{ padding: "1rem 1.125rem" }}
@@ -92,13 +89,9 @@ export function Entry({
           <button
             type="submit"
             disabled={!topic.trim()}
-            style={{ ["--tilt" as string]: "-1.4deg" }}
             className="term-btn term-btn-go shrink-0 self-start px-6 py-4"
           >
             start
-            <span aria-hidden className="arrow">
-              -&gt;
-            </span>
           </button>
         </form>
 
