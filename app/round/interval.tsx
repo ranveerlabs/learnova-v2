@@ -53,21 +53,15 @@ export function Interval({
           {cleared} cleared
         </span>
         <h2 className="font-read text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] tracking-[-0.015em] text-ink">
-          {summary.stage === 0
-            ? returning
-              ? "That was what stuck. Now it starts."
-              : "That was you guessing. Now it starts."
-            : summary.turnedAround.length > 0
-              ? "Something just moved."
-              : "Round done."}
+          {summary.stage === 0 ? "Warm-up complete." : `${cleared} complete.`}
         </h2>
       </div>
 
       {summary.stage === 0 ? (
         <p className="max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
           {returning
-            ? "You have met this before, so that was what stuck. You will see those answers again at the end."
-            : "You had not studied yet, so that was a baseline. You will meet those answers again at the end."}
+            ? "The warm-up shows what you remembered from earlier sessions. These answers are checked again at the end."
+            : "The warm-up sets a baseline. These answers are checked again at the end."}
         </p>
       ) : (
         <p className="font-read text-[1.375rem] leading-[1.35] text-ink">
@@ -76,7 +70,7 @@ export function Interval({
       )}
 
       <p className="font-read text-[1.25rem] leading-[1.35] text-ink">
-        <span className="text-ink-faint">{upNext.name}, next. </span>
+        <span className="text-ink-faint">{upNext.name}: </span>
         {upNext.taken} {upNext.asks}
       </p>
 
@@ -85,7 +79,7 @@ export function Interval({
         autoFocus
         className="btn inline-flex items-center gap-2 self-start bg-accent px-6 py-3 font-sans text-[0.9375rem] font-semibold text-on-accent"
       >
-        {next === 4 ? "Take it away" : `Start ${upNext.name.toLowerCase()}`}
+        Start {upNext.name.toLowerCase()}
         <span aria-hidden className="arrow">
           -&gt;
         </span>
@@ -103,7 +97,7 @@ export function Interval({
             >
               &gt;
             </span>
-            How that round went
+            Round details
           </summary>
 
           <div className="mt-4 flex max-w-[34rem] flex-col gap-4">
@@ -128,7 +122,7 @@ export function Interval({
                   style={NARROW}
                   className="font-sans text-[0.625rem] font-bold uppercase tracking-[0.14em] text-solid-ink"
                 >
-                  Turned around
+                  Now correct
                 </span>
                 <p className="font-read text-[0.9375rem] leading-[1.5] text-solid-ink">
                   {summary.turnedAround.join(", ")}

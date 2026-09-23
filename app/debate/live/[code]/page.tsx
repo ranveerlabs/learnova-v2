@@ -58,7 +58,7 @@ export default function LiveRoomPage({
         <Bar />
         <Stopped
           title="That is not a room code"
-          said={`A room code is ${CODE_LENGTH} characters. The one in this link is not, so the link has probably been cut short somewhere between the person who sent it and here.`}
+          said={`Room codes have exactly ${CODE_LENGTH} characters. Check the link and try again.`}
         />
       </div>
     );
@@ -182,7 +182,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Waiting
           title="Opening the room"
-          sub="Finding out who is already in it."
+          sub="Checking the room."
         />
       </div>
     );
@@ -206,7 +206,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Stopped
           title="That code is in use"
-          said="Somebody is already in a room with this code. Open another one and you will get a different code."
+          said="Another room is using this code. Open a new room to get a different code."
         />
       </div>
     );
@@ -218,7 +218,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Stopped
           title="That room is full"
-          said="Two people are already debating in there. A room holds two."
+          said="Two people are already in this room."
         />
       </div>
     );
@@ -230,7 +230,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Stopped
           title={`Nobody is in room ${code}`}
-          said="Either the code is wrong, or whoever opened the room has closed it. There is nothing to rejoin, opening a new one takes about ten seconds."
+          said="The code is wrong or the room has closed. Check the code or open a new room."
         />
       </div>
     );
@@ -263,7 +263,7 @@ function Room({ code }: { code: string }) {
           }
           said={
             room.closed === "idle"
-              ? "Nothing happened in it for ten minutes, so it let go."
+              ? "The room closed after ten minutes without activity."
               : room.closed === "done"
                 ? "That is the end of the round. Nothing from it was saved anywhere, here or on the server."
                 : "You left the room."
@@ -294,7 +294,7 @@ function Room({ code }: { code: string }) {
         <Bar />
         <Waiting
           title="Joining the room"
-          sub="Waiting to be told what is being argued."
+          sub="Waiting for the debate setup."
         />
       </div>
     );
@@ -310,8 +310,7 @@ function Room({ code }: { code: string }) {
             <Share code={code} />
           ) : (
             <Aside>
-              You are in the room. Whoever opened it has stepped away. The round
-              starts when they are back.
+              The host is away. The round starts when they return.
             </Aside>
           )}
           <Leave onLeave={() => room.close("left")} />
@@ -354,15 +353,13 @@ function Room({ code }: { code: string }) {
 
       {room.dropped && (
         <Aside>
-          You have lost your connection. Nothing is lost while it comes back,
-          and anything they say in the meantime will arrive when it does.
+          Connection lost. New messages will appear after it reconnects.
         </Aside>
       )}
 
       {room.desync && (
         <Aside>
-          Part of the round did not reach this tab. Asking for it again, the
-          transcript below may be a speech short until it lands.
+          A speech may be missing while the room resyncs.
         </Aside>
       )}
 
@@ -384,7 +381,7 @@ function Room({ code }: { code: string }) {
         {judging ? (
           <Waiting
             title="Judging the round"
-            sub="Both sides, with no names on them, from the top."
+            sub="Reviewing both sides without names."
           />
         ) : finished ? (
           <Closing
@@ -422,7 +419,7 @@ function Room({ code }: { code: string }) {
           <div className="flex flex-col gap-3">
             <Waiting
               title={`Their ${next!.speech.toLowerCase()}`}
-              sub="It arrives finished, the way a speech does."
+              sub="Waiting for the other speaker."
             />
             <Leave onLeave={() => room.close("left")} />
           </div>
@@ -460,8 +457,8 @@ function Share({ code }: { code: string }) {
       </p>
 
       <p className="max-w-[40ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-        They open Learnova, press Debate, choose{" "}
-        <span className="text-ink">Friend</span>, and type it in.
+        On another device, open Learnova, choose Debate, then{" "}
+        <span className="text-ink">Friend</span>, and enter this code.
       </p>
     </div>
   );
@@ -492,9 +489,8 @@ function Closing({
     return (
       <div className="flex flex-col gap-3">
         <Notice>
-          There is not enough here to judge. {who} wrote under{" "}
-          {MIN_WORDS_TO_JUDGE} words across the round, which is about one real
-          sentence of argument. Nothing was sent to the judge.
+          There is not enough to judge. {who} wrote under {MIN_WORDS_TO_JUDGE}{" "}
+          words, so nothing was sent to the judge.
         </Notice>
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton onClick={onLeave}>
@@ -510,9 +506,8 @@ function Closing({
       return (
         <div className="flex flex-col gap-3">
           <Aside>
-            Every speech was given, but the person who opened the room has left,
-            and the ballot is theirs to ask for. There will not be one for this
-            round.
+            The host left before requesting the ballot, so this round will not
+            have one.
           </Aside>
           <Ways />
         </div>
@@ -523,7 +518,7 @@ function Closing({
       <div className="flex flex-col gap-3">
         <Waiting
           title="Waiting for the ballot"
-          sub="Whoever opened the room sends the round to the judge."
+          sub="The host requests it."
         />
         <Leave onLeave={onLeave} />
       </div>
@@ -532,7 +527,7 @@ function Closing({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Working label="Sending it to the judge" />
+      <Working label="Requesting a ballot" />
       <Leave onLeave={onLeave} />
     </div>
   );
@@ -543,7 +538,7 @@ const clock = (at: number) =>
 
 function ended(reason: Closed, myRole: Role, departed: Departure | null) {
   if (reason === "idle") {
-    return "Nothing was said in here for ten minutes, so the room let go of itself. Neither of you left, it just went quiet.";
+    return "The room closed after ten minutes without activity.";
   }
 
   const theirs: Role = departed?.role ?? (myRole === "host" ? "guest" : "host");
@@ -619,14 +614,11 @@ function Unfinished({
           style={NARROW}
           className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-gap-ink"
         >
-          No ballot for this one
+          No ballot
         </span>
         <p className="font-read text-[1.0625rem] leading-[1.5] text-ink">
-          Nothing was sent to the judge, and there is no winner and no score. A
-          ballot weighs one finished case against another, and this round has
-          neither: a verdict on it would be marking you both on the speeches
-          nobody got to give. Nothing from it was saved anywhere, here or on the
-          server.
+          The round did not finish, so it was not sent to the judge. There is no
+          winner or score. Nothing from the room was saved here or on the server.
         </p>
       </div>
 
@@ -639,7 +631,7 @@ function Leave({ onLeave }: { onLeave: () => void }) {
   return (
     <GhostButton
       onClick={onLeave}
-      title="The room carries on for whoever is still in it."
+      title="The other person can stay in the room."
     >
       Leave the room
     </GhostButton>

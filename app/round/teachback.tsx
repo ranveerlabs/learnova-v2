@@ -194,7 +194,9 @@ export function TeachBack({
     } catch (e) {
       setWasBusy(isBusy(e));
       setError(
-        e instanceof Error ? e.message : "That did not get marked. Try again.",
+        e instanceof Error
+          ? e.message
+          : "The answer could not be marked. Try again.",
       );
     } finally {
       setLoading(false);
@@ -219,10 +221,9 @@ export function TeachBack({
 
           {!usesNotes && (
             <p className="max-w-[62ch] font-sans text-[0.8125rem] leading-[1.6] text-ink-faint">
-              Nothing here was checked against a source. You pasted no material,
-              so these marks are one AI model&rsquo;s opinion, and it can be
-              wrong while sounding certain. If you have reason to think a mark
-              has the facts wrong, back yourself and go and check.
+              You did not provide source material, so these marks are one AI
+              model&rsquo;s judgment. It can be wrong. Check any disputed fact
+              against a reliable source.
             </p>
           )}
         </div>
@@ -285,7 +286,7 @@ export function TeachBack({
             </PrimaryButton>
           ) : (
             <PrimaryButton onClick={onStop}>
-              See where you landed <Arrow />
+              See results <Arrow />
             </PrimaryButton>
           )}
         </div>
@@ -303,8 +304,7 @@ export function TeachBack({
         <Ask>Explain {concept} in your own words.</Ask>
 
         <p className="max-w-[54ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-          One or two sentences is plenty. Nothing on screen will help you this
-          time.
+          One or two sentences is enough. No hints are shown in this round.
         </p>
       </div>
 
@@ -377,7 +377,7 @@ export function TeachBack({
                 style={{ fontVariationSettings: '"wdth" 88' }}
                 className="mb-1.5 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-ink-faint"
               >
-                Heard so far, yours to correct
+                Transcript
               </p>
               <p className="font-read text-[1rem] leading-[1.6] text-ink">
                 {speech.transcript}

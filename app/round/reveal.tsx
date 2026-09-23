@@ -57,19 +57,19 @@ const BAND: Record<
     ink: "text-solid-ink",
     rule: "border-solid-mark",
     wash: "bg-solid-tint",
-    note: "Strong run",
+    note: "Strong",
   },
   fair: {
     ink: "text-shaky-ink",
     rule: "border-shaky-mark",
     wash: "bg-shaky-tint",
-    note: "Some of it landed",
+    note: "Some gaps",
   },
   weak: {
     ink: "text-broken-ink",
     rule: "border-broken-mark",
     wash: "bg-broken-tint",
-    note: "Worth another run",
+    note: "Try again",
   },
 };
 
@@ -123,8 +123,8 @@ export function Reveal({
 
         <h2 className="max-w-[24ch] text-balance font-read text-[clamp(1.5rem,1.2rem+1.5vw,2.125rem)] leading-[1.1] tracking-[-0.02em] text-ink">
           {produced
-            ? "You ended up explaining it."
-            : "You did not get to explaining it."}
+            ? "You explained it."
+            : "You did not reach the final explanation."}
         </h2>
       </div>
 
@@ -162,9 +162,8 @@ export function Reveal({
           className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
           title="Paste notes next time and every question arrives with the line it came from, checked word for word on the server."
         >
-          Nothing in this run was checked against a source. You gave a topic, so
-          an AI model wrote the questions and marked the answers from its own
-          knowledge.
+          You did not provide source material. An AI model wrote and marked the
+          questions from its own knowledge, so the results can be wrong.
         </p>
       ) : (
         (droppedTotal > 0 || sampled) && (
@@ -199,7 +198,7 @@ export function Reveal({
             style={NARROW}
             className="font-sans text-[0.625rem] font-bold uppercase tracking-[0.14em] text-solid-ink"
           >
-            Could not explain this before
+            Newly explained
           </span>
           <ul className="flex flex-wrap gap-2">
             {nowExplained.map((l, i) => (
@@ -217,7 +216,7 @@ export function Reveal({
 
       <div className="stage-in flex flex-wrap items-center gap-3">
         <PrimaryButton onClick={onAgain}>
-          Run it again <Arrow />
+          Study again <Arrow />
         </PrimaryButton>
         <GhostButton onClick={onRestart}>Study something else</GhostButton>
       </div>
@@ -233,7 +232,7 @@ export function Reveal({
           >
             &gt;
           </span>
-          How each concept went
+          Concept results
         </summary>
 
         <div className="mt-4 flex flex-col gap-4">
@@ -242,7 +241,7 @@ export function Reveal({
             {data.open && (
               <Figure
                 value={`${data.open.correct}/${data.open.answered}`}
-                label="Warm up, on instinct"
+                label="Warm-up score"
               />
             )}
             {produced && (

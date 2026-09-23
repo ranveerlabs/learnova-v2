@@ -130,15 +130,15 @@ export default function Home() {
 
             {s.phase === "opening" && (
               <Waiting
-                title="Building your first questions"
-                sub="Five quick ones, before you study anything."
+                title="Writing the first questions"
+                sub="This can take a few seconds."
               />
             )}
 
             {s.phase === "waiting" && (
               <Waiting
-                title={`Writing Round ${s.pendingRound ?? ""}`}
-                sub="You got here faster than it could be built. A few seconds."
+                title={`Writing round ${s.pendingRound ?? ""}`}
+                sub="This can take a few seconds."
               />
             )}
 
@@ -218,11 +218,8 @@ function SkippedRounds({ rounds }: { rounds: Round[] }) {
 
   return (
     <Aside>
-      Learnova was busy when {which} {names.length === 1 ? "was" : "were"} due,
-      so{""}
-      {names.length === 1 ? "it was" : "they were"} skipped. Everything you have
-      already answered still counts, and the rest of the session carries on from
-      here.
+      {which} {names.length === 1 ? "was" : "were"} skipped because the
+      questions were not ready in time. Your earlier answers still count.
     </Aside>
   );
 }
@@ -236,10 +233,9 @@ function DroppedQuestions({
 }) {
   return (
     <Aside>
-      {served} questions this round, not {QUESTIONS_PER_ROUND}. Another {count}{" "}
-      were written and dropped:{" "}
-      {count === 1 ? "its quote was" : "their quotes were"} not in your notes,
-      so you never saw {count === 1 ? "it" : "them"}.
+      This round has {served} questions instead of {QUESTIONS_PER_ROUND}. Another{" "}
+      {count} {count === 1 ? "was" : "were"} removed because the quoted text was
+      not found in your notes.
     </Aside>
   );
 }
@@ -248,8 +244,7 @@ function NothingToProduce({ onFinish }: { onFinish: () => void }) {
   return (
     <section className="mx-auto flex w-full max-w-[46rem] flex-col gap-5 py-10">
       <Notice>
-        There was not enough answered in the rounds to pick a concept for you to
-        explain, so Round 4 has nothing honest to ask you about.
+        There were not enough answers to choose a concept for Round 4.
       </Notice>
       <button
         onClick={onFinish}

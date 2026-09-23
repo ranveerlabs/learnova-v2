@@ -102,7 +102,7 @@ export default function DebatePage() {
 
       if (!text.trim())
         throw new Error(
-          "Your opponent lost their train of thought. Send it again.",
+          "The opponent returned an empty response. Try again.",
         );
 
       setTurns([
@@ -211,7 +211,7 @@ export default function DebatePage() {
         {judging ? (
           <Waiting
             title="Judging the round"
-            sub="Both sides, with no names on them, from the top."
+            sub="Reviewing both sides without names."
           />
         ) : !finished ? (
           <>
@@ -245,16 +245,13 @@ export default function DebatePage() {
             </div>
           </>
         ) : judgeable ? (
-          <Working label="Sending it to the judge" />
+          <Working label="Requesting a ballot" />
         ) : (
           <div className="flex flex-col gap-3">
             <Notice>
-              There is not enough here to judge. You wrote {spoken}
-              {""}
-              {spoken === 1 ? "word" : "words"} across the round, and a ballot
-              needs at least{""}
-              {MIN_WORDS_TO_JUDGE}, which is about one real sentence of
-              argument. Nothing went to the judge.
+              There is not enough to judge. You wrote {spoken}{" "}
+              {spoken === 1 ? "word" : "words"}. A ballot requires at least{" "}
+              {MIN_WORDS_TO_JUDGE}, so nothing was sent to the judge.
             </Notice>
             <div className="flex flex-wrap items-center gap-3">
               <PrimaryButton onClick={() => setPhase("setup")}>
