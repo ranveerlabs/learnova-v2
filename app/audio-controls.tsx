@@ -5,7 +5,7 @@ import { audioWanted, setAudioWanted } from "./audio";
 import { setMusic } from "./music";
 import { AudioToggle } from "./ui";
 
-export function AudioControls({ className = "" }: { className?: string }) {
+export function AudioControls() {
   const [on, setOn] = useState(() => {
     const wanted = audioWanted();
     return wanted.music || wanted.sound;
@@ -23,9 +23,5 @@ export function AudioControls({ className = "" }: { className?: string }) {
     setMusic(next);
   }
 
-  return (
-    <div className={`flex shrink-0 items-center gap-2 ${className}`}>
-      <AudioToggle on={on} onToggle={flip} />
-    </div>
-  );
+  return <AudioToggle on={on} onToggle={flip} />;
 }

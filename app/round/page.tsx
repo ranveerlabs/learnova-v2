@@ -28,7 +28,7 @@ import {
 } from "./types";
 import { AudioControls } from "../audio-controls";
 import { play } from "../tone";
-import { Aside, Notice, Waiting, Win } from "../ui";
+import { Aside, Frame, Notice, Waiting } from "../ui";
 
 const SHELL = "mx-auto w-full max-w-[76rem] px-4 sm:px-6 lg:px-10 xl:px-14";
 
@@ -64,10 +64,8 @@ export default function Home() {
 
   return (
     <div className="study-scope relative z-10 flex h-full min-h-0 flex-1 flex-col p-3 sm:p-5">
-      <Win
-        title="Round Mode"
-        closeHref="/"
-        className={`mx-auto w-full max-w-[76rem] flex-1 ${s.phase === "entry" ? "terminal-grid" : ""}`}
+      <Frame
+        className="mx-auto w-full max-w-[76rem] flex-1"
         bodyClassName="flex flex-col"
         actions={!showRun ? <AudioControls /> : undefined}
       >
@@ -204,7 +202,7 @@ export default function Home() {
             )}
           </main>
         </div>
-      </Win>
+      </Frame>
     </div>
   );
 }

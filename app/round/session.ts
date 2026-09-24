@@ -144,7 +144,7 @@ export function useRoundSession() {
         if (lost) setDropped((p) => ({ ...p, [round]: lost }));
         setBanks((p) => ({ ...p, [round]: questions }));
       } catch (e) {
-        console.error(`bank:r${round} rip`, e);
+        console.error(`bank:r${round} error`, e);
         if (isBusy(e)) setBusyRounds((p) => (p.includes(round) ? p : [...p, round]));
         setBanks((p) => ({ ...p, [round]: [] }));
       }

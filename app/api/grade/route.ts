@@ -173,7 +173,7 @@ export async function POST(req: Request) {
     return NextResponse.json(verifyCitations(g, s, e, grounded));
   } catch (x) {
     if (x instanceof AIError) return err(x.message, x.status);
-    console.error("grade:rip", x);
-    return err("Oops! We could not mark that one :( Give it another go.", 500);
+    console.error("grade:error", x);
+    return err("The answer could not be marked. Try again.", 500);
   }
 }

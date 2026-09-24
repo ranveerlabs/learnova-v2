@@ -36,7 +36,7 @@ export async function GET(req: Request) {
     });
     return NextResponse.json(tok, { headers: { "cache-control": "no-store" } });
   } catch (e) {
-    console.error("ably:token rip", e);
+    console.error("ably:token error", e);
     return err("Could not open a live connection. Try again.", 502);
   }
 }

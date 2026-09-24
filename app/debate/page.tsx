@@ -140,7 +140,7 @@ export default function DebatePage() {
       play("gavel");
     } catch (e) {
       setWasBusy(isBusy(e));
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : "The ballot request failed.");
       setPhase("arguing");
     }
   }

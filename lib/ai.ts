@@ -8,21 +8,21 @@ export class AIError extends Error {
   }
 }
 
-export const BUSY = "Everyone is studying at once! Give it a moment and try again.";
-export const UNAVAILABLE = "Oops! We cannot reach our marker right now, this one is on us :(";
+export const BUSY = "The model is busy. Try again in a moment.";
+export const UNAVAILABLE = "The model is unavailable right now.";
 
-const dead = (s: number) => s === 401 || s === 402 || s === 403;
+const badKey = (s: number) => s === 401 || s === 402 || s === 403;
 
 async function bad(res: Response, where: string): Promise<AIError> {
   const body = await res.text().catch(() => "");
   console.error(`ai:${where} ${res.status} [${MODEL}]`, body);
 
-  if (dead(res.status)) {
-    console.error("ai:key dead. check balance/key behind HACKCLUB_AI_KEY, no code fix for this");
+  if (badKey(res.status)) {
+    console.error("ai:key unavailable. check HACKCLUB_AI_KEY and its balance");
     return new AIError(UNAVAILABLE, 503);
   }
   if (res.status === 429) return new AIError(BUSY, 429);
-  return new AIError(`Oops! Something went wrong on our end (HTTP ${res.status}) :( Give it another go.`);
+  return new AIError(`The model request failed with HTTP ${res.status}. Try again.`);
 }
 
 type Opts = { json: boolean; temperature?: number; stream?: boolean };
@@ -66,7 +66,7 @@ async function ask(sys: string, usr: string, o: Opts): Promise<string> {
     console.error(`ai:empty ${n}/2`, JSON.stringify(d).slice(0, 2000));
   }
 
-  throw new AIError("Hmm, the AI drew a blank there. Give it another go?");
+  throw new AIError("The model returned an empty response. Try again.");
 }
 
 const unthink = (s: string) =>
@@ -110,11 +110,11 @@ export async function chatJSON<T>(
   const got = extractJSON(c);
   if (!got) {
     console.error("ai:unparseable", c.slice(0, 2000));
-    throw new AIError("Hmm, the AI said something we could not read. Give it another go?");
+    throw new AIError("The model returned unreadable output. Try again.");
   }
   if (!ok(got.value)) {
     console.error("ai:badshape", c.slice(0, 2000));
-    throw new AIError("Hmm, the AI answered in a shape we did not expect. Give it another go?");
+    throw new AIError("The model returned an unexpected response. Try again.");
   }
   return got.value;
 }

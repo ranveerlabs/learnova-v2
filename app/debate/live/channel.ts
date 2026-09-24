@@ -254,7 +254,7 @@ export function useRoom({
           await channel.presence.update({ role } satisfies Member);
       } catch (e) {
         if (!live) return;
-        console.error("room:join rip", e);
+        console.error("room:join error", e);
         const said = await why("Could not join that room. Check the code and try again.");
         if (!live) return;
         setError(said);

@@ -2,7 +2,6 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AudioControls } from "@/app/audio-controls";
 import { isBusy, postJSON } from "@/app/client";
 import { play } from "@/app/tone";
 import {
@@ -15,7 +14,6 @@ import {
   PrimaryButton,
   Waiting,
   Working,
-  Wordmark,
 } from "@/app/ui";
 import { Ballot as BallotCard } from "../../ballot";
 import { Opening, Said, SpeechRail } from "../../transcript";
@@ -55,7 +53,6 @@ export default function LiveRoomPage({
   if (!code) {
     return (
       <div className={SHELL}>
-        <Bar />
         <Stopped
           title="That is not a room code"
           said={`Room codes have exactly ${CODE_LENGTH} characters. Check the link and try again.`}
@@ -65,15 +62,6 @@ export default function LiveRoomPage({
   }
 
   return <Room code={code} />;
-}
-
-function Bar() {
-  return (
-    <div className="mb-5 flex shrink-0 items-center justify-between gap-3">
-      <Wordmark mode="Live debate" />
-      <AudioControls />
-    </div>
-  );
 }
 
 function Room({ code }: { code: string }) {
@@ -159,7 +147,7 @@ function Room({ code }: { code: string }) {
       await room.publishBallot(ballot);
     } catch (e) {
       setWasBusy(isBusy(e));
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : "The ballot request failed.");
     } finally {
       setJudging(false);
     }
@@ -179,7 +167,6 @@ function Room({ code }: { code: string }) {
   if (room.stage === "connecting") {
     return (
       <div className={SHELL}>
-        <Bar />
         <Waiting
           title="Opening the room"
           sub="Checking the room."
@@ -191,10 +178,9 @@ function Room({ code }: { code: string }) {
   if (room.stage === "error") {
     return (
       <div className={SHELL}>
-        <Bar />
         <Stopped
           title="The room would not open"
-          said={room.error ?? "Something went wrong."}
+          said={room.error ?? "The room could not be opened."}
         />
       </div>
     );
@@ -203,7 +189,6 @@ function Room({ code }: { code: string }) {
   if (room.stage === "taken") {
     return (
       <div className={SHELL}>
-        <Bar />
         <Stopped
           title="That code is in use"
           said="Another room is using this code. Open a new room to get a different code."
@@ -215,7 +200,6 @@ function Room({ code }: { code: string }) {
   if (room.stage === "full") {
     return (
       <div className={SHELL}>
-        <Bar />
         <Stopped
           title="That room is full"
           said="Two people are already in this room."
@@ -227,7 +211,6 @@ function Room({ code }: { code: string }) {
   if (room.stage === "empty") {
     return (
       <div className={SHELL}>
-        <Bar />
         <Stopped
           title={`Nobody is in room ${code}`}
           said="The code is wrong or the room has closed. Check the code or open a new room."
@@ -241,7 +224,6 @@ function Room({ code }: { code: string }) {
     if (setup && mySide && room.turns.length > 0 && midRound) {
       return (
         <div className={SHELL}>
-          <Bar />
           <Unfinished
             setup={setup}
             mine={mySide}
@@ -256,7 +238,6 @@ function Room({ code }: { code: string }) {
 
     return (
       <div className={SHELL}>
-        <Bar />
         <Stopped
           title={
             room.closed === "idle" ? "The room timed out" : "The room closed"
@@ -276,7 +257,6 @@ function Room({ code }: { code: string }) {
   if (room.ballot && setup && mySide) {
     return (
       <div className={SHELL}>
-        <Bar />
         <BallotCard
           ballot={room.ballot}
           setup={{ ...setup, side: mySide }}
@@ -291,7 +271,6 @@ function Room({ code }: { code: string }) {
   if (!setup) {
     return (
       <div className={SHELL}>
-        <Bar />
         <Waiting
           title="Joining the room"
           sub="Waiting for the debate setup."
@@ -303,7 +282,6 @@ function Room({ code }: { code: string }) {
   if (!room.together && !room.arrived) {
     return (
       <div className={SHELL}>
-        <Bar />
         <section className="flex w-full flex-col gap-6 pb-4">
           <Motion setup={setup} mine={mySide!} />
           {role === "host" ? (
@@ -329,8 +307,6 @@ function Room({ code }: { code: string }) {
 
   return (
     <div className={`${SHELL} gap-4`}>
-      <Bar />
-
       <header className="flex shrink-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <span className={`side-tag ${mySide === "Pro" ? "side-tag-pro" : "side-tag-con"}`}>

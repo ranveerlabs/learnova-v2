@@ -28,7 +28,7 @@ export class PresentationBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(e: Error) {
-    console.error("presentation:rip, using plain", e);
+    console.error("presentation:error, using plain", e);
   }
 
   render() {

@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ concepts });
   } catch (e) {
     if (e instanceof AIError) return err(e.message, e.status);
-    console.error("concepts:rip", e);
-    return err("Oops! We could not pull the concepts out of that :( Give it another go.", 500);
+    console.error("concepts:error", e);
+    return err("The concepts could not be read. Try again.", 500);
   }
 }

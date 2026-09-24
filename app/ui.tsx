@@ -4,18 +4,12 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function Win({
-  title,
-  icon,
-  closeHref,
+export function Frame({
   children,
   className = "",
   bodyClassName = "",
   actions,
 }: {
-  title: React.ReactNode;
-  icon?: React.ReactNode;
-  closeHref?: string;
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
@@ -23,37 +17,19 @@ export function Win({
 }) {
   const pathname = usePathname();
   return (
-    <section className={`win flex min-h-0 flex-col ${className}`}>
+    <section className={`frame flex min-h-0 flex-col ${className}`}>
       <header className="app-nav shrink-0">
-        <Link href={closeHref ?? "/"} className="app-name">learnova</Link>
+        <Link href="/" className="app-name">learnova</Link>
         <nav aria-label="Main navigation">
           <Link className="nav-study" href="/round" aria-current={pathname.startsWith("/round") ? "page" : undefined}>study</Link>
           <Link className="nav-debate" href="/debate" aria-current={pathname.startsWith("/debate") ? "page" : undefined}>debate</Link>
         </nav>
         {actions && <div className="ml-auto">{actions}</div>}
-        <span className="sr-only">{icon}{title}</span>
       </header>
       <div className={`min-h-0 flex-1 overflow-auto ${bodyClassName}`}>
         {children}
       </div>
     </section>
-  );
-}
-
-export function Wordmark({ mode = "Round Mode" }: { mode?: string }) {
-  return (
-    <Link
-      href="/"
-      title="Both modes"
-      className="group flex shrink-0 items-baseline gap-2 whitespace-nowrap font-pixel"
-    >
-      <span className="text-[0.6875rem] text-ink group-hover:text-accent">
-        learnova
-      </span>
-      <span className="hidden text-[0.5625rem] text-ink-faint sm:inline">
-        / {mode === "Round Mode" ? "study" : mode.toLowerCase()}
-      </span>
-    </Link>
   );
 }
 
@@ -64,13 +40,7 @@ export function Label({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <p
-      className={`text-sm text-ink-soft ${className}`}
-    >
-      {children}
-    </p>
-  );
+  return <p className={`text-sm text-ink-soft ${className}`}>{children}</p>;
 }
 
 export function Notice({ children }: { children: React.ReactNode }) {

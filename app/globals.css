@@ -6,8 +6,6 @@
   --ground: #000000;
   --font-plex-mono: Arial, Helvetica, sans-serif;
   --font-pixel: Arial, Helvetica, sans-serif;
-  --desktop-far: #030303;
-
   --page: #000000;
   --sunk: #090909;
   --line: #303030;
@@ -28,14 +26,8 @@
   --accent-wash: var(--accent-green-wash);
   --on-accent: #000000;
 
-  --title-from: #ffffff;
-  --title-to: #ffffff;
-  --title-ink: #000000;
-  --title-h: 2rem;
-
   --bevel: 1px;
   --bevel-strong: 1px;
-  --drop: 0px;
 
   --solid-mark: var(--accent-green);
   --solid-ink: #a7f3c0;
@@ -55,8 +47,6 @@
 
   --rule: rgb(185 185 178 / 0.14);
 
-  --dots: none;
-  --dots-pitch: auto;
 }
 
 @theme inline {
@@ -120,8 +110,6 @@
 
 body {
   background-color: var(--ground);
-  background-image: var(--dots);
-  background-size: var(--dots-pitch);
   color: var(--ink);
   font-family: var(--font-plex-mono), ui-monospace, monospace;
   -webkit-font-smoothing: antialiased;
@@ -136,80 +124,8 @@ body {
   color: var(--ink);
 }
 
-.page-glow {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  display: none;
-}
-
-.terminal-grid {
-  background-image: none;
-}
-
-.win {
+.frame {
   background: var(--page);
-}
-
-.title-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  height: var(--title-h);
-  padding: 0 0.65rem;
-  background: var(--title-from);
-  border-bottom: 2px solid var(--line);
-  color: var(--title-ink);
-  font-family: var(--font-pixel), ui-monospace, monospace;
-  font-size: 0.6875rem;
-  letter-spacing: 0;
-  user-select: none;
-}
-
-.title-bar .grip {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.title-bar .grip::before {
-  content: "";
-  display: inline-block;
-  width: 2.5rem;
-  margin-right: 0.45rem;
-  border-top: 1px solid currentColor;
-  border-bottom: 1px solid currentColor;
-  height: 0.35rem;
-}
-
-.title-bar .grip::after {
-  content: "";
-}
-
-.title-btn {
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.5rem;
-  border: 0;
-  background: transparent;
-  color: var(--ink-faint);
-  font-family: var(--font-pixel), ui-monospace, monospace;
-  font-size: 0.75rem;
-  line-height: 1;
-}
-
-.title-btn:hover {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-
-.title-btn:active {
-  background: var(--ink);
-  color: var(--page);
 }
 
 .term-btn {

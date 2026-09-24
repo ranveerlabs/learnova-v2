@@ -18,7 +18,7 @@ async function warm(): Promise<void> {
       );
       console.log(`warm:${t} ${res.status}`);
     } catch (e) {
-      console.warn(`warm:dead ${t}`, e);
+      console.warn(`warm:error ${t}`, e);
     }
   }
 }

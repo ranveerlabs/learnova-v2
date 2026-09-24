@@ -411,7 +411,7 @@ export async function POST(req: Request) {
               put(f.end());
               if (!got.trim()) console.error("debate:reply empty");
             } catch (e) {
-              console.error("debate:stream rip", e);
+              console.error("debate:stream error", e);
             } finally {
               c.close();
             }
@@ -445,7 +445,7 @@ export async function POST(req: Request) {
     return err("Unknown action.", 400);
   } catch (e) {
     if (e instanceof AIError) return err(e.message, e.status);
-    console.error("debate:rip", e);
-    return err("Oops! Something went wrong on our end :(", 500);
+    console.error("debate:error", e);
+    return err("The debate request failed. Try again.", 500);
   }
 }

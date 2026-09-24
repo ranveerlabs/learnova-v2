@@ -344,7 +344,7 @@ export async function POST(req: Request) {
         return err(
           prov === "grounded"
             ? "None of the opening questions could be traced back to your notes, so none were kept. Try pasting a fuller passage."
-            : "Hmm, nothing usable came back for that topic. Give it another go?",
+            : "No usable questions were returned for that topic. Try again.",
           422
         );
 
@@ -445,7 +445,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ questions: placeAll(kept), provenance: prov, dropped, repeats, exhausted });
   } catch (e) {
     if (e instanceof AIError) return err(e.message, e.status);
-    console.error("round:rip", e);
-    return err("Oops! We could not build that round :( Give it another go.", 500);
+    console.error("round:error", e);
+    return err("The round could not be built. Try again.", 500);
   }
 }
