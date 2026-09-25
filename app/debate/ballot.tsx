@@ -87,7 +87,7 @@ export function Ballot({
           style={NARROW}
           className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-accent"
         >
-          Next round, fix this
+          Try next time
         </span>
         <p className="font-read text-[1.0625rem] leading-[1.5] text-ink">
           {ballot.feedback.one_fix_for_next_round}
@@ -166,8 +166,8 @@ function Detail({
           &gt;
         </span>
         {setup.tab === "competitive"
-          ? "Speaks and the full scoresheet"
-          : "The full scoresheet"}
+          ? "Speeches and scores"
+          : "Scores"}
       </summary>
 
       <div className="mt-4 flex flex-col gap-5">
@@ -175,7 +175,7 @@ function Detail({
           {setup.tab === "competitive" && (
             <span
               className="self-end font-mono text-[0.8125rem] tabular-nums text-ink-soft"
-              title="Derived from the five scores below, on the 25 to 30 scale a tournament ballot uses. Not a sixth number from the judge."
+              title="Calculated from the five scores below."
             >
               {speakerPoints(ballot.scores.user).toFixed(1)} speaks
             </span>

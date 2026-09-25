@@ -61,8 +61,7 @@ export function Entry({
         </h1>
 
         <p className="max-w-[58ch] font-mono text-[0.875rem] leading-[1.7] text-ink-soft">
-          Start with a topic. Each round gives you less help until you can
-          explain it yourself.
+          Topic or notes. Five rounds, fewer hints each time.
         </p>
       </div>
 
@@ -101,7 +100,7 @@ export function Entry({
               style={{ fontVariationSettings: '"wdth" 88' }}
               className="font-pixel text-[0.6875rem] uppercase text-ink-faint"
             >
-              Pick up where you left off
+              Recent topics
             </p>
             <ul className="flex flex-col gap-1.5">
               {history.slice(0, 3).map((r) => (
@@ -130,7 +129,7 @@ export function Entry({
           >
             &gt;
           </span>
-          I have notes to paste
+          Add notes
         </summary>
 
         <div className="fold-body flex flex-col gap-3 pt-4">
@@ -169,9 +168,7 @@ function Resume({
   onStart: (topic: string) => void;
 }) {
   const open = openConcepts(record);
-  const said = open.length
-    ? `${open.length} still to explain`
-    : "all explained";
+  const said = open.length ? `${open.length} left` : "done";
 
   return (
     <button

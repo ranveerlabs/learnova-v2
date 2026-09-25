@@ -25,7 +25,7 @@ const NOTE_KIND: Record<
     tint: "var(--shaky-tint)",
   },
   wrong: {
-    word: "Contradicts the source",
+    word: "Not in source",
     mark: "var(--broken-mark)",
     ink: "var(--broken-ink)",
     tint: "var(--broken-tint)",
@@ -33,7 +33,7 @@ const NOTE_KIND: Record<
 };
 
 const wrongWord = (grounded: boolean) =>
-  grounded ? NOTE_KIND.wrong.word : "Model disagrees";
+  grounded ? NOTE_KIND.wrong.word : "Marked wrong";
 
 export type Segment =
   | { kind: "text"; value: string }
@@ -196,7 +196,7 @@ export function MarkedUpText({
   return (
     <figure className="m-0 flex min-w-0 flex-col gap-3">
       <figcaption className="flex items-baseline justify-between gap-4">
-        <Label>Your explanation, marked up</Label>
+        <Label>Your answer</Label>
         {cards.length > 0 && (
           <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
             {cards.length} {cards.length === 1 ? "note" : "notes"}

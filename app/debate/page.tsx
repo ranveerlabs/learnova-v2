@@ -102,7 +102,7 @@ export default function DebatePage() {
 
       if (!text.trim())
         throw new Error(
-          "The opponent returned an empty response. Try again.",
+          "No reply. Try again.",
         );
 
       setTurns([
@@ -113,7 +113,7 @@ export default function DebatePage() {
     } catch (e) {
       setWasBusy(isBusy(e));
       setError(
-        e instanceof Error ? e.message : "That did not go through. Try again.",
+        e instanceof Error ? e.message : "Send failed. Try again.",
       );
     } finally {
       setThinking(false);
@@ -140,7 +140,7 @@ export default function DebatePage() {
       play("gavel");
     } catch (e) {
       setWasBusy(isBusy(e));
-      setError(e instanceof Error ? e.message : "The ballot request failed.");
+      setError(e instanceof Error ? e.message : "Scoring failed. Try again.");
       setPhase("arguing");
     }
   }
@@ -211,7 +211,7 @@ export default function DebatePage() {
         {judging ? (
           <Waiting
             title="Judging the round"
-            sub="Reviewing both sides without names."
+            sub="Reading the round."
           />
         ) : !finished ? (
           <>
@@ -249,9 +249,8 @@ export default function DebatePage() {
         ) : (
           <div className="flex flex-col gap-3">
             <Notice>
-              There is not enough to judge. You wrote {spoken}{" "}
-              {spoken === 1 ? "word" : "words"}. A ballot requires at least{" "}
-              {MIN_WORDS_TO_JUDGE}, so nothing was sent to the judge.
+              Too short to score. You wrote {spoken}{" "}
+              {spoken === 1 ? "word" : "words"}; need {MIN_WORDS_TO_JUDGE}.
             </Notice>
             <div className="flex flex-wrap items-center gap-3">
               <PrimaryButton onClick={() => setPhase("setup")}>

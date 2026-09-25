@@ -8,8 +8,8 @@ export class AIError extends Error {
   }
 }
 
-export const BUSY = "The model is busy. Try again in a moment.";
-export const UNAVAILABLE = "The model is unavailable right now.";
+export const BUSY = "Busy. Try again shortly.";
+export const UNAVAILABLE = "Unavailable right now.";
 
 const badKey = (s: number) => s === 401 || s === 402 || s === 403;
 
@@ -22,7 +22,7 @@ async function bad(res: Response, where: string): Promise<AIError> {
     return new AIError(UNAVAILABLE, 503);
   }
   if (res.status === 429) return new AIError(BUSY, 429);
-  return new AIError(`The model request failed with HTTP ${res.status}. Try again.`);
+  return new AIError(`Request failed (HTTP ${res.status}).`);
 }
 
 type Opts = { json: boolean; temperature?: number; stream?: boolean };
@@ -48,7 +48,7 @@ function hit(tok: string, sys: string, usr: string, o: Opts) {
 function key(): string {
   const t = process.env.HACKCLUB_AI_KEY;
   if (!t || t === "PLACEHOLDER")
-    throw new AIError("HACKCLUB_AI_KEY is not set. Add your real key to .env.local and restart the dev server.", 500);
+    throw new AIError("Set HACKCLUB_AI_KEY in .env.local and restart.", 500);
   return t;
 }
 
@@ -66,7 +66,7 @@ async function ask(sys: string, usr: string, o: Opts): Promise<string> {
     console.error(`ai:empty ${n}/2`, JSON.stringify(d).slice(0, 2000));
   }
 
-  throw new AIError("The model returned an empty response. Try again.");
+  throw new AIError("Empty response. Try again.");
 }
 
 const unthink = (s: string) =>
@@ -110,11 +110,11 @@ export async function chatJSON<T>(
   const got = extractJSON(c);
   if (!got) {
     console.error("ai:unparseable", c.slice(0, 2000));
-    throw new AIError("The model returned unreadable output. Try again.");
+    throw new AIError("Unreadable response. Try again.");
   }
   if (!ok(got.value)) {
     console.error("ai:badshape", c.slice(0, 2000));
-    throw new AIError("The model returned an unexpected response. Try again.");
+    throw new AIError("Unexpected response. Try again.");
   }
   return got.value;
 }

@@ -124,7 +124,7 @@ export function Reveal({
         <h2 className="max-w-[24ch] text-balance font-read text-[clamp(1.5rem,1.2rem+1.5vw,2.125rem)] leading-[1.1] tracking-[-0.02em] text-ink">
           {produced
             ? "You explained it."
-            : "You did not reach the final explanation."}
+            : "Final explanation skipped."}
         </h2>
       </div>
 
@@ -160,33 +160,21 @@ export function Reveal({
       {provenance === "generated" ? (
         <p
           className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
-          title="Paste notes next time and every question arrives with the line it came from, checked word for word on the server."
+          title="Questions from pasted notes are checked against the source."
         >
-          You did not provide source material. An AI model wrote and marked the
-          questions from its own knowledge, so the results can be wrong.
+          Topic only. Questions and marks are not source-checked.
         </p>
       ) : (
         (droppedTotal > 0 || sampled) && (
           <p
             className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
-            title="Every question in a grounded session has to quote your material word for word. The quote is checked on the server before the question is served, and anything that cannot be found is dropped rather than shown to you."
+            title="Each question is checked against your notes before it appears."
           >
-            Every question came from your notes.{""}
-            {droppedTotal > 0 && (
-              <>
-                {droppedTotal === 1
-                  ? "One more was written and dropped: its quote"
-                  : `${droppedTotal} more were written and dropped: their quotes`}
-                {""}
-                could not be found in your material.{""}
-              </>
-            )}
+            From notes.{" "}
+            {droppedTotal > 0 &&
+              `Dropped ${droppedTotal} without a matching quote. `}
             {sampled && (
-              <>
-                Your material was long, so the questions were written from an
-                even spread of it:{""}
-                {sampled.kept} passages out of {sampled.total}.
-              </>
+              <>Long notes: used {sampled.kept}/{sampled.total} passages.</>
             )}
           </p>
         )
@@ -198,7 +186,7 @@ export function Reveal({
             style={NARROW}
             className="font-sans text-[0.625rem] font-bold uppercase tracking-[0.14em] text-solid-ink"
           >
-            Newly explained
+            Now explained
           </span>
           <ul className="flex flex-wrap gap-2">
             {nowExplained.map((l, i) => (
@@ -247,7 +235,7 @@ export function Reveal({
             {produced && (
               <Figure
                 value={`${said}/${data.productions.length}`}
-                label="Explained in your own words"
+                label="Explained"
               />
             )}
           </div>

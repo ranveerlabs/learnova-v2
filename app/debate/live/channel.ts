@@ -135,10 +135,10 @@ export function useRoom({
       })();
     };
 
-    client.connection.on("failed", () => bail("The live connection could not be opened."));
+    client.connection.on("failed", () => bail("Connection failed."));
 
     const deadline = setTimeout(() => {
-      if (live && stageNow.current === "connecting") bail("The live connection timed out.");
+      if (live && stageNow.current === "connecting") bail("Connection timed out.");
     }, 15_000);
 
     client.connection.on("disconnected", () => live && setDropped(true));
@@ -255,7 +255,7 @@ export function useRoom({
       } catch (e) {
         if (!live) return;
         console.error("room:join error", e);
-        const said = await why("Could not join that room. Check the code and try again.");
+        const said = await why("Couldn't join. Check the code.");
         if (!live) return;
         setError(said);
         setStage("error");

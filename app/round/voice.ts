@@ -56,17 +56,17 @@ function readableError(code: string): string {
   switch (code) {
     case "not-allowed":
     case "service-not-allowed":
-      return "Your browser blocked microphone access. Allow it in the address bar, or just type your answer.";
+      return "Microphone blocked. Allow it in browser settings or type instead.";
     case "no-speech":
-      return "Nothing was picked up. Try again, or type it instead.";
+      return "Nothing heard. Try again or type instead.";
     case "audio-capture":
-      return "No microphone was found. Type your answer instead.";
+      return "No microphone found. Type instead.";
     case "network":
-      return "Speech recognition needs a network connection and could not reach it. Type your answer instead.";
+      return "Speech input failed. Check your connection or type instead.";
     case "aborted":
       return "";
     default:
-      return "Speech input stopped unexpectedly. Type your answer instead.";
+      return "Speech stopped. Type instead.";
   }
 }
 
@@ -104,7 +104,7 @@ export function useSpeech(): Speech {
   const start = useCallback(() => {
     const Recognizer = recognizerClass();
     if (!Recognizer) {
-      setError("This browser cannot do speech input. Type your answer instead.");
+      setError("Speech input isn't available here. Type instead.");
       return;
     }
 

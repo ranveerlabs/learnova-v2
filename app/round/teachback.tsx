@@ -93,7 +93,7 @@ function LeftOut({ items }: { items: string[] }) {
   return (
     <section className="flex max-w-[42rem] flex-col gap-3">
       <div className="flex items-baseline justify-between gap-4">
-        <Label>Left out entirely</Label>
+      <Label>Missed</Label>
         <span className="font-mono text-[0.6875rem] tabular-nums text-ink-faint">
           {items.length}
         </span>
@@ -221,9 +221,7 @@ export function TeachBack({
 
           {!usesNotes && (
             <p className="max-w-[62ch] font-sans text-[0.8125rem] leading-[1.6] text-ink-faint">
-              You did not provide source material, so these marks are one AI
-              model&rsquo;s judgment. It can be wrong. Check any disputed fact
-              against a reliable source.
+              Topic only. This mark is unchecked. Verify anything that matters.
             </p>
           )}
         </div>
@@ -304,7 +302,7 @@ export function TeachBack({
         <Ask>Explain {concept} in your own words.</Ask>
 
         <p className="max-w-[54ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-          One or two sentences is enough. No hints are shown in this round.
+          No hints this round.
         </p>
       </div>
 
@@ -314,11 +312,11 @@ export function TeachBack({
           <div className="flex flex-wrap items-center gap-3">
             {index + 1 < total && (
               <GhostButton onClick={onNext}>
-                Try a different concept
+                Skip concept
               </GhostButton>
             )}
             <GhostButton onClick={onStop}>
-              Skip this and see your results
+              Skip and see results
             </GhostButton>
           </div>
         </div>

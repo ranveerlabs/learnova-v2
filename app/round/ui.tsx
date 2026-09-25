@@ -141,8 +141,8 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
     <span
       title={
         grounded
-          ? "Every question here was traced back to a verbatim line in the material you pasted."
-          : "You gave a topic, not material. Every question and answer here was written by an AI model and checked against nothing. It can be confidently wrong."
+          ? "Questions were checked against your notes."
+          : "Topic only. Questions aren't checked against a source."
       }
       style={NARROW}
       className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap border px-1.5 py-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.08em] sm:gap-1.5 sm:px-2 sm:tracking-[0.12em] ${
@@ -152,7 +152,7 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
       }`}
     >
       <span aria-hidden>{grounded ? "❝" : "◇"}</span>
-      {grounded ? "From your notes" : "AI / unchecked"}
+      {grounded ? "From your notes" : "Topic only"}
     </span>
   );
 }
@@ -569,7 +569,7 @@ export function PlainEscape({ onChoose }: { onChoose: () => void }) {
       onClick={onChoose}
       className="sr-only bg-accent px-4 py-2 font-sans text-[0.875rem] font-semibold text-on-accent focus:not-sr-only focus:absolute focus:left-0 focus:top-0 focus:z-40"
     >
-      Switch to the plain view for the rest of this session
+      Use plain view
     </button>
   );
 }

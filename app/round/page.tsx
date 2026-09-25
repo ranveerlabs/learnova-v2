@@ -128,15 +128,15 @@ export default function Home() {
 
             {s.phase === "opening" && (
               <Waiting
-                title="Writing the first questions"
-                sub="This can take a few seconds."
+                title="Making questions"
+                sub="One moment."
               />
             )}
 
             {s.phase === "waiting" && (
               <Waiting
-                title={`Writing round ${s.pendingRound ?? ""}`}
-                sub="This can take a few seconds."
+                title={`Round ${s.pendingRound ?? ""}`}
+                sub="One moment."
               />
             )}
 

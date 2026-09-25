@@ -107,7 +107,7 @@ export function Setup({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:max-w-[34rem] sm:grid-cols-2">
+      <div className="flex w-fit items-center gap-4">
         <SideSlab
           onClick={() => begin("Pro")}
           disabled={!ready || going}
@@ -177,14 +177,12 @@ function Opponent({
     {
       id: "model",
       name: "Model",
-      title:
-        "Four speeches against an opponent that argues to win. Judged ballot at the end.",
+      title: "Four speeches. Scored at the end.",
     },
     {
       id: "friend",
       name: "Friend",
-      title:
-        "Opens a room with a short code. They type the code, take the other side, and the round is judged the same way.",
+      title: "Share a code. Four speeches each.",
     },
   ];
 
@@ -229,7 +227,7 @@ function Join() {
       }}
       className="flex flex-col gap-2 border-t border-line pt-5"
     >
-      <Label>Or join a room somebody opened</Label>
+      <Label>Join with a code</Label>
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={code}
@@ -295,8 +293,8 @@ function Options({
           &gt;
         </span>
         {live
-          ? "Tournament formats"
-          : "Tournament formats and opponent strength"}
+          ? "Format"
+          : "Format and opponent"}
       </summary>
 
       <div className="mt-4 flex flex-col gap-5">
@@ -306,14 +304,12 @@ function Options({
             {
               id: "casual",
               name: "Open debate",
-              title:
-                "No format rules. Judged on whether the argument holds up.",
+              title: "Open debate. No format rules.",
             },
             {
               id: "competitive",
               name: "Tournament prep",
-              title:
-                "Judged by the format's conventions, at a tournament bar. A dropped argument is conceded.",
+              title: "Tournament rules apply. Dropped arguments are conceded.",
             },
           ]}
           value={tab}
@@ -326,8 +322,7 @@ function Options({
             options={FORMATS.map((f) => ({
               id: f,
               name: f,
-              title:
-                "The ballot is written by these conventions and no others.",
+              title: `Judged by ${f}.`,
             }))}
             value={format}
             onPick={(v) => onFormat(v as Format)}

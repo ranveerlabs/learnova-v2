@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       const said = insufficient?.trim();
       return err(
         said?.slice(0, 300) ??
-          "There is not enough substance in that to build a session from. Paste fuller notes or a longer passage, one that explains ideas rather than just naming them.",
+          "Not enough to build a session. Paste notes that explain the ideas.",
         422
       );
     }

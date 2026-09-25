@@ -433,7 +433,7 @@ export async function POST(req: Request) {
 
       if (!worthJudging(turns))
         return err(
-          "There is no round here to judge yet. Make an argument, in a sentence or two, and the ballot will have something to mark.",
+          "Too short to score. Add a sentence or two.",
           400
         );
 

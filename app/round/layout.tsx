@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Round mode / Learnova",
   description:
-    "Study a topic in five rounds. Each round gives you less help, ending with an explanation in your own words.",
+    "Five-round study sessions from a topic or notes.",
 };
 
 export default function RoundLayout({

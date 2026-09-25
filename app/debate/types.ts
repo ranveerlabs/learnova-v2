@@ -21,17 +21,17 @@ export const TIERS = [
     id: "novice" as const,
     name: "Novice",
     brief:
-      "Argues in good faith, makes one clear point per speech, misses some of what you said.",
+      "One point at a time. Misses some replies.",
   },
   {
     id: "varsity" as const,
     name: "Varsity",
-    brief: "Signposts, weighs, and will punish a dropped argument.",
+    brief: "Clear signposts. Answers dropped points.",
   },
   {
     id: "circuit" as const,
     name: "Circuit",
-    brief: "Fast, technical, turns your own framework against you.",
+    brief: "Fast and technical. Uses your framework against you.",
   },
 ] as const;
 

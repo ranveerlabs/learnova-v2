@@ -6,7 +6,7 @@ export class RequestError extends Error {
 
 export const isBusy = (e: unknown) => e instanceof RequestError && e.status === 429;
 
-const OOPS = "The request failed. Try again.";
+const OOPS = "Request failed. Try again.";
 
 const send = (url: string, body: unknown) =>
   fetch(url, {
@@ -33,7 +33,7 @@ export async function postStream(
     const d = await res.json().catch(() => null);
     throw new RequestError(d?.error ?? OOPS, res.status);
   }
-  if (!res.body) throw new RequestError("The server returned an empty response. Try again.", 502);
+  if (!res.body) throw new RequestError("Empty response. Try again.", 502);
 
   const rd = res.body.getReader();
   const dec = new TextDecoder();

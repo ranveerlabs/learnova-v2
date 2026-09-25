@@ -28,7 +28,6 @@ import { type Departure, useRoom } from "../channel";
 import { takeHandoff } from "../handoff";
 import {
   asTranscript,
-  CODE_LENGTH,
   type Closed,
   type LiveSetup,
   type LiveTurn,
@@ -54,8 +53,8 @@ export default function LiveRoomPage({
     return (
       <div className={SHELL}>
         <Stopped
-          title="That is not a room code"
-          said={`Room codes have exactly ${CODE_LENGTH} characters. Check the link and try again.`}
+          title="Bad room code"
+          said="Check the link."
         />
       </div>
     );
@@ -180,7 +179,7 @@ function Room({ code }: { code: string }) {
       <div className={SHELL}>
         <Stopped
           title="The room would not open"
-          said={room.error ?? "The room could not be opened."}
+          said={room.error ?? "Couldn't open room."}
         />
       </div>
     );
@@ -190,8 +189,8 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Stopped
-          title="That code is in use"
-          said="Another room is using this code. Open a new room to get a different code."
+          title="Code in use"
+          said="Open a new room."
         />
       </div>
     );
@@ -202,7 +201,7 @@ function Room({ code }: { code: string }) {
       <div className={SHELL}>
         <Stopped
           title="That room is full"
-          said="Two people are already in this room."
+          said="Room full."
         />
       </div>
     );
@@ -212,8 +211,8 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Stopped
-          title={`Nobody is in room ${code}`}
-          said="The code is wrong or the room has closed. Check the code or open a new room."
+          title="Room not found"
+          said="Check the code. The room may have closed."
         />
       </div>
     );
@@ -244,9 +243,9 @@ function Room({ code }: { code: string }) {
           }
           said={
             room.closed === "idle"
-              ? "The room closed after ten minutes without activity."
+              ? "Room timed out."
               : room.closed === "done"
-                ? "That is the end of the round. Nothing from it was saved anywhere, here or on the server."
+                ? "Round over. Nothing was saved."
                 : "You left the room."
           }
         />
@@ -272,8 +271,8 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Waiting
-          title="Joining the room"
-          sub="Waiting for the debate setup."
+          title="Joining room"
+          sub="Waiting for setup."
         />
       </div>
     );
@@ -288,7 +287,7 @@ function Room({ code }: { code: string }) {
             <Share code={code} />
           ) : (
             <Aside>
-              The host is away. The round starts when they return.
+              Waiting for the host.
             </Aside>
           )}
           <Leave onLeave={() => room.close("left")} />
@@ -357,7 +356,7 @@ function Room({ code }: { code: string }) {
         {judging ? (
           <Waiting
             title="Judging the round"
-            sub="Reviewing both sides without names."
+            sub="Reading the round."
           />
         ) : finished ? (
           <Closing
@@ -395,7 +394,7 @@ function Room({ code }: { code: string }) {
           <div className="flex flex-col gap-3">
             <Waiting
               title={`Their ${next!.speech.toLowerCase()}`}
-              sub="Waiting for the other speaker."
+              sub="Their turn."
             />
             <Leave onLeave={() => room.close("left")} />
           </div>
@@ -433,8 +432,7 @@ function Share({ code }: { code: string }) {
       </p>
 
       <p className="max-w-[40ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-        On another device, open Learnova, choose Debate, then{" "}
-        <span className="text-ink">Friend</span>, and enter this code.
+        Send this code to your friend. They enter it under Debate → Friend.
       </p>
     </div>
   );
@@ -465,8 +463,7 @@ function Closing({
     return (
       <div className="flex flex-col gap-3">
         <Notice>
-          There is not enough to judge. {who} wrote under {MIN_WORDS_TO_JUDGE}{" "}
-          words, so nothing was sent to the judge.
+          Too short to score. {who} wrote under {MIN_WORDS_TO_JUDGE} words.
         </Notice>
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton onClick={onLeave}>
@@ -482,8 +479,7 @@ function Closing({
       return (
         <div className="flex flex-col gap-3">
           <Aside>
-            The host left before requesting the ballot, so this round will not
-            have one.
+            The host left. No ballot this round.
           </Aside>
           <Ways />
         </div>
@@ -494,7 +490,7 @@ function Closing({
       <div className="flex flex-col gap-3">
         <Waiting
           title="Waiting for the ballot"
-          sub="The host requests it."
+          sub="The host will request it."
         />
         <Leave onLeave={onLeave} />
       </div>
@@ -514,18 +510,15 @@ const clock = (at: number) =>
 
 function ended(reason: Closed, myRole: Role, departed: Departure | null) {
   if (reason === "idle") {
-    return "The room closed after ten minutes without activity.";
+    return "Room timed out.";
   }
 
   const theirs: Role = departed?.role ?? (myRole === "host" ? "guest" : "host");
-  const who =
-    theirs === "host"
-      ? "The person who opened the room"
-      : "The person who joined";
+  const who = theirs === "host" ? "Host" : "Guest";
   const when = departed ? ` at ${clock(departed.at)}` : "";
 
   if (reason === "done")
-    return `${who} closed it before the round had finished.`;
+    return `${who} ended the round.`;
   return `${who} left${when}.`;
 }
 
@@ -555,7 +548,7 @@ function Unfinished({
 
       <div className="flex flex-col gap-3">
         <h1 className="max-w-[24ch] font-read text-[clamp(1.5rem,1.2rem+1.4vw,2.125rem)] leading-[1.15] tracking-[-0.015em] text-ink">
-          The round did not finish
+          Round stopped
         </h1>
         <p className="max-w-[54ch] font-sans text-[1rem] leading-[1.65] text-ink-soft">
           {ended(reason, myRole, departed)}
@@ -563,7 +556,7 @@ function Unfinished({
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <Label>How far it got</Label>
+        <Label>Progress</Label>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <SpeechRail at={at} finished={false} />
           <span className="font-mono text-[0.8125rem] tabular-nums text-ink-soft">
@@ -573,8 +566,8 @@ function Unfinished({
         {next && (
           <p className="font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
             {next.side === mine
-              ? `It stopped with your ${next.speech} still to write.`
-              : `It stopped waiting for their ${next.speech}.`}
+              ? `Your ${next.speech} was next.`
+              : `Waiting on their ${next.speech}.`}
           </p>
         )}
       </div>
@@ -593,8 +586,7 @@ function Unfinished({
           No ballot
         </span>
         <p className="font-read text-[1.0625rem] leading-[1.5] text-ink">
-          The round did not finish, so it was not sent to the judge. There is no
-          winner or score. Nothing from the room was saved here or on the server.
+          Round unfinished. No score. Nothing was saved.
         </p>
       </div>
 
@@ -607,7 +599,7 @@ function Leave({ onLeave }: { onLeave: () => void }) {
   return (
     <GhostButton
       onClick={onLeave}
-      title="The other person can stay in the room."
+      title="They stay in the room."
     >
       Leave the room
     </GhostButton>
@@ -635,7 +627,7 @@ function Ways() {
         href="/debate"
         className="btn inline-flex items-center gap-2 self-start bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover"
       >
-        Start another round
+        New round
         <span aria-hidden className="rewound">
           ↺
         </span>

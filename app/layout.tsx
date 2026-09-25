@@ -9,7 +9,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Learnova",
   description:
-    "Study a topic in five rounds with less help each time, or debate a model or friend.",
+    "Five-round study sessions and debates.",
 };
 
 export default function RootLayout({

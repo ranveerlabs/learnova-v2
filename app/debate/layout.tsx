@@ -5,7 +5,7 @@ import { AudioControls } from "../audio-controls";
 export const metadata: Metadata = {
   title: "Debate / Learnova",
   description:
-    "Pick a side, give four speeches against a model or friend, and get a ballot at the end.",
+    "Debate a model or friend. Get a score at the end.",
 };
 
 export default function DebateLayout({

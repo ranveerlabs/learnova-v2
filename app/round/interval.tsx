@@ -9,19 +9,19 @@ const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 const NEXT: Record<Round, { name: string; taken: string; asks: string }> = {
   1: {
     name: "Round 1",
-    taken: "Four options now, not two.",
-    asks: "Pick the right one.",
+    taken: "Four choices.",
+    asks: "Pick one.",
   },
-  2: { name: "Round 2", taken: "No options.", asks: "Type the missing term." },
+  2: { name: "Round 2", taken: "No choices.", asks: "Fill the gap." },
   3: {
     name: "Round 3",
-    taken: "No sentence. Just its pieces, shuffled.",
-    asks: "Build it.",
+    taken: "Shuffled pieces.",
+    asks: "Build the sentence.",
   },
   4: {
     name: "Round 4",
-    taken: "Nothing on screen.",
-    asks: "Say it in your own words.",
+    taken: "No hints.",
+    asks: "Explain it.",
   },
 };
 
@@ -60,8 +60,8 @@ export function Interval({
       {summary.stage === 0 ? (
         <p className="max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
           {returning
-            ? "The warm-up shows what you remembered from earlier sessions. These answers are checked again at the end."
-            : "The warm-up sets a baseline. These answers are checked again at the end."}
+            ? "A few old questions. These come back at the end."
+            : "Quick baseline. These come back at the end."}
         </p>
       ) : (
         <p className="font-read text-[1.375rem] leading-[1.35] text-ink">

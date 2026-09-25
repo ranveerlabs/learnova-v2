@@ -115,12 +115,12 @@ export function sourceProblem(src: string): string | null {
     case "ready":
       return null;
     case "empty":
-      return "Paste some source material first: notes, a passage, anything you are studying from.";
+      return "Paste notes first.";
     case "short":
-      return `Too short to pull real concepts from: ${s.chars} characters of the ${MIN_SOURCE_CHARS} needed. Paste the actual notes or passage, a paragraph or more, in the source's own words. Any shorter and the concepts get invented rather than found.`;
+      return `Too short: ${s.chars}/${MIN_SOURCE_CHARS} characters. Paste more notes.`;
     case "too-long":
-      return `More material than one session can work through: ${s.chars.toLocaleString()} characters against a ceiling of ${MAX_SOURCE_CHARS.toLocaleString()}. Paste the chapter or section you are actually studying. A long passage is fine and gets spread across the run; a whole book would mostly go untested.`;
+      return `Too much text: ${s.chars.toLocaleString()}/${MAX_SOURCE_CHARS.toLocaleString()} characters. Paste one section.`;
     case "unreadable":
-      return `That does not read like study material: ${s.reasons.join(", and ")}. Paste the actual notes or passage you are studying. Learnova can only test you on ideas genuinely in the text, so on this it would invent them.`;
+      return "That doesn't look like notes. Paste a passage with full sentences.";
   }
 }

@@ -195,7 +195,7 @@ export function useRoundSession() {
         setCurrent(p.questions[0]);
         setPhase("playing");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not start that one. Try again.");
+        setError(e instanceof Error ? e.message : "Couldn't start. Try again.");
         setPhase("entry");
       }
     },

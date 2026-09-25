@@ -275,7 +275,7 @@ export async function POST(req: Request) {
   const notes = typeof b.notes === "string" ? b.notes.trim() : "";
   if (notes.length > MAX_SOURCE_CHARS)
     return err(
-      `More material than one session can work through: ${notes.length.toLocaleString()} characters against a ceiling of ${MAX_SOURCE_CHARS.toLocaleString()}. Paste the chapter or section you are actually studying.`,
+      `Too much text: ${notes.length.toLocaleString()}/${MAX_SOURCE_CHARS.toLocaleString()} characters. Paste one section.`,
       413
     );
 
@@ -324,7 +324,7 @@ export async function POST(req: Request) {
 
       const concepts = (p.concepts as string[]).map((c) => c.trim()).filter(Boolean).slice(0, 5);
       if (!concepts.length)
-        return err("Nothing testable came back for that. Try naming the topic a little more fully.", 422);
+        return err("Nothing testable. Try a fuller topic.", 422);
 
       let qs = (p.questions as RawQuestion[])
         .map((raw, i) => shape(raw, "recognition", "easy", concepts, i, "open"))
@@ -343,7 +343,7 @@ export async function POST(req: Request) {
       if (!qs.length)
         return err(
           prov === "grounded"
-            ? "None of the opening questions could be traced back to your notes, so none were kept. Try pasting a fuller passage."
+            ? "No questions matched your notes. Paste a fuller passage."
             : "No usable questions were returned for that topic. Try again.",
           422
         );
@@ -432,7 +432,7 @@ export async function POST(req: Request) {
     if (!kept.length)
       return err(
         prov === "grounded"
-          ? "No questions for this round could be traced back to your notes."
+          ? "No questions matched your notes for this round."
           : "No usable questions came back for this round.",
         422
       );
