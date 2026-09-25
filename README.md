@@ -7,3 +7,4 @@ Vercel Analytics: page views/routes only, no study/debate text. no accounts/sync
 live handoff: memory only. question cache: source hash, same-source only, max 120 banks/30m, cleared on restart
 bad model output: up to 2,000 chars logged, may quote notes. no per-user rate limit
 checks: `node --experimental-strip-types scripts/spread.mjs`; same command for `scripts/positions.mjs` (app running). bruhhhhhh (._.)
+no Claude-written code left; GitHub may still show old contributor history
