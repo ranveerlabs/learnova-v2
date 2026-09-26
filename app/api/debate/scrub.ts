@@ -89,7 +89,7 @@ function clean(unit: string, first: boolean): string {
 
   t = t.replace(WC, "");
 
-  t = t.replace(/\s*—\s*/g, ", ");
+  t = t.replace(/\s*\u2014\s*/g, ", ");
 
   t = t.replace(LEAD_IN, (_m, pre: string, next: string) => pre + next.toUpperCase());
   t = t.replace(CONTRAST, (_m, neg: string) => `${verbFor(neg)} `);
