@@ -1,26 +1,24 @@
 # presentations
 
-how a round looks. theres no toggle for it and no mode where a round gets drawn
-without one, a student never picks between "the game" and "the study tool" cuz
-theyre the same thing.
+Each round uses a presentation to draw the question. There isn't a separate
+"game" and "study tool" mode, so students don't have to choose how it looks.
 
-`plain.tsx` is the exception, the floor the others stand on. reached three ways,
-never by preference:
+`plain.tsx` is the fallback, not a style students choose. It shows up in three
+cases:
 
-1. a presentation threw and `boundary.tsx` caught it mid-question
-2. nothing in the registry can honestly draw this question, usually options too
-   long for the shape
-3. the student asked for it, via the control in `app/round/ui.tsx` that only the
-   keyboard and assistive tech ever reach
+1. A presentation throws during a question and `boundary.tsx` catches it.
+2. Nothing in the registry can draw the question, usually because the options are
+   too long.
+3. The student asks for it with a control in `app/round/ui.tsx`. Keyboard and
+   assistive tech can reach it.
 
-round 4 is unpresented, enforced in `registry.ts` and not left to convention. its
-the one rung with nothing on screen, a presentation would quietly put something
-back.
+Round 4 has no presentation. `registry.ts` enforces that because adding one would
+put something on screen in a round designed to show nothing.
 
 ## adding one
 
-one file here, one import, one line in `PRESENTATIONS` in `registry.ts`. nothing
-in `app/round/` changes.
+Add one file here, import it, then add one line to `PRESENTATIONS` in
+`registry.ts`. Nothing else in `app/round/` needs to change.
 
 ```tsx
 "use client";
@@ -54,29 +52,27 @@ export const thing: Presentation = {
 };
 ```
 
-use the kit. `useOptions` binds the number keys, tracks whats been picked and
-refuses a second answer. `Pick` is a real button with the accessible name already
-built. `Mark` is the shape channel. hand-roll any of them and the presentation
-ends up unplayable on a keyboard without anybody noticing. `useBlank`, `Gap` and
-`Commit` are the same idea for round 2.
+Use the kit. `useOptions` binds number keys, tracks picks and refuses a second
+answer. `Pick` is a button with its accessible name built in. `Mark` gives the
+answer a shape as well as a colour. Replacing these can break keyboard play in a
+way that isn't obvious. `useBlank`, `Gap` and `Commit` do the same job for round 2.
 
 ## rules
 
-break one of these and you change what the session measures.
+These rules affect what the session measures, so keep them in place.
 
-1. difficulty comes from the question, never from dexterity. no precision
-   dragging, no reflex requirement, no target that can move out of reach. anything
-   in flight is scenery, or it only moves after the answer is committed. two
-   exceptions, both documented where they live: a two pixel idle bob, and
-   fishing's pond, which stops the moment anything reaches for it
-2. never leak the answer. not thru the shape of the target, not thru the number of
-   cells in a slot, not thru which option is drawn largest. the blank
-   presentations size their slots off whats been typed for that reason
-3. keyboard, always. 1 to n selects, the kit does it, dont reimplement it
-4. colourblind safe. right and wrong carry a glyph and a word as well as a colour,
-   `--solid-mark` and `--broken-mark` are the validated pair
-5. no text of its own. the question, the options, nothing else. a presentation
-   draws, it doesnt narrate or instruct or encourage
-6. `prefers-reduced-motion` is honoured and the thing is fully playable with every
-   animation off. all motion lives in `presentations.css`, which switches off in
-   one block at the bottom
+1. Difficulty comes from the question, not dexterity. No precision dragging,
+   reflex requirement or target that can move out of reach. Motion is scenery or
+   waits until the answer is committed. The two exceptions are documented where
+   they live: a two-pixel idle bob and fishing's pond, which stops when anything
+   reaches for it.
+2. Don't leak the answer through the target's shape, slot length or option size.
+   Blank presentations size slots from what has been typed.
+3. Keep keyboard input working. The kit already maps 1 to n to the options, so
+   don't reimplement it.
+4. Show right and wrong with a glyph and word as well as colour. The validated
+   pair is `--solid-mark` and `--broken-mark`.
+5. A presentation only draws the question and options. It doesn't add narration,
+   instructions or encouragement.
+6. Honor `prefers-reduced-motion`. The round must still work with animation off.
+   Motion lives in `presentations.css`, which disables it in one block at the end.

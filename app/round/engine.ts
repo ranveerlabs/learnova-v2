@@ -15,7 +15,7 @@ export function normalizeAnswer(s: string) {
   return s
     .toLowerCase()
     .replace(/[‘’]/g, "'")
-    .replace(/[-–—_/]+/g, " ")
+    .replace(/[-\u2013\u2014_/]+/g, " ")
     .replace(/[^\p{L}\p{N}\s']/gu, "")
     .replace(/\s+/g, " ")
     .trim()

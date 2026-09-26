@@ -1,6 +1,6 @@
 # credits
 
-third-party stuff in learnova and the terms its used under.
+There is one third-party audio track in Learnova. Its license requires the credit below.
 
 ## music
 
@@ -8,17 +8,15 @@ third-party stuff in learnova and the terms its used under.
 Licensed under Creative Commons: By Attribution 4.0
 http://creativecommons.org/licenses/by/4.0/
 
-background track in both round mode and debate, at
-`public/audio/8bit-dungeon-level.mp3`. theres a control for it on every screen of
-both.
+It plays in round mode and debate. The music control is on every screen in both
+modes.
 
-that credit is reproduced verbatim bcuz the licence says so. it also shows up in
-the app itself, on the front door of each mode, so anyone who hears the track can
-find where it came from without opening the repo.
+The app repeats this credit on the opening screen for each mode, so you can find
+it there too.
 
 ## everything else
 
-the rest is original, apache 2.0, see LICENSE and NOTICE.
+Everything else is original and Apache 2.0. See LICENSE and NOTICE.
 
-sound effects other than the background track are synthesised in the browser at
-runtime in `app/tone.ts`, so there are no other audio assets to credit.
+Other sound effects are made in the browser at runtime in `app/tone.ts`, so there
+are no more audio files to credit.
