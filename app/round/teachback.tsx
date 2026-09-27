@@ -221,7 +221,7 @@ export function TeachBack({
 
           {!usesNotes && (
             <p className="max-w-[62ch] font-sans text-[0.8125rem] leading-[1.6] text-ink-faint">
-              Topic only. This mark is unchecked. Verify anything that matters.
+              Topic only. Mark not source-checked.
             </p>
           )}
         </div>
@@ -299,11 +299,7 @@ export function TeachBack({
           <Label>Round 4 {total > 1 ? `/ ${index + 1} of ${total}` : ""}</Label>
         </div>
 
-        <Ask>Explain {concept} in your own words.</Ask>
-
-        <p className="max-w-[54ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-          No hints this round.
-        </p>
+        <Ask>Explain {concept}.</Ask>
       </div>
 
       {error && (
@@ -316,7 +312,7 @@ export function TeachBack({
               </GhostButton>
             )}
             <GhostButton onClick={onStop}>
-              Skip and see results
+              Skip to results
             </GhostButton>
           </div>
         </div>
@@ -344,7 +340,7 @@ export function TeachBack({
                   speech.listening ? "listening bg-broken-mark" : "bg-ink-faint"
                 }`}
               />
-              {speech.listening ? "Listening, tap to stop" : "Say it out loud"}
+              {speech.listening ? "Stop listening" : "Speak"}
             </button>
 
             {heard && !speech.listening && (
@@ -352,7 +348,7 @@ export function TeachBack({
                 onClick={keepHeard}
                 className="btn bg-accent px-4 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent"
               >
-                Use this text
+                Use text
               </button>
             )}
             {heard && (
@@ -407,7 +403,7 @@ export function TeachBack({
           onChange={setExplanation}
           autoFocus={!speech.supported}
           minRows={5}
-          placeholder="In your own words..."
+          placeholder="Your explanation"
           onSubmit={() => {
             if (!loading && explanation.trim()) submit();
           }}
@@ -437,7 +433,7 @@ export function TeachBack({
           )}
           {!speech.supported && (
             <p className="font-sans text-[0.75rem] text-ink-faint">
-              Speech input needs Chrome or Edge. Typing works everywhere.
+              Speech needs Chrome or Edge.
             </p>
           )}
         </div>

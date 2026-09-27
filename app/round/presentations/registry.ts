@@ -28,15 +28,13 @@ export function pickPresentation({
   question,
   seed,
   round,
-  plainOnly = false,
 }: {
   format: Format;
   question: Question;
   seed: number;
   round: 0 | 1 | 2 | 3 | 4;
-  plainOnly?: boolean;
 }): Presentation {
-  if (plainOnly || format === "open" || round === 4) return plain;
+  if (format === "open" || round === 4) return plain;
 
   const ok = eligible(format, question);
   if (!ok.length) return plain;

@@ -87,7 +87,7 @@ export function Ballot({
           style={NARROW}
           className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-accent"
         >
-          Try next time
+          Next time
         </span>
         <p className="font-read text-[1.0625rem] leading-[1.5] text-ink">
           {ballot.feedback.one_fix_for_next_round}
@@ -96,7 +96,7 @@ export function Ballot({
 
       {ballot.key_moments.length > 0 && (
         <div className="flex flex-col gap-3">
-          <Label>Where it turned</Label>
+          <Label>Key moments</Label>
           <ul className="flex flex-col gap-2">
             {ballot.key_moments.map((m, i) => {
               const mine = m.speaker === "user";

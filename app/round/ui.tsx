@@ -123,15 +123,7 @@ export function TimerRing({
         ["--t" as string]: t,
         ...(cheering ? { ["--ring-ink" as string]: "var(--solid-mark)" } : {}),
       }}
-    >
-      <span
-        className={`relative grid h-full w-full place-items-center font-pixel text-[clamp(0.9rem,2.8vh,1.25rem)] ${
-          cheering ? "text-solid-ink" : urgent ? "text-broken-ink" : "text-ink"
-        }`}
-      >
-        {seconds}
-      </span>
-    </div>
+    />
   );
 }
 
@@ -141,8 +133,8 @@ export function ProvenanceBadge({ provenance }: { provenance: Provenance }) {
     <span
       title={
         grounded
-          ? "Questions were checked against your notes."
-          : "Topic only. Questions aren't checked against a source."
+          ? "Checked against your notes."
+          : "No source check."
       }
       style={NARROW}
       className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap border px-1.5 py-1 font-sans text-[0.5625rem] font-semibold uppercase tracking-[0.08em] sm:gap-1.5 sm:px-2 sm:tracking-[0.12em] ${
@@ -271,8 +263,6 @@ export function Verdict({
   );
 }
 
-const KEYS = ["1", "2", "3", "4"];
-
 export function ChoiceGrid({
   question,
   chosen,
@@ -284,12 +274,18 @@ export function ChoiceGrid({
   revealed: boolean;
   onPick: (index: number) => void;
 }) {
+  const grid = useRef<HTMLDivElement>(null);
   const opts = question.options ?? [];
 
   const many = opts.length > 2;
 
+  useEffect(() => {
+    grid.current?.querySelector("button")?.focus();
+  }, [question.id]);
+
   return (
     <div
+      ref={grid}
       className={`grid min-h-0 flex-1 content-center gap-2.5 sm:gap-3 [grid-auto-rows:minmax(0,1fr)] ${
         many
           ? "max-h-[30rem] sm:max-h-[15.5rem] sm:grid-cols-2"
@@ -328,7 +324,7 @@ export function ChoiceGrid({
                     : "border-line-strong text-ink-faint group-hover:border-accent group-hover:text-accent"
               }`}
             >
-              {showRight ? "✓" : showWrong ? "✕" : KEYS[i]}
+              {showRight ? "✓" : showWrong ? "✕" : ""}
             </span>
             <span
               className={`min-w-0 font-read text-[clamp(1rem,0.7rem+1.1vw+0.7vh,2.125rem)] leading-[1.2] ${
@@ -443,6 +439,8 @@ export function ChipBoard({
   onBuild: (chips: string[]) => void;
   onSubmit: () => void;
 }) {
+  const trayRef = useRef<HTMLDivElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
   const tray = useMemo(
     () => question.tray ?? question.chips ?? [],
     [question.tray, question.chips],
@@ -458,6 +456,11 @@ export function ChipBoard({
       return true;
     });
   }, [built, tray]);
+
+  useEffect(() => {
+    if (revealed) return;
+    (trayRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)") ?? submitRef.current)?.focus();
+  }, [built, question.id, revealed]);
 
   useEffect(() => {
     if (revealed) return;
@@ -501,7 +504,7 @@ export function ChipBoard({
 
       {!revealed && (
         <>
-          <div className="flex min-h-0 shrink flex-wrap gap-2 overflow-y-auto sm:gap-2.5">
+          <div ref={trayRef} className="flex min-h-0 shrink flex-wrap gap-2 overflow-y-auto sm:gap-2.5">
             {tray.map((chip, i) => (
               <button
                 key={`${chip}-${i}`}
@@ -519,6 +522,7 @@ export function ChipBoard({
 
           <div className="flex shrink-0 items-center gap-3">
             <button
+              ref={submitRef}
               onClick={onSubmit}
               disabled={built.length === 0}
               aria-label="Submit your sentence"
@@ -547,16 +551,5 @@ export function ChipBoard({
         </p>
       )}
     </div>
-  );
-}
-
-export function PlainEscape({ onChoose }: { onChoose: () => void }) {
-  return (
-    <button
-      onClick={onChoose}
-      className="sr-only bg-accent px-4 py-2 font-sans text-[0.875rem] font-semibold text-on-accent focus:not-sr-only focus:absolute focus:left-0 focus:top-0 focus:z-40"
-    >
-      Use plain view
-    </button>
   );
 }

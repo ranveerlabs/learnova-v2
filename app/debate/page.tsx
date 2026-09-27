@@ -210,8 +210,7 @@ export default function DebatePage() {
       <div className="flex shrink-0 flex-col gap-2">
         {judging ? (
           <Waiting
-            title="Judging the round"
-            sub="Reading the round."
+            title="Judging"
           />
         ) : !finished ? (
           <>
@@ -220,7 +219,7 @@ export default function DebatePage() {
               value={draft}
               onChange={setDraft}
               minRows={3}
-              placeholder={`Your ${speech.toLowerCase()}...`}
+              placeholder={`Your ${speech.toLowerCase()}`}
               onSubmit={send}
               autoFocus
             />
@@ -239,7 +238,7 @@ export default function DebatePage() {
               </PrimaryButton>
               {turns.length >= 2 && judgeable && (
                 <GhostButton onClick={judge} disabled={thinking}>
-                  End the round
+                  End round
                 </GhostButton>
               )}
             </div>
@@ -249,12 +248,11 @@ export default function DebatePage() {
         ) : (
           <div className="flex flex-col gap-3">
             <Notice>
-              Too short to score. You wrote {spoken}{" "}
-              {spoken === 1 ? "word" : "words"}; need {MIN_WORDS_TO_JUDGE}.
+              {spoken}/{MIN_WORDS_TO_JUDGE} words. Too short to score.
             </Notice>
             <div className="flex flex-wrap items-center gap-3">
               <PrimaryButton onClick={() => setPhase("setup")}>
-                Start a new round
+                New round
                 <span aria-hidden className="rewound">
                   ↺
                 </span>

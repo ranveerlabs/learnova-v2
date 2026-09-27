@@ -43,6 +43,7 @@ export function Setup({
   const [going, setGoing] = useState(false);
 
   const box = useRef<HTMLTextAreaElement>(null);
+  const sides = useRef<HTMLDivElement>(null);
   useAutoGrow(box, motion, 2);
   useEffect(() => {
     box.current?.focus();
@@ -51,7 +52,11 @@ export function Setup({
   const ready = motion.trim().length > 0;
 
   function begin(side: Side) {
-    if (!ready || going) return;
+    if (!ready) {
+      box.current?.focus();
+      return;
+    }
+    if (going) return;
 
     const chosen: Setup = {
       tab,
@@ -72,7 +77,7 @@ export function Setup({
 
   return (
     <section className="flex w-full flex-col gap-6 pb-4">
-      <h1 className="text-[1.75rem] leading-tight">What are you arguing about?</h1>
+      <h1 className="text-[1.75rem] leading-tight">Debate topic</h1>
       <div>
         <Opponent value={against} onPick={setAgainst} />
       </div>
@@ -88,6 +93,12 @@ export function Setup({
               setMotion(e.target.value);
             }}
             onKeyDown={(e) => {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                e.preventDefault();
+                const side = e.key === "ArrowLeft" ? 0 : 1;
+                sides.current?.querySelectorAll("button")[side]?.focus();
+                return;
+              }
               if (
                 e.key !== "Enter" ||
                 e.shiftKey ||
@@ -100,14 +111,14 @@ export function Setup({
               begin("Pro");
             }}
             rows={2}
-            placeholder="e.g. schools should start later"
-            aria-label="What are you arguing about?"
+            placeholder="Topic"
+            aria-label="Debate topic"
             className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-hand text-[1.125rem] leading-[1.55] text-ink caret-accent placeholder:text-ink-faint"
           />
         </div>
       </div>
 
-      <div className="flex w-fit items-center gap-4">
+      <div ref={sides} className="flex w-fit items-center gap-4">
         <SideSlab
           onClick={() => begin("Pro")}
           disabled={!ready || going}
@@ -147,6 +158,7 @@ export function Setup({
 function SideSlab({
   word,
   tone,
+  disabled,
   ...props
 }: {
   word: string;
@@ -155,6 +167,7 @@ function SideSlab({
   return (
     <button
       {...props}
+      aria-disabled={disabled}
       className={`side-choice side-choice-${tone}`}
     >
       {word}
@@ -177,7 +190,7 @@ function Opponent({
     {
       id: "model",
       name: "Model",
-      title: "Four speeches. Scored at the end.",
+      title: "Four speeches, then a ballot.",
     },
     {
       id: "friend",
@@ -227,7 +240,7 @@ function Join() {
       }}
       className="flex flex-col gap-2 border-t border-line pt-5"
     >
-      <Label>Join with a code</Label>
+      <Label>Join by code</Label>
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={code}
@@ -294,7 +307,7 @@ function Options({
         </span>
         {live
           ? "Format"
-          : "Format and opponent"}
+          : "Options"}
       </summary>
 
       <div className="mt-4 flex flex-col gap-5">
@@ -304,12 +317,12 @@ function Options({
             {
               id: "casual",
               name: "Open debate",
-              title: "Open debate. No format rules.",
+              title: "No format rules.",
             },
             {
               id: "competitive",
               name: "Tournament prep",
-              title: "Tournament rules apply. Dropped arguments are conceded.",
+              title: "Tournament rules. Dropped arguments are conceded.",
             },
           ]}
           value={tab}

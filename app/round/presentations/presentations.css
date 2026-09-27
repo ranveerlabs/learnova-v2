@@ -34,14 +34,14 @@
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-@keyframes wire-march {
-  to {
-    stroke-dashoffset: -24px;
-  }
+@keyframes wire-connect {
+  to { stroke-dashoffset: 0; }
 }
 
-.wire-hint {
-  animation: wire-march 0.9s linear infinite;
+.wire-connect {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: wire-connect 280ms ease-out forwards;
 }
 
 @keyframes plug-ready {
@@ -68,7 +68,8 @@
   .pick:not(:disabled):hover {
     transform: none;
   }
-  .wire-hint {
+  .wire-connect {
+    stroke-dashoffset: 0;
     animation: none;
   }
   .plug-ready {

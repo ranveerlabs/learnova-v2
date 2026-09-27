@@ -15,7 +15,7 @@ const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
 const SHOWN: Record<Standing, { word: string; ink: string; mark: string }> = {
   explained: {
-    word: "Explained it",
+    word: "Explained",
     ink: "text-solid-ink",
     mark: "bg-solid-mark",
   },
@@ -26,7 +26,7 @@ const SHOWN: Record<Standing, { word: string; ink: string; mark: string }> = {
     mark: "bg-broken-mark",
   },
   recognised: {
-    word: "Got it right",
+    word: "Right",
     ink: "text-solid-ink",
     mark: "bg-solid-mark",
   },
@@ -123,8 +123,8 @@ export function Reveal({
 
         <h2 className="max-w-[24ch] text-balance font-read text-[clamp(1.5rem,1.2rem+1.5vw,2.125rem)] leading-[1.1] tracking-[-0.02em] text-ink">
           {produced
-            ? "You explained it."
-            : "Final explanation skipped."}
+            ? "Finished."
+            : "Explanation skipped."}
         </h2>
       </div>
 
@@ -160,7 +160,7 @@ export function Reveal({
       {provenance === "generated" ? (
         <p
           className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
-          title="Questions from pasted notes are checked against the source."
+          title="Pasted notes get a source check."
         >
           Topic only. Questions and marks are not source-checked.
         </p>
@@ -168,7 +168,7 @@ export function Reveal({
         (droppedTotal > 0 || sampled) && (
           <p
             className="stage-in -mt-3 font-sans text-[0.8125rem] leading-[1.55] text-ink-faint"
-            title="Each question is checked against your notes before it appears."
+            title="Checked against your notes."
           >
             From notes.{" "}
             {droppedTotal > 0 &&
@@ -186,7 +186,7 @@ export function Reveal({
             style={NARROW}
             className="font-sans text-[0.625rem] font-bold uppercase tracking-[0.14em] text-solid-ink"
           >
-            Now explained
+            Explained
           </span>
           <ul className="flex flex-wrap gap-2">
             {nowExplained.map((l, i) => (
@@ -206,7 +206,7 @@ export function Reveal({
         <PrimaryButton onClick={onAgain}>
           Study again <Arrow />
         </PrimaryButton>
-        <GhostButton onClick={onRestart}>Study something else</GhostButton>
+        <GhostButton onClick={onRestart}>New topic</GhostButton>
       </div>
 
       <details className="stage-in group">
@@ -220,7 +220,7 @@ export function Reveal({
           >
             &gt;
           </span>
-          Concept results
+          Concepts
         </summary>
 
         <div className="mt-4 flex flex-col gap-4">

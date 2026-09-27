@@ -8,23 +8,23 @@ export default function Landing() {
     <main className="home">
       <header className="home-mark">
         <PixelSprite name="star" scale={8} title="Learnova" />
-        <div>
-          <h1>learnova</h1>
-          <p>learn it. then explain it.</p>
-        </div>
+        <h1>learnova</h1>
       </header>
+      <p className="home-keyboard">
+        <strong>keyboard only</strong>
+        <span>left right arrows for nav and enter to well enter</span>
+      </p>
       <nav aria-label="Choose a mode" className="home-modes">
         <div className="home-mode home-mode-study">
           <Link href="/round">study</Link>
-          <p>five rounds. fewer hints each time.</p>
+          <p>five rounds</p>
         </div>
         <div className="home-mode home-mode-debate">
           <Link href="/debate">debate</Link>
-          <p>argue with a model or a friend.</p>
+          <p>model or friend</p>
         </div>
       </nav>
       <footer className="home-footer">
-        <p className="pointer-coarse:hidden">left right arrows for nav and enter to well enter</p>
         <div className="home-links">
           <span>commit {BUILD.sha}</span>
           <AudioControls />

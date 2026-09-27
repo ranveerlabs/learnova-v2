@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import "./presentations.css";
 import type { PresentationProps } from "./types";
 
-export const KEYS = ["1", "2", "3", "4", "5", "6"];
-
 export type Mood = "idle" | "right" | "wrong" | "dimmed";
 
 export function useOptions(props: PresentationProps) {
@@ -68,20 +66,13 @@ export function ink(mood: Mood) {
 }
 
 export function Mark({
-  index,
   mood,
   className = "",
 }: {
-  index: number;
   mood: Mood;
   className?: string;
 }) {
-  const face =
-    mood === "right"
-      ? "✓"
-      : mood === "wrong"
-        ? "✕"
-        : (KEYS[index] ?? String(index + 1));
+  const face = mood === "right" ? "✓" : mood === "wrong" ? "✕" : "";
 
   return (
     <span
@@ -117,14 +108,14 @@ export function Say({
   );
 }
 
-export function label(index: number, option: string, mood: Mood) {
+export function label(option: string, mood: Mood) {
   const state =
     mood === "right"
       ? ", the correct answer"
       : mood === "wrong"
         ? ", your answer, wrong"
         : "";
-  return `${index + 1}. ${option}${state}`;
+  return `${option}${state}`;
 }
 
 export function Pick({
@@ -149,7 +140,7 @@ export function Pick({
   if (!onPick) {
     return (
       <div
-        aria-label={label(index, option, mood)}
+        aria-label={label(option, mood)}
         style={{ ["--i" as string]: index, ...style }}
         className={`pick text-left ${className}`}
       >
@@ -163,7 +154,7 @@ export function Pick({
       type="button"
       disabled={revealed}
       onClick={() => onPick(index)}
-      aria-label={label(index, option, mood)}
+      aria-label={label(option, mood)}
       style={{ ["--i" as string]: index, ...style }}
       className={`pick text-left disabled:cursor-default ${className}`}
     >

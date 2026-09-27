@@ -3,14 +3,11 @@
 Each round uses a presentation to draw the question. There isn't a separate
 "game" and "study tool" mode, so students don't have to choose how it looks.
 
-`plain.tsx` is the fallback, not a style students choose. It shows up in three
-cases:
+`plain.tsx` is the fallback. It shows up in two cases:
 
 1. A presentation throws during a question and `boundary.tsx` catches it.
 2. Nothing in the registry can draw the question, usually because the options are
    too long.
-3. The student asks for it with a control in `app/round/ui.tsx`. Keyboard and
-   assistive tech can reach it.
 
 Round 4 has no presentation. `registry.ts` enforces that because adding one would
 put something on screen in a round designed to show nothing.
@@ -35,7 +32,7 @@ function Surface(props: PresentationProps) {
         const mood = moodOf(i);
         return (
           <Pick key={i} index={i} option={o} mood={mood} revealed={revealed} onPick={pick}>
-            <Mark index={i} mood={mood} />
+            <Mark mood={mood} />
             <Say mood={mood}>{o}</Say>
           </Pick>
         );
@@ -68,8 +65,7 @@ These rules affect what the session measures, so keep them in place.
    reaches for it.
 2. Don't leak the answer through the target's shape, slot length or option size.
    Blank presentations size slots from what has been typed.
-3. Keep keyboard input working. The kit already maps 1 to n to the options, so
-   don't reimplement it.
+3. Keep keyboard input working with left and right arrows, then Enter.
 4. Show right and wrong with a glyph and word as well as colour. The validated
    pair is `--solid-mark` and `--broken-mark`.
 5. A presentation only draws the question and options. It doesn't add narration,

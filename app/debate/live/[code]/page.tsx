@@ -167,8 +167,7 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Waiting
-          title="Opening the room"
-          sub="Checking the room."
+          title="Opening room"
         />
       </div>
     );
@@ -200,8 +199,7 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Stopped
-          title="That room is full"
-          said="Room full."
+          title="Room full"
         />
       </div>
     );
@@ -239,11 +237,11 @@ function Room({ code }: { code: string }) {
       <div className={SHELL}>
         <Stopped
           title={
-            room.closed === "idle" ? "The room timed out" : "The room closed"
+            room.closed === "idle" ? "Room timed out" : "Room closed"
           }
           said={
             room.closed === "idle"
-              ? "Room timed out."
+              ? undefined
               : room.closed === "done"
                 ? "Round over. Nothing was saved."
                 : "You left the room."
@@ -271,8 +269,7 @@ function Room({ code }: { code: string }) {
     return (
       <div className={SHELL}>
         <Waiting
-          title="Joining room"
-          sub="Waiting for setup."
+          title="Waiting for setup"
         />
       </div>
     );
@@ -320,15 +317,13 @@ function Room({ code }: { code: string }) {
 
       {room.arrived && !room.together && (
         <Aside>
-          Your opponent has dropped out of the room. Every speech was given
-          before they went, so the transcript is complete and the ballot is
-          still worth reading.
+          Opponent left. All speeches are in, so a ballot is still possible.
         </Aside>
       )}
 
       {room.dropped && (
         <Aside>
-          Connection lost. New messages will appear after it reconnects.
+          Reconnecting. New messages will appear afterward.
         </Aside>
       )}
 
@@ -355,8 +350,7 @@ function Room({ code }: { code: string }) {
       <div className="flex shrink-0 flex-col gap-2">
         {judging ? (
           <Waiting
-            title="Judging the round"
-            sub="Reading the round."
+            title="Judging"
           />
         ) : finished ? (
           <Closing
@@ -374,7 +368,7 @@ function Room({ code }: { code: string }) {
               value={draft}
               onChange={setDraft}
               minRows={3}
-              placeholder={`Your ${next!.speech.toLowerCase()}...`}
+              placeholder={`Your ${next!.speech.toLowerCase()}`}
               onSubmit={send}
               autoFocus
             />
@@ -394,7 +388,6 @@ function Room({ code }: { code: string }) {
           <div className="flex flex-col gap-3">
             <Waiting
               title={`Their ${next!.speech.toLowerCase()}`}
-              sub="Their turn."
             />
             <Leave onLeave={() => room.close("left")} />
           </div>
@@ -432,7 +425,7 @@ function Share({ code }: { code: string }) {
       </p>
 
       <p className="max-w-[40ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
-        Send this code to your friend. They enter it under Debate → Friend.
+        Share this code. Your friend joins under Debate &gt; Friend.
       </p>
     </div>
   );
@@ -479,7 +472,7 @@ function Closing({
       return (
         <div className="flex flex-col gap-3">
           <Aside>
-            The host left. No ballot this round.
+            Host left. No ballot.
           </Aside>
           <Ways />
         </div>
@@ -489,8 +482,7 @@ function Closing({
     return (
       <div className="flex flex-col gap-3">
         <Waiting
-          title="Waiting for the ballot"
-          sub="The host will request it."
+          title="Waiting for ballot"
         />
         <Leave onLeave={onLeave} />
       </div>
@@ -586,7 +578,7 @@ function Unfinished({
           No ballot
         </span>
         <p className="font-read text-[1.0625rem] leading-[1.5] text-ink">
-          Round unfinished. No score. Nothing was saved.
+          No score. Nothing was saved.
         </p>
       </div>
 
@@ -606,15 +598,13 @@ function Leave({ onLeave }: { onLeave: () => void }) {
   );
 }
 
-function Stopped({ title, said }: { title: string; said: string }) {
+function Stopped({ title, said }: { title: string; said?: string }) {
   return (
     <section className="flex w-full flex-col gap-6 pb-4">
       <h1 className="max-w-[20ch] font-read text-[clamp(1.5rem,1.2rem+1.4vw,2.125rem)] leading-[1.15] tracking-[-0.015em] text-ink">
         {title}
       </h1>
-      <p className="max-w-[52ch] font-sans text-[1rem] leading-[1.65] text-ink-soft">
-        {said}
-      </p>
+      {said && <p className="max-w-[52ch] font-sans text-[1rem] leading-[1.65] text-ink-soft">{said}</p>}
       <Ways />
     </section>
   );

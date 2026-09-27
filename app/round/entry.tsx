@@ -61,7 +61,7 @@ export function Entry({
         </h1>
 
         <p className="max-w-[58ch] font-mono text-[0.875rem] leading-[1.7] text-ink-soft">
-          Topic or notes. Five rounds, fewer hints each time.
+          topic or notes
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export function Entry({
               ref={box}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. photosynthesis"
+              placeholder="Topic"
               aria-label="What are you studying?"
               className="term-field w-full px-4 py-3.5 font-read text-[1.25rem] text-ink caret-accent placeholder:text-ink-faint"
               style={{ padding: "1rem 1.125rem" }}
@@ -139,7 +139,7 @@ export function Entry({
               setNotes(v);
               if (notesProblem) setNotesProblem(null);
             }}
-            placeholder="Paste notes, a textbook passage, an article..."
+            placeholder="Paste notes"
             minRows={6}
           />
 

@@ -216,7 +216,7 @@ export function Working({ label }: { label?: string }) {
   );
 }
 
-export function Waiting({ title, sub }: { title: string; sub: string }) {
+export function Waiting({ title }: { title: string }) {
   return (
     <div
       role="status"
@@ -225,7 +225,6 @@ export function Waiting({ title, sub }: { title: string; sub: string }) {
       <Meter />
       <div className="text-center">
         <p className="font-pixel text-[0.9rem] text-ink">{title}</p>
-        <p className="mt-1 font-sans text-[0.875rem] text-ink-soft">{sub}</p>
       </div>
     </div>
   );

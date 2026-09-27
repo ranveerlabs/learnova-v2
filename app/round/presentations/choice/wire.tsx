@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { Mark, Pick, Say, Stage, tone, useOptions } from "../kit";
+import { Pick, Say, Stage, tone, useOptions } from "../kit";
 import type { Presentation, PresentationProps } from "../types";
 
 type Point = { x: number; y: number };
@@ -34,37 +34,11 @@ function Wire({
         strokeWidth={width}
         strokeLinecap="round"
         strokeDasharray={dashed ? "7 7" : undefined}
+        pathLength={dashed ? undefined : 1}
+        className={dashed ? undefined : "wire-connect"}
       />
       <circle cx={to.x} cy={to.y} r="5" fill={colour} />
     </>
-  );
-}
-
-function HintWire({ from, reach }: { from: Point; reach: number }) {
-  const end = { x: from.x + reach, y: from.y + 9 };
-  const d = `M ${from.x} ${from.y} C ${from.x + reach * 0.6} ${from.y + 14}, ${
-    end.x - reach * 0.3
-  } ${end.y + 4}, ${end.x} ${end.y}`;
-
-  return (
-    <g className="wire-hint" opacity="0.7">
-      <path
-        d={d}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeDasharray="8 8"
-      />
-      <path
-        d={`M ${end.x - 9} ${end.y - 6} L ${end.x + 1} ${end.y} L ${end.x - 9} ${end.y + 6}`}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </g>
   );
 }
 
@@ -78,9 +52,7 @@ function WireSurface(props: PresentationProps) {
 
   const [start, setStart] = useState<Point | null>(null);
   const [ends, setEnds] = useState<Point[]>([]);
-  const [pointer, setPointer] = useState<Point | null>(null);
   const [over, setOver] = useState<number | null>(null);
-  const [held, setHeld] = useState(false);
 
   const measure = useCallback(() => {
     const box = board.current?.getBoundingClientRect();
@@ -102,6 +74,7 @@ function WireSurface(props: PresentationProps) {
 
   useLayoutEffect(() => {
     measure();
+    board.current?.querySelector("button")?.focus();
     const ro = new ResizeObserver(measure);
     if (board.current) ro.observe(board.current);
     window.addEventListener("resize", measure);
@@ -111,68 +84,28 @@ function WireSurface(props: PresentationProps) {
     };
   }, [measure, questionId]);
 
-  function rowAt(x: number, y: number) {
-    for (let i = 0; i < rows.current.length; i++) {
-      const r = rows.current[i]?.getBoundingClientRect();
-      if (r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)
-        return i;
-    }
-    return null;
-  }
-
-  function onPointerMove(e: React.PointerEvent) {
-    if (!pointer && over === null) return;
-    const box = board.current?.getBoundingClientRect();
-    if (!box) return;
-    setPointer({ x: e.clientX - box.left, y: e.clientY - box.top });
-    setOver(rowAt(e.clientX, e.clientY));
-  }
-
-  function endDrag(e: React.PointerEvent) {
-    const hit = rowAt(e.clientX, e.clientY);
-    setPointer(null);
-    setOver(null);
-    if (hit !== null) pick(hit);
-  }
-
-  const live = pointer !== null;
-  const gap = ends[0] && start ? ends[0].x - start.x : 0;
-  const showHint = !revealed && !held && !live && start !== null && gap > 18;
-
   return (
     <Stage
       revealed={revealed}
       className="flex min-h-0 flex-1 flex-col gap-[2vh]"
     >
-      {!revealed && (
-        <p
-          style={{ fontVariationSettings: '"wdth" 88' }}
-          className="shrink-0 font-sans text-[clamp(0.75rem,0.55rem+0.55vw+0.35vh,1.125rem)] font-bold uppercase tracking-[0.1em] text-accent"
-        >
-          Choose an answer or drag the wire
-        </p>
-      )}
-
       <div
         ref={board}
         className="relative grid min-h-0 flex-1 select-none grid-cols-[auto_minmax(0,1fr)] [grid-template-rows:minmax(0,1fr)] items-stretch gap-x-5 sm:gap-x-24"
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={() => {
-          setPointer(null);
-          setOver(null);
-        }}
       >
         <svg
           aria-hidden
           className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
         >
-          {showHint && start && <HintWire from={start} reach={gap * 0.72} />}
+          {!revealed && over !== null && start && ends[over] && (
+            <Wire key={over} from={start} to={ends[over]} colour="var(--accent)" />
+          )}
           {revealed && start && ends[answer] && (
             <Wire
               from={start}
               to={ends[answer]}
               colour="var(--solid-mark)"
+              dashed={chosen !== null && chosen !== answer}
               width={4}
             />
           )}
@@ -185,48 +118,24 @@ function WireSurface(props: PresentationProps) {
                 from={start}
                 to={ends[chosen]}
                 colour="var(--broken-mark)"
-                dashed
+                width={4}
               />
-            )}
-          {!revealed && live && start && pointer && (
-            <Wire
-              from={start}
-              to={over !== null && ends[over] ? ends[over] : pointer}
-              colour="var(--accent)"
-              width={4}
-            />
           )}
         </svg>
 
         <div
           ref={stem}
-          onPointerDown={(e) => {
-            if (revealed) return;
-            e.preventDefault();
-            setHeld(true);
-            const box = board.current?.getBoundingClientRect();
-            if (box)
-              setPointer({ x: e.clientX - box.left, y: e.clientY - box.top });
-          }}
-          className={`flex touch-none select-none flex-col items-center justify-center gap-1.5 self-center justify-self-center border-[3px] px-2.5 py-3 sm:gap-2 sm:px-5 sm:py-5 ${
+          className={`flex select-none flex-col items-center justify-center gap-1.5 self-center justify-self-center border-[3px] px-2.5 py-3 sm:gap-2 sm:px-5 sm:py-5 ${
             revealed
               ? "border-line bg-page"
-              : "cursor-grab border-accent bg-accent-wash/50 active:cursor-grabbing"
+              : "border-accent bg-accent-wash/50"
           }`}
         >
-          {!revealed && (
-            <span
-              style={{ fontVariationSettings: '"wdth" 88' }}
-              className="font-sans text-[0.5625rem] font-bold uppercase leading-none tracking-[0.1em] text-accent sm:text-[0.6875rem] sm:tracking-[0.14em]"
-            >
-              Drag
-            </span>
-          )}
           <span
             aria-hidden
             className="relative grid h-5 w-5 place-items-center sm:h-6 sm:w-6"
           >
-            {!revealed && !live && (
+            {!revealed && (
               <span className="plug-ready absolute inset-0 bg-accent" />
             )}
             <span
@@ -248,6 +157,10 @@ function WireSurface(props: PresentationProps) {
                 ref={(el) => {
                   rows.current[i] = el;
                 }}
+                onFocus={() => setOver(i)}
+                onBlur={() => setOver(null)}
+                onMouseEnter={() => setOver(i)}
+                onMouseLeave={() => setOver(null)}
                 className="flex max-h-[6.5rem] min-h-0 flex-1 basis-0"
               >
                 <Pick
@@ -271,11 +184,6 @@ function WireSurface(props: PresentationProps) {
                             ? "border-accent bg-accent"
                             : "border-line-strong"
                     }`}
-                  />
-                  <Mark
-                    index={i}
-                    mood={mood}
-                    className="h-[clamp(1.75rem,4.2vh,2.25rem)] w-[clamp(1.75rem,4.2vh,2.25rem)] border-2 text-[0.8125rem] sm:text-[0.9375rem]"
                   />
                   <Say
                     mood={mood}

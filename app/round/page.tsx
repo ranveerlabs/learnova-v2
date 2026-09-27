@@ -12,7 +12,6 @@ import { PresentationBoundary } from "./presentations/boundary";
 import { pickPresentation } from "./presentations/registry";
 import {
   LadderRail,
-  PlainEscape,
   ProvenanceBadge,
   RunClock,
   TimerRing,
@@ -129,14 +128,12 @@ export default function Home() {
             {s.phase === "opening" && (
               <Waiting
                 title="Making questions"
-                sub="One moment."
               />
             )}
 
             {s.phase === "waiting" && (
               <Waiting
-                title={`Round ${s.pendingRound ?? ""}`}
-                sub="One moment."
+                title={`Making round ${s.pendingRound ?? ""}`}
               />
             )}
 
@@ -146,8 +143,6 @@ export default function Home() {
                 question={s.current}
                 stage={s.stage}
                 seed={s.seed}
-                plainOnly={s.plainOnly}
-                onPlainOnly={() => s.setPlainOnly(true)}
                 onAnswer={s.answer}
                 onAdvance={s.advance}
                 onRemaining={setRemaining}
@@ -216,8 +211,8 @@ function SkippedRounds({ rounds }: { rounds: Round[] }) {
 
   return (
     <Aside>
-      {which} {names.length === 1 ? "was" : "were"} skipped because the
-      questions were not ready in time. Your earlier answers still count.
+      {which} {names.length === 1 ? "was" : "were"} skipped. Questions were not ready.
+      Earlier answers still count.
     </Aside>
   );
 }
@@ -231,9 +226,8 @@ function DroppedQuestions({
 }) {
   return (
     <Aside>
-      This round has {served} questions instead of {QUESTIONS_PER_ROUND}. Another{" "}
-      {count} {count === 1 ? "was" : "were"} removed because the quoted text was
-      not found in your notes.
+      {served}/{QUESTIONS_PER_ROUND} questions. {count} removed: no matching quote
+      in your notes.
     </Aside>
   );
 }
@@ -242,13 +236,13 @@ function NothingToProduce({ onFinish }: { onFinish: () => void }) {
   return (
     <section className="mx-auto flex w-full max-w-[46rem] flex-col gap-5 py-10">
       <Notice>
-        There were not enough answers to choose a concept for Round 4.
+        Not enough answers for Round 4.
       </Notice>
       <button
         onClick={onFinish}
         className="btn inline-flex items-center gap-2 self-start bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent"
       >
-        See the results{" "}
+        Results{" "}
         <span aria-hidden className="arrow">
           -&gt;
         </span>
@@ -268,8 +262,6 @@ function QuestionScreen({
   question,
   stage,
   seed,
-  plainOnly,
-  onPlainOnly,
   onAnswer,
   onAdvance,
   onRemaining,
@@ -278,8 +270,6 @@ function QuestionScreen({
   question: Question;
   stage: 0 | Round;
   seed: number;
-  plainOnly: boolean;
-  onPlainOnly: () => void;
   onAnswer: (
     given: string | number | string[],
     timedOut?: boolean,
@@ -361,9 +351,8 @@ function QuestionScreen({
         question,
         seed,
         round: stage,
-        plainOnly,
       }),
-    [plainOnly, question, seed, stage],
+    [question, seed, stage],
   );
   const Drawn = shown.Component;
 
@@ -384,8 +373,6 @@ function QuestionScreen({
 
   return (
     <section className="relative mx-auto flex h-full min-h-0 w-full max-w-[64rem] flex-col gap-[2vh]">
-      {!plainOnly && <PlainEscape onChoose={onPlainOnly} />}
-
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-[3vh]">
         {question.format !== "blank" && (
           <h2 className="deal-in shrink-0 text-balance font-read text-[clamp(1.375rem,0.9rem+2.1vw+0.9vh,3rem)] font-medium leading-[1.12] tracking-[-0.02em] text-ink">

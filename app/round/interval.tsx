@@ -6,21 +6,18 @@ import type { Round } from "./types";
 
 const NARROW: React.CSSProperties = { fontVariationSettings: '"wdth" 88' };
 
-const NEXT: Record<Round, { name: string; taken: string; asks: string }> = {
+const NEXT: Record<Round, { name: string; asks: string }> = {
   1: {
     name: "Round 1",
-    taken: "Four choices.",
     asks: "Pick one.",
   },
-  2: { name: "Round 2", taken: "No choices.", asks: "Fill the gap." },
+  2: { name: "Round 2", asks: "Fill the gap." },
   3: {
     name: "Round 3",
-    taken: "Shuffled pieces.",
     asks: "Build the sentence.",
   },
   4: {
     name: "Round 4",
-    taken: "No hints.",
     asks: "Explain it.",
   },
 };
@@ -46,12 +43,6 @@ export function Interval({
   return (
     <section className="mx-auto flex w-full max-w-[44rem] flex-col gap-6 py-4 sm:py-8">
       <div className="flex flex-col gap-2">
-        <span
-          style={NARROW}
-          className="font-sans text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-accent"
-        >
-          {cleared} cleared
-        </span>
         <h2 className="font-read text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.1] tracking-[-0.015em] text-ink">
           {summary.stage === 0 ? "Warm-up complete." : `${cleared} complete.`}
         </h2>
@@ -60,8 +51,8 @@ export function Interval({
       {summary.stage === 0 ? (
         <p className="max-w-[46ch] font-sans text-[0.9375rem] leading-[1.6] text-ink-soft">
           {returning
-            ? "A few old questions. These come back at the end."
-            : "Quick baseline. These come back at the end."}
+            ? "Old questions return at the end."
+            : "These questions return at the end."}
         </p>
       ) : (
         <p className="font-read text-[1.375rem] leading-[1.35] text-ink">
@@ -71,7 +62,7 @@ export function Interval({
 
       <p className="font-read text-[1.25rem] leading-[1.35] text-ink">
         <span className="text-ink-faint">{upNext.name}: </span>
-        {upNext.taken} {upNext.asks}
+        {upNext.asks}
       </p>
 
       <button

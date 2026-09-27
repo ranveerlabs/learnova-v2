@@ -79,7 +79,6 @@ export function useRoundSession() {
   const [error, setError] = useState<string | null>(null);
   const [busyRounds, setBusyRounds] = useState<Round[]>([]);
 
-  const [plainOnly, setPlainOnly] = useState(false);
   const [seed, setSeed] = useState(() => newSeed());
 
   const runs = useRef<RunRecord[]>([]);
@@ -440,9 +439,7 @@ export function useRoundSession() {
     productionIndex,
     pendingRound,
     stageLimit: stage === 0 ? WARM_UP_COUNT : QUESTIONS_PER_ROUND,
-    plainOnly,
     seed,
-    setPlainOnly,
     start,
     answer,
     advance,
