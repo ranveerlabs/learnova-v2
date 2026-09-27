@@ -343,6 +343,7 @@ function QuestionScreen({
     if (!result) return;
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Enter" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLElement && e.target.closest("button, a, input, textarea, select, summary")) return;
       e.preventDefault();
       if (advanceTimer.current) clearTimeout(advanceTimer.current);
       onAdvance();

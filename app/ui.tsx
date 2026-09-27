@@ -178,7 +178,7 @@ export function AudioToggle({
     <button
       onClick={onToggle}
       aria-pressed={on}
-      aria-label={`Audio: ${on ? "on" : "off"}. Click to turn ${on ? "off" : "on"}.`}
+      aria-label={`Audio: ${on ? "on" : "off"}. Press to turn ${on ? "off" : "on"}.`}
       title={`Audio ${on ? "on" : "off"}`}
       className="term-btn shrink-0 px-2.5 py-1.5 text-[0.6875rem]"
     >

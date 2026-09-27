@@ -7,7 +7,7 @@ export default function Landing() {
   return (
     <main className="home">
       <header className="home-mark">
-        <PixelSprite name="logo" scale={4} title="Learnova" />
+        <PixelSprite name="star" scale={8} title="Learnova" />
         <div>
           <h1>learnova</h1>
           <p>learn it. then explain it.</p>
@@ -24,6 +24,7 @@ export default function Landing() {
         </div>
       </nav>
       <footer className="home-footer">
+        <p className="pointer-coarse:hidden">Arrow keys move between controls. Enter selects.</p>
         <div className="home-links">
           <span>commit {BUILD.sha}</span>
           <AudioControls />

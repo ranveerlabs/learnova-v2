@@ -477,6 +477,7 @@ export function ChipBoard({
     if (revealed) return;
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Enter" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLElement && e.target.closest("button, a, input, textarea, select, summary")) return;
       if (built.length === 0) return;
       e.preventDefault();
       onSubmit();

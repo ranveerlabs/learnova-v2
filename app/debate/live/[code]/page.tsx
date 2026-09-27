@@ -625,7 +625,7 @@ function Ways() {
     <div className="flex flex-wrap items-center gap-3">
       <Link
         href="/debate"
-        className="btn inline-flex items-center gap-2 self-start bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(20_26_38/0.12)] hover:bg-accent-hover"
+        className="btn inline-flex items-center gap-2 self-start bg-accent px-5 py-2.5 font-sans text-[0.875rem] font-semibold text-on-accent shadow-[0_1px_2px_rgb(26_26_26/0.12)] hover:bg-accent-hover"
       >
         New round
         <span aria-hidden className="rewound">

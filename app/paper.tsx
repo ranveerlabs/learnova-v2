@@ -65,21 +65,6 @@ const CLIP: Sprite = {
   palette: { C: "var(--supply-metal)" },
 };
 
-const LOGO: Sprite = {
-  rows: [
-    "....BB.....X.....BB....",
-    "...BB......X......BB...",
-    "..BB......XXX......BB..",
-    ".BB....XXXXXXXXX....BB.",
-    "BB......XXXXXXX......BB",
-    ".BB......XXXXX......BB.",
-    "..BB.....XX.XX.....BB..",
-    "...BB...XX...XX...BB...",
-    "....BB..X.....X..BB....",
-  ],
-  palette: { B: "var(--ink)", X: "var(--supply-gold)" },
-};
-
 const CRT: Sprite = {
   rows: [
     "..BBBBBBBBBBB..",
@@ -100,7 +85,7 @@ const CRT: Sprite = {
   palette: {
     B: "#bebebe",
     d: "#2f2f2f",
-    S: "#7cc9a6",
+    S: "#dedede",
   },
 };
 
@@ -108,7 +93,6 @@ export const SPRITES = {
   pencil: PENCIL,
   star: STAR,
   clip: CLIP,
-  logo: LOGO,
   crt: CRT,
 };
 

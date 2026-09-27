@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { KeyboardNavigation } from "./keyboard";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -23,6 +24,7 @@ export default function RootLayout({
       className="h-dvh overflow-hidden antialiased"
     >
       <body className="flex h-full flex-col overflow-hidden">
+        <KeyboardNavigation />
         {children}
         <Analytics />
       </body>
