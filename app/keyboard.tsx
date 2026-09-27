@@ -6,17 +6,22 @@ const selector = 'a[href], button:not(:disabled), input:not(:disabled), textarea
 
 export function KeyboardNavigation() {
   useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches || e.detail === 0) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+
     function onKey(e: KeyboardEvent) {
-      if (!e.key.startsWith("Arrow") || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
 
       const active = document.activeElement as HTMLElement | null;
       if (active?.matches("select, [contenteditable]")) return;
-      if (active?.matches("input, textarea") && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
-      if (active instanceof HTMLTextAreaElement) {
-        const before = active.value.slice(0, active.selectionStart);
-        const after = active.value.slice(active.selectionEnd);
-        if (e.key === "ArrowUp" && before.includes("\n")) return;
-        if (e.key === "ArrowDown" && after.includes("\n")) return;
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+        if (active.selectionStart !== active.selectionEnd) return;
+        if (e.key === "ArrowLeft" && active.selectionStart !== 0) return;
+        if (e.key === "ArrowRight" && active.selectionEnd !== active.value.length) return;
       }
 
       const items = Array.from(document.querySelectorAll<HTMLElement>(selector)).filter((el) =>
@@ -24,36 +29,20 @@ export function KeyboardNavigation() {
       );
       if (!items.length) return;
 
-      const here = active && items.includes(active) ? active : null;
-      const axis = e.key === "ArrowLeft" || e.key === "ArrowRight" ? "x" : "y";
-      const sign = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
-      let next = items[sign > 0 ? 0 : items.length - 1];
-
-      if (here) {
-        const rect = here.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-        const ranked = items
-          .filter((el) => el !== here)
-          .map((el) => {
-            const r = el.getBoundingClientRect();
-            const dx = r.left + r.width / 2 - x;
-            const dy = r.top + r.height / 2 - y;
-            const main = axis === "x" ? dx : dy;
-            const cross = axis === "x" ? dy : dx;
-            return { el, main, score: Math.abs(main) + Math.abs(cross) * 2 };
-          })
-          .filter((item) => item.main * sign > 4)
-          .sort((a, b) => a.score - b.score);
-        next = ranked[0]?.el ?? items[(items.indexOf(here) + sign + items.length) % items.length];
-      }
+      const index = active ? items.indexOf(active) : -1;
+      const step = e.key === "ArrowRight" ? 1 : -1;
+      const next = items[index < 0 ? (step > 0 ? 0 : items.length - 1) : (index + step + items.length) % items.length];
 
       e.preventDefault();
       next.focus();
     }
 
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", onClick, true);
+    };
   }, []);
 
   return null;

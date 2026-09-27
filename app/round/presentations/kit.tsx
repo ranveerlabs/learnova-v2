@@ -8,7 +8,7 @@ export const KEYS = ["1", "2", "3", "4", "5", "6"];
 
 export type Mood = "idle" | "right" | "wrong" | "dimmed";
 
-export function useOptions(props: PresentationProps, { keys = true } = {}) {
+export function useOptions(props: PresentationProps) {
   const { question, revealed, chosen, onAnswer } = props;
   const options = useMemo(() => question.options ?? [], [question.options]);
   const answer = question.answerIndex ?? -1;
@@ -27,20 +27,6 @@ export function useOptions(props: PresentationProps, { keys = true } = {}) {
     },
     [onAnswer, options.length, revealed],
   );
-
-  useEffect(() => {
-    if (revealed || !keys) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const i = KEYS.indexOf(e.key);
-      if (i >= 0 && i < options.length) {
-        e.preventDefault();
-        pick(i);
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [keys, options.length, pick, revealed]);
 
   const moodOf = useCallback(
     (i: number): Mood => {

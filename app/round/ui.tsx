@@ -286,20 +286,6 @@ export function ChoiceGrid({
 }) {
   const opts = question.options ?? [];
 
-  useEffect(() => {
-    if (revealed) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const i = KEYS.indexOf(e.key);
-      if (i >= 0 && i < opts.length) {
-        e.preventDefault();
-        onPick(i);
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [opts.length, onPick, revealed]);
-
   const many = opts.length > 2;
 
   return (

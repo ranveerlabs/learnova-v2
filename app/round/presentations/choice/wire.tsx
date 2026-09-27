@@ -69,10 +69,7 @@ function HintWire({ from, reach }: { from: Point; reach: number }) {
 }
 
 function WireSurface(props: PresentationProps) {
-  const { options, pick, moodOf, revealed, chosen, answer } = useOptions(
-    props,
-    { keys: false },
-  );
+  const { options, pick, moodOf, revealed, chosen, answer } = useOptions(props);
   const questionId = props.question.id;
 
   const board = useRef<HTMLDivElement>(null);
@@ -152,7 +149,8 @@ function WireSurface(props: PresentationProps) {
           style={{ fontVariationSettings: '"wdth" 88' }}
           className="shrink-0 font-sans text-[clamp(0.75rem,0.55rem+0.55vw+0.35vh,1.125rem)] font-bold uppercase tracking-[0.1em] text-accent"
         >
-          Drag the wire to the answer
+          <span className="pointer-coarse:hidden">Choose an answer with left and right</span>
+          <span className="hidden pointer-coarse:inline">Drag the wire or tap an answer</span>
         </p>
       )}
 
@@ -203,6 +201,7 @@ function WireSurface(props: PresentationProps) {
 
         <div
           ref={stem}
+          data-drag-handle
           onPointerDown={(e) => {
             if (revealed) return;
             e.preventDefault();
@@ -214,13 +213,13 @@ function WireSurface(props: PresentationProps) {
           className={`flex touch-none select-none flex-col items-center justify-center gap-1.5 self-center justify-self-center border-[3px] px-2.5 py-3 sm:gap-2 sm:px-5 sm:py-5 ${
             revealed
               ? "border-line bg-page"
-              : "cursor-grab border-accent bg-accent-wash/50 active:cursor-grabbing"
+              : "cursor-default border-accent bg-accent-wash/50 pointer-coarse:cursor-grab pointer-coarse:active:cursor-grabbing"
           }`}
         >
           {!revealed && (
             <span
               style={{ fontVariationSettings: '"wdth" 88' }}
-              className="font-sans text-[0.5625rem] font-bold uppercase leading-none tracking-[0.1em] text-accent sm:text-[0.6875rem] sm:tracking-[0.14em]"
+              className="hidden font-sans text-[0.5625rem] font-bold uppercase leading-none tracking-[0.1em] text-accent pointer-coarse:inline sm:text-[0.6875rem] sm:tracking-[0.14em]"
             >
               Drag
             </span>
@@ -258,6 +257,7 @@ function WireSurface(props: PresentationProps) {
                   option={o}
                   mood={mood}
                   revealed={revealed}
+                  onPick={pick}
                   className={`rise-in relative flex w-full items-center gap-2.5 overflow-hidden border-[3px] px-3 py-2 sm:gap-4 sm:px-5 sm:py-4 ${
                     mood === "right" ? "right-pop right-sheen" : ""
                   } ${targeted ? "border-accent bg-accent-wash" : tone(mood, { hover: false })}`}

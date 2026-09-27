@@ -901,3 +901,9 @@ details[open] > .fold-body {
 .btn:not(:disabled):hover, .chip:not(:disabled):hover, .lift:hover {
   transform: none;
 }
+
+@media (hover: hover) and (pointer: fine) {
+  a, button, input, textarea, select, summary, [data-drag-handle] {
+    pointer-events: none;
+  }
+}

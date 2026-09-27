@@ -52,9 +52,9 @@ export const thing: Presentation = {
 };
 ```
 
-Use the kit. `useOptions` binds number keys, tracks picks and refuses a second
+Use the kit. `useOptions` tracks picks and refuses a second
 answer. `Pick` is a button with its accessible name built in. `Mark` gives the
-answer a shape as well as a colour. Replacing these can break keyboard play in a
+answer a shape as well as a shade. Replacing these can break keyboard play in a
 way that isn't obvious. `useBlank`, `Gap` and `Commit` do the same job for round 2.
 
 ## rules
