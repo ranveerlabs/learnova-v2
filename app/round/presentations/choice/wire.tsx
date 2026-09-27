@@ -149,8 +149,7 @@ function WireSurface(props: PresentationProps) {
           style={{ fontVariationSettings: '"wdth" 88' }}
           className="shrink-0 font-sans text-[clamp(0.75rem,0.55rem+0.55vw+0.35vh,1.125rem)] font-bold uppercase tracking-[0.1em] text-accent"
         >
-          <span className="pointer-coarse:hidden">Choose an answer with left and right</span>
-          <span className="hidden pointer-coarse:inline">Drag the wire or tap an answer</span>
+          Choose an answer or drag the wire
         </p>
       )}
 
@@ -201,7 +200,6 @@ function WireSurface(props: PresentationProps) {
 
         <div
           ref={stem}
-          data-drag-handle
           onPointerDown={(e) => {
             if (revealed) return;
             e.preventDefault();
@@ -213,13 +211,13 @@ function WireSurface(props: PresentationProps) {
           className={`flex touch-none select-none flex-col items-center justify-center gap-1.5 self-center justify-self-center border-[3px] px-2.5 py-3 sm:gap-2 sm:px-5 sm:py-5 ${
             revealed
               ? "border-line bg-page"
-              : "cursor-default border-accent bg-accent-wash/50 pointer-coarse:cursor-grab pointer-coarse:active:cursor-grabbing"
+              : "cursor-grab border-accent bg-accent-wash/50 active:cursor-grabbing"
           }`}
         >
           {!revealed && (
             <span
               style={{ fontVariationSettings: '"wdth" 88' }}
-              className="hidden font-sans text-[0.5625rem] font-bold uppercase leading-none tracking-[0.1em] text-accent pointer-coarse:inline sm:text-[0.6875rem] sm:tracking-[0.14em]"
+              className="font-sans text-[0.5625rem] font-bold uppercase leading-none tracking-[0.1em] text-accent sm:text-[0.6875rem] sm:tracking-[0.14em]"
             >
               Drag
             </span>

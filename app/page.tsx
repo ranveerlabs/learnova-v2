@@ -24,7 +24,7 @@ export default function Landing() {
         </div>
       </nav>
       <footer className="home-footer">
-        <p className="pointer-coarse:hidden">Left and right move between controls. Enter selects.</p>
+        <p className="pointer-coarse:hidden">left right arrows for nav and enter to well enter</p>
         <div className="home-links">
           <span>commit {BUILD.sha}</span>
           <AudioControls />

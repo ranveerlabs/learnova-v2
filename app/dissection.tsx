@@ -228,6 +228,8 @@ export function MarkedUpText({
               key={i}
               href={`#note-${seg.id}`}
               aria-label={`${NOTE_KIND[seg.type].word}: “${seg.value}”. Go to note ${seg.n}.`}
+              onMouseEnter={() => setActive(seg.id)}
+              onMouseLeave={() => setActive(null)}
               onFocus={() => setActive(seg.id)}
               onBlur={() => setActive(null)}
               style={{ ...step, color: NOTE_KIND[seg.type].ink }}
@@ -311,6 +313,8 @@ export function MarginNotes({
               id={`note-${card.id}`}
               className="note-in scroll-mt-24"
               style={{ ["--i" as string]: i }}
+              onMouseEnter={() => setActive(card.id)}
+              onMouseLeave={() => setActive(null)}
             >
               <div
                 className="lift border-l-[3px] py-3 pl-3.5 pr-3.5"

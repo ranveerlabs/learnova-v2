@@ -6,12 +6,6 @@ const selector = 'a[href], button:not(:disabled), input:not(:disabled), textarea
 
 export function KeyboardNavigation() {
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches || e.detail === 0) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-    }
-
     function onKey(e: KeyboardEvent) {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
@@ -38,11 +32,7 @@ export function KeyboardNavigation() {
     }
 
     document.addEventListener("keydown", onKey);
-    document.addEventListener("click", onClick, true);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("click", onClick, true);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   return null;

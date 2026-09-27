@@ -903,7 +903,7 @@ details[open] > .fold-body {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  a, button, input, textarea, select, summary, [data-drag-handle] {
-    pointer-events: none;
+  *, *::before, *::after {
+    cursor: none !important;
   }
 }
